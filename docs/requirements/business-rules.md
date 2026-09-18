@@ -1,0 +1,65 @@
+# Business Rules
+
+- A student belongs to one and only one class.
+- The first administrator is provisioned manually; administrators can provision other user accounts.
+- A user's identifier is a 10-digit national ID.
+- Administrator, teacher, and student authentication uses national ID plus password.
+- Changing class does not change a student's point balance or reward requests.
+- Leaving the school removes the student's balance and active reward requests.
+- A class can have multiple subjects and teacher assignments.
+- A teacher can be assigned to multiple classes and multiple subjects, including multiple assignments in the same class for different subjects.
+- Leaving the school removes a teacher's balance, class assignments, and relationships.
+- Deactivation preserves a teacher's balance and relationships but prevents all teacher actions.
+- Removing a teacher from a class removes the assignment but does not change the teacher's balance; administrators handle any balance change separately.
+- Teacher reward eligibility is based on the student's membership in a class assigned to that teacher.
+- Teacher awards are positive only.
+- Teachers must select an administrator-defined task and one of its predefined point-amount options when awarding points.
+- Teachers cannot enter custom tasks or custom point amounts.
+- Teacher award spending is limited by the teacher's available balance.
+- Teacher points are an award budget and are not the same as student reward points.
+- Student reward requests reserve points at request time.
+- New physical reward requests are blocked while the reward inventory is zero.
+- Canceling or declining a request returns its reserved points to the student.
+- Removing a reward closes its active requests and returns their reserved points to the students.
+- Reward prices are immutable; changing a price requires removing the old reward and creating a new reward.
+- Changing reward inventory to zero changes existing active requests to unavailable; their reservations remain in place.
+- Physical reward requests are processed and displayed in their original request-time order; no other prioritization applies.
+- A physical reward's inventory decreases on administrator approval, which completes the request; pickup or handover is outside the system.
+- An unavailable physical reward request is preserved and becomes pending again when inventory is available.
+- A digital reward is completed at redemption, and its points and inventory decrease immediately.
+- Digital rewards have finite quantities and a configured list of redemption content items.
+- Each redeemed digital reward randomly selects and shows one configured content item to the student.
+- Every point transfer or point-balance change is recorded in the audit history with its actor, source, recipient, amount, action or reason, and time.
+- Audit and reporting access is role-appropriate for administrators, teachers, and students.
+- Teacher student-point reporting is limited to students in the teacher's assigned classes.
+- Point-flow audit records are immutable and cannot be corrected or deleted by administrators.
+- Point-flow audit records are retained permanently.
+- Point-flow reports can be filtered by date range, student, teacher, class, subject, action type, and reward, and can be exported as CSV, Excel, or PDF.
+- Reward request statuses use the exact labels Pending, Unavailable, Canceled, Declined, and Completed.
+- Status colors are blue for Pending, amber for Unavailable, gray for Canceled, red for Declined, and green for Completed.
+- Rankings use current student points, not historical points earned over a period.
+- Rankings are available at class scope and school scope.
+- Only active enrolled students are included in rankings and top-student boards.
+- Equal current-point balances produce equal ranks, and the next rank skips the number of tied positions.
+- Students can view their own rank and current points and the name, rank, and points of students included in class or school top-student boards only.
+- Administrators configure a per-student completion limit for each challenge or mission.
+- A student cannot submit verification requests after reaching the configured completion limit; the activity is done for that student.
+- The student's highest current-point balance is stored separately from the current balance.
+- There are exactly five student tiers.
+- Tier membership is determined by current points, not highest historical points.
+- Administrators exclusively manage tier names and minimum point thresholds.
+- Students move between tiers automatically when their current points cross tier thresholds.
+- Tiers have no reward, privilege, or theme behavior in the current phase.
+- Student weekly history records the current balance at the end of each day.
+- Challenge and mission activity can produce student point awards.
+- Only administrators can create and manage challenges and missions.
+- Challenge and mission point values are fixed at creation and cannot be edited; a changed value requires removing and recreating the activity.
+- Challenge and mission points are awarded only after an administrator manually verifies and accepts the student's verification request.
+- Three rejected verification requests for the same activity trigger an approximately one-month submission ban for that student and activity.
+- Rejected verification requests remain in the activity history for rejection counting.
+- The ban period is flexible and can be overridden by an administrator.
+- Administrators can unblock a student for an activity from the student's profile or details page.
+- Student tickets can be answered by administrators.
+- Ticket states follow the sequence `Open`, `In Progress`, `Answered`, and `Closed`.
+- A student reply reopens an answered ticket; only an administrator closes a ticket.
+- Closed tickets remain available in ticket history.
