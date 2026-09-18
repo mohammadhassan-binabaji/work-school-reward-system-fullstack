@@ -29,8 +29,6 @@
 - As a school administrator, I want to replace a challenge or mission when its point value must change so that completed activities retain their original value.
 - As a school administrator, I want rejected verification attempts retained and counted so that repeated invalid submissions can trigger the defined activity ban.
 - As a school administrator, I want to unban or unblock a student from the student's profile or details page so that I can override an activity submission ban.
-- As a school administrator, I want to read and answer student tickets so that I can provide support.
-- As a school administrator, I want to move tickets through Open, In Progress, Answered, and Closed so that I can manage support work.
 
 ## Teacher
 
@@ -62,5 +60,3 @@
 - As a student, I want to submit a verification request for a challenge or mission so that an administrator can validate my completion and award the points.
 - As a student, I want an activity to become done for me after reaching its configured completion limit so that I know I cannot submit more verification requests.
 - As a student, I want to know when I am temporarily blocked from submitting a verification request for an activity after three rejections.
-- As a student, I want to create and send support tickets so that I can ask the school for help.
-- As a student, I want to view responses and reply to my tickets so that I can continue the conversation until my issue is resolved.

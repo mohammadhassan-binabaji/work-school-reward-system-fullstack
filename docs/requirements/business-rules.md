@@ -58,7 +58,3 @@
 - Rejected verification requests remain in the activity history for rejection counting.
 - The ban period is flexible and can be overridden by an administrator.
 - Administrators can unblock a student for an activity from the student's profile or details page.
-- Student tickets can be answered by administrators.
-- Ticket states follow the sequence `Open`, `In Progress`, `Answered`, and `Closed`.
-- A student reply reopens an answered ticket; only an administrator closes a ticket.
-- Closed tickets remain available in ticket history.

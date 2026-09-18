@@ -248,21 +248,6 @@ A point-flow report must support:
 
 Teachers may report only on students in their assigned classes. Students may view their own point activity.
 
-## Student Support Ticket
-
-Each ticket must preserve:
-
-- Student
-- Subject or title
-- Ticket message
-- Creation date and time
-- Conversation replies
-- Reply author
-- Reply date and time
-- Current state
-
-Ticket states are `Open`, `In Progress`, `Answered`, and `Closed`. New tickets start as `Open`; student replies reopen an `Answered` ticket; administrators close resolved tickets. Closed tickets remain in student history.
-
 ## Data Details To Clarify Before Design
 
 These details are not yet specified as business requirements and should be confirmed before solution design:
@@ -272,4 +257,3 @@ These details are not yet specified as business requirements and should be confi
 - Which evidence formats students may submit for challenge and mission verification.
 - Whether administrators may edit the text or evidence requirements of an existing challenge or mission without changing its fixed points.
 - Whether reports need a stored report name, saved filter, or only on-demand filters.
-- Whether tickets require a category, priority, attachment, or administrator assignment.
