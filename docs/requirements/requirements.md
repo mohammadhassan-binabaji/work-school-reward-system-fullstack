@@ -135,3 +135,18 @@ The system enables teachers to award points to students for actions such as comp
 - The system shall retain rejected verification requests sufficiently to count rejections for the same student and activity.
 - The ban duration shall remain flexible rather than being defined as an exact calendar period.
 - Administrators shall be able to manually unban or unblock a student for an activity from the student's profile or details page in the administrator web interface.
+
+### Student task proposals
+
+- Students shall be able to submit voluntary task proposals (such as proposing to sing a song in front of the class).
+- Each student task proposal shall start in a `Pending to Approve` state.
+- Administrators shall be able to review pending task proposals.
+- If an administrator rejects a proposal, the proposal shall change to `Declined` state and close.
+- If an administrator approves a proposal, the administrator shall set a positive point amount for the proposal; the status shall change to `Ready to Do` and the point amount shall be visible to the student.
+- Administrators shall be able to modify the assigned point amount after approval while the proposal is active, and the updated point amount shall be displayed to the student.
+- While a proposal is in `Ready to Do` state, the student shall be able to cancel the request, changing its status to `Canceled` and closing the request.
+- After the student performs the task, an administrator shall manually verify completion and mark the request complete; the system shall transfer the assigned points to the student and change the status to `Completed` (closed).
+- Students and administrators shall be able to exchange messages within a task proposal during its active lifetime.
+- Teachers shall not see or participate in student task proposals.
+- Students and administrators shall be able to view open task proposals.
+- Administrators shall be able to filter task proposals by status (`Pending to Approve`, `Ready to Do`, `Completed`, `Declined`, `Canceled`).

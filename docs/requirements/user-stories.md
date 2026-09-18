@@ -29,6 +29,10 @@
 - As a school administrator, I want to replace a challenge or mission when its point value must change so that completed activities retain their original value.
 - As a school administrator, I want rejected verification attempts retained and counted so that repeated invalid submissions can trigger the defined activity ban.
 - As a school administrator, I want to unban or unblock a student from the student's profile or details page so that I can override an activity submission ban.
+- As a school administrator, I want to review, approve, or decline student task proposals so that voluntary student initiatives can be recognized.
+- As a school administrator, I want to set and adjust the point value for approved student task proposals so that appropriate point rewards are assigned.
+- As a school administrator, I want to mark student task proposals completed so that points are transferred upon successful task execution.
+- As a school administrator, I want to filter task proposals by status so that I can manage open and historical proposals efficiently.
 
 ## Teacher
 
@@ -60,3 +64,7 @@
 - As a student, I want to submit a verification request for a challenge or mission so that an administrator can validate my completion and award the points.
 - As a student, I want an activity to become done for me after reaching its configured completion limit so that I know I cannot submit more verification requests.
 - As a student, I want to know when I am temporarily blocked from submitting a verification request for an activity after three rejections.
+- As a student, I want to propose voluntary tasks to earn points so that I can demonstrate initiative.
+- As a student, I want to see the status and assigned point value of my task proposal so that I know what is required.
+- As a student, I want to cancel my task proposal while it is in ready to do state if I am unable to perform it.
+- As a student, I want to exchange messages with the administrator regarding my task proposal so that we can communicate about the task.

@@ -58,3 +58,12 @@
 - Rejected verification requests remain in the activity history for rejection counting.
 - The ban period is flexible and can be overridden by an administrator.
 - Administrators can unblock a student for an activity from the student's profile or details page.
+- Student task proposals begin in `Pending to Approve` state.
+- Rejection of a student task proposal closes it in `Declined` state.
+- Approval of a student task proposal requires an administrator to set a positive point value and moves it to `Ready to Do` state.
+- Point values for approved task proposals can be updated by administrators prior to completion.
+- Students can cancel a task proposal only while it is in `Ready to Do` state, which closes it in `Canceled` state.
+- Task completion by a student is validated manually by an administrator; marking completion transfers the points and closes the proposal as `Completed`.
+- Students and administrators can exchange messages on a task proposal throughout its lifecycle.
+- Teachers cannot see or participate in student task proposals.
+- Task proposals use status labels `Pending to Approve`, `Ready to Do`, `Completed`, `Declined`, and `Canceled`.

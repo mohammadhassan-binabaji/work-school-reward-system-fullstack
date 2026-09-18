@@ -190,6 +190,36 @@ Each verification request must preserve:
 
 Accepted verification marks the activity completed for the student and awards the fixed points. Three rejected requests for the same student and activity trigger a flexible approximately one-month ban. Administrators can manually unblock the student from the student profile.
 
+## Student Task Proposal
+
+Each student task proposal must preserve:
+
+- Student proposer
+- Proposed task description or message
+- Current status (`Pending to Approve`, `Ready to Do`, `Completed`, `Declined`, `Canceled`)
+- Assigned point value (set by administrator upon approval; editable prior to completion)
+- Submission date and time
+- Approval date and time
+- Completion date and time
+- Reviewing administrator
+
+Allowed proposal statuses are:
+
+- `Pending to Approve`
+- `Ready to Do`
+- `Completed`
+- `Declined`
+- `Canceled`
+
+## Student Task Proposal Message
+
+Each message within a task proposal must preserve:
+
+- Task proposal reference
+- Sender (student or administrator)
+- Message body
+- Sent date and time
+
 ## Student Tier
 
 The system must store exactly five tiers. Each tier must have:
