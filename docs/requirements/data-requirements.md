@@ -124,26 +124,14 @@ The system must store or display:
 - Reward name
 - Reward description
 - Point price
-- Reward mode: physical or digital
-- Inventory quantity
+- Whether the reward requires administrator approval
+- Inventory quantity (only for rewards not requiring approval; rewards requiring approval have no inventory limit)
 - Active or removed state
 - Creation and relevant change information
 
 Reward price is fixed after creation. To use a different price, the administrator removes the old reward and creates a new one.
 
-Physical rewards must not accept new requests when inventory is zero. When inventory becomes zero, existing active requests become `Unavailable`.
-
-## Digital Reward Content
-
-Each digital reward must contain a list of content items. Each item may be:
-
-- Video
-- Link
-- Image
-- File
-- Text
-
-The system must retain the content needed to randomly select one item and display it to the student after redemption.
+Rewards not requiring approval must not accept new requests when inventory is zero.
 
 ## Reward Request
 
@@ -151,22 +139,25 @@ Each request must preserve:
 
 - Student
 - Reward
-- Reward mode
+- Whether the reward requires approval
 - Point price at request time
 - Original request date and time
 - Current request state
 - Reserved point amount
-- Cancellation, decline, completion, or closure information when applicable
+- Approval, decline, or receive information when applicable
 
-Allowed physical-request labels are:
+Allowed request labels are:
 
-- `Pending`
-- `Unavailable`
-- `Canceled`
-- `Declined`
+- `Pending to Approve`
+- `Pending to Receive`
 - `Completed`
+- `Declined`
 
-Physical requests are ordered by original request time. A student may cancel a physical request only while it is `Pending` or `Unavailable`. Approval completes the request and decreases inventory; pickup or handover data is not stored.
+Rewards not requiring approval enter `Pending to Receive` immediately on request and decrease inventory. Rewards requiring approval enter `Pending to Approve`; administrator approval moves them to `Pending to Receive`; decline returns reserved points.
+
+The administrator marks a request as received after handover, changing it to `Completed`.
+
+Students cannot cancel reward requests at any stage.
 
 ## Challenge or Mission
 

@@ -55,38 +55,29 @@ The system enables teachers to award points to students for actions such as comp
 - Administrators shall manage the reward catalog, including creating, pricing, editing, and removing rewards.
 - Administrators shall not change the price of an existing reward; to use a different price, they shall remove the old reward and create a new reward.
 - When an administrator removes a reward, its active requests shall be closed and their reserved points shall return to the respective students.
-- Rewards shall support a physical redemption mode and a digital redemption mode.
-- Digital rewards shall have finite inventory.
-- When creating a digital reward, administrators shall provide a list of content items for redemption. Content items may be videos, links, images, files, or text.
+- When creating a reward, administrators shall configure whether the reward requires administrator approval before fulfillment.
+- Rewards that require approval shall have no inventory limit.
+- Rewards that do not require approval shall have finite inventory.
 - Students shall be able to request rewards when they have sufficient points.
 - A student request shall reserve and immediately deduct the required points.
+- Students shall not be able to cancel reward requests at any stage.
 
-### Physical reward redemption
+### Reward redemption
 
-- A physical reward request shall enter a pending state after the student requests it.
-- Students shall not be able to create a new physical reward request when its inventory is zero.
-- A student may cancel/delete their own physical reward request while it is pending or unavailable.
-- When canceled or declined, reserved points shall return to the student's balance.
-- If physical reward inventory reaches zero, preserved requests shall change to an unavailable state and display an in-app message or label on the request.
-- If inventory is changed to zero, existing active requests for that reward shall change to an unavailable state.
-- The system shall preserve the original request time on each physical reward request.
-- When inventory becomes available again, unavailable requests shall return to pending and wait for administrator approval in original request-time order.
-- Administrator views of physical reward requests shall display requests in original request-time order, with no additional prioritization rule.
-- Administrator approval shall complete the physical reward request successfully and immediately decrease inventory.
-- The system shall not track physical pickup or handover.
-
-### Digital reward redemption
-
-- A digital reward shall be completed automatically when redeemed.
-- Digital reward points and inventory shall decrease immediately at redemption.
-- One content item shall be selected randomly from the digital reward's configured list and shown to the student in the web application after redemption.
+- When a student requests a reward that does not require approval, the request shall enter `Pending to Receive` immediately and inventory shall decrease.
+- When a student requests a reward that requires approval, the request shall enter `Pending to Approve`.
+- An administrator shall manually review each `Pending to Approve` request.
+- If the administrator approves the request, the request shall move to `Pending to Receive`.
+- If the administrator declines the request, the reserved points shall return to the student's balance and the request shall move to `Declined`.
+- Students shall not be able to create a new request for a reward when its inventory is zero.
+- When the student receives the reward, the administrator shall mark the request as received and the status shall change to `Completed`.
 
 ### Notifications
 
-- For inventory state changes, the system shall show a message or label on the student's request.
+- For reward state changes, the system shall show a message or label on the student's request.
 - SMS, email, and other external notifications are not required for this behavior.
-- Reward request statuses shall use the exact labels `Pending`, `Unavailable`, `Canceled`, `Declined`, and `Completed`.
-- Status labels shall use these colors: `Pending` blue, `Unavailable` amber, `Canceled` gray, `Declined` red, and `Completed` green.
+- Reward request statuses shall use the labels `Pending to Approve`, `Pending to Receive`, `Completed`, and `Declined`.
+- Status labels shall use these colors: `Pending to Approve` blue, `Pending to Receive` blue, `Completed` green, and `Declined` red.
 
 ### Audit and reporting
 

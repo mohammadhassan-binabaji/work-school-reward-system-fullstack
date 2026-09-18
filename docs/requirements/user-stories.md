@@ -8,14 +8,14 @@
 - As a school administrator, I want to create classes so that the school structure is represented in the system.
 - As a school administrator, I want to assign each student to a class so that membership is managed centrally.
 - As a school administrator, I want to assign teachers to classes by subject so that teaching relationships are explicit.
-- As a school administrator, I want to manage rewards and their prices, modes, and inventory so that students can redeem available rewards.
+- As a school administrator, I want to manage rewards with prices, inventory, and an optional approval requirement so that students can redeem available rewards.
+- As a school administrator, I want to review and approve or decline reward requests that require approval so that only valid requests are fulfilled.
+- As a school administrator, I want to mark reward requests as received after handing the reward to the student so that delivery is tracked.
 - As a school administrator, I want to fund teacher point balances from the system point pool so that teachers have award budgets.
 - As a school administrator, I want to define tasks for point transfers and configure point-amount options for each task so that teacher awards follow controlled rules.
 - As a school administrator, I want to adjust student point balances so that corrections and administrative awards are possible.
 - As a school administrator, I want to deactivate teachers without losing their balances or relationships, while preventing their actions.
 - As a school administrator, I want to remove teachers from individual class assignments without changing their balances so that I can manage balances separately.
-- As a school administrator, I want to approve physical reward requests so that approved redemptions complete and reduce inventory.
-- As a school administrator, I want to define a list of digital reward content items, such as links, images, files, videos, or text, so that one can be delivered on redemption.
 - As a school administrator, I want complete point-flow audit history and filtered reports so that I can review and manage the school's point economy.
 - As a school administrator, I want to filter reports by date range, student, teacher, class, subject, action type, and reward and export them as CSV, Excel, or PDF so that I can analyze and share point activity.
 - As a school administrator, I want to view current student points in tables and diagrams so that I can understand point distribution.
@@ -49,9 +49,7 @@
 - As a student, I want to sign in with my national ID and password so that I can access my account.
 - As a student, I want to view my points so that I know what I can redeem.
 - As a student, I want to request rewards using my points so that I can receive benefits for my achievements.
-- As a student, I want to cancel eligible physical reward requests so that reserved points can return to my balance.
-- As a student, I want to see the state of my reward request so that I know whether it is pending, unavailable, or completed.
-- As a student, I want one random digital reward content item shown in the web app after redemption so that I can use it immediately.
+- As a student, I want to see the state of my reward request so that I know whether it is pending to approve, pending to receive, completed, or declined.
 - As a student, I want a report of my point activity so that I can understand points received, reserved, returned, and spent.
 - As a student, I want to see my current rank in my class and across the school so that I can understand my standing.
 - As a student, I want to see my current tier based on my points so that I can understand my current-point category.

@@ -18,25 +18,24 @@
 - Teacher award spending is limited by the teacher's available balance.
 - Teacher points are an award budget and are not the same as student reward points.
 - Student reward requests reserve points at request time.
-- New physical reward requests are blocked while the reward inventory is zero.
-- Canceling or declining a request returns its reserved points to the student.
+- Students cannot cancel reward requests at any stage.
+- Rewards may optionally require administrator approval; this is configured per reward.
+- Rewards requiring approval have no inventory limit; rewards not requiring approval have finite inventory.
+- New requests are blocked while a non-approval reward's inventory is zero.
+- Rewards not requiring approval enter `Pending to Receive` immediately on request and decrease inventory.
+- Rewards requiring approval enter `Pending to Approve`; administrator approval moves them to `Pending to Receive`; decline returns reserved points.
+- The administrator marks a request as received after handover, changing it to `Completed`.
+- Declining a request returns its reserved points to the student.
 - Removing a reward closes its active requests and returns their reserved points to the students.
 - Reward prices are immutable; changing a price requires removing the old reward and creating a new reward.
-- Changing reward inventory to zero changes existing active requests to unavailable; their reservations remain in place.
-- Physical reward requests are processed and displayed in their original request-time order; no other prioritization applies.
-- A physical reward's inventory decreases on administrator approval, which completes the request; pickup or handover is outside the system.
-- An unavailable physical reward request is preserved and becomes pending again when inventory is available.
-- A digital reward is completed at redemption, and its points and inventory decrease immediately.
-- Digital rewards have finite quantities and a configured list of redemption content items.
-- Each redeemed digital reward randomly selects and shows one configured content item to the student.
+- Reward request statuses are `Pending to Approve`, `Pending to Receive`, `Completed`, and `Declined`.
+- Status colors are blue for `Pending to Approve` and `Pending to Receive`, green for `Completed`, and red for `Declined`.
 - Every point transfer or point-balance change is recorded in the audit history with its actor, source, recipient, amount, action or reason, and time.
 - Audit and reporting access is role-appropriate for administrators, teachers, and students.
 - Teacher student-point reporting is limited to students in the teacher's assigned classes.
 - Point-flow audit records are immutable and cannot be corrected or deleted by administrators.
 - Point-flow audit records are retained permanently.
 - Point-flow reports can be filtered by date range, student, teacher, class, subject, action type, and reward, and can be exported as CSV, Excel, or PDF.
-- Reward request statuses use the exact labels Pending, Unavailable, Canceled, Declined, and Completed.
-- Status colors are blue for Pending, amber for Unavailable, gray for Canceled, red for Declined, and green for Completed.
 - Rankings use current student points, not historical points earned over a period.
 - Rankings are available at class scope and school scope.
 - Only active enrolled students are included in rankings and top-student boards.
