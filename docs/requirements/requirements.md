@@ -150,3 +150,11 @@ The system enables teachers to award points to students for actions such as comp
 - Teachers shall not see or participate in student task proposals.
 - Students and administrators shall be able to view open task proposals.
 - Administrators shall be able to filter task proposals by status (`Pending to Approve`, `Ready to Do`, `Completed`, `Declined`, `Canceled`).
+
+### `Point earning guidance`
+
+- The system shall provide a guidance page for students displaying cards that describe ways to earn points.
+- Only administrators shall be able to create, edit, and delete guidance cards.
+- Each guidance card shall have a title, a description, a logo selected from a set of predefined logos, and a suggested point value or point range (such as 10 to 20 points).
+- Guidance cards shall be display-only for students; students shall not be able to click on or take any action on a card.
+- The guidance page shall be visible to students.

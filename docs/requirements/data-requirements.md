@@ -220,6 +220,18 @@ Each message within a task proposal must preserve:
 - Message body
 - Sent date and time
 
+## Point Earning Guidance Card
+
+Each guidance card must store:
+
+- Title
+- Description
+- Logo selected from a predefined set of logos
+- Suggested point value or point range (such as 10 to 20 points)
+- Active or removed state
+
+Only administrators can create, edit, and delete guidance cards. Cards are display-only for students and do not support any student interaction.
+
 ## Student Tier
 
 The system must store exactly five tiers. Each tier must have:

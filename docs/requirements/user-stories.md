@@ -33,6 +33,7 @@
 - As a school administrator, I want to set and adjust the point value for approved student task proposals so that appropriate point rewards are assigned.
 - As a school administrator, I want to mark student task proposals completed so that points are transferred upon successful task execution.
 - As a school administrator, I want to filter task proposals by status so that I can manage open and historical proposals efficiently.
+- As a school administrator, I want to create, edit, and delete point earning guidance cards so that students can see how to earn points.
 
 ## Teacher
 
@@ -68,3 +69,4 @@
 - As a student, I want to see the status and assigned point value of my task proposal so that I know what is required.
 - As a student, I want to cancel my task proposal while it is in ready to do state if I am unable to perform it.
 - As a student, I want to exchange messages with the administrator regarding my task proposal so that we can communicate about the task.
+- As a student, I want to view point earning guidance cards so that I can understand the ways I can earn points.

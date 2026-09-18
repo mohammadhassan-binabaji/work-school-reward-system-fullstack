@@ -67,3 +67,5 @@
 - Students and administrators can exchange messages on a task proposal throughout its lifecycle.
 - Teachers cannot see or participate in student task proposals.
 - Task proposals use status labels `Pending to Approve`, `Ready to Do`, `Completed`, `Declined`, and `Canceled`.
+- Point earning guidance cards are managed exclusively by administrators.
+- Guidance cards are informational and display-only; students cannot interact with them beyond viewing.
