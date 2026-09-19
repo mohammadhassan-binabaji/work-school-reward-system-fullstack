@@ -45,7 +45,6 @@
 - As a teacher, I want to filter and export reports as CSV, Excel, or PDF so that I can review relevant point activity.
 - As a teacher, I want to view current points for students in my assigned classes in tables and diagrams so that I can monitor their progress.
 - As a teacher, I want to filter student point reports by tier so that I can analyze students by current-point category.
-- As a teacher, I want to award points for challenge and mission completion so that I can recognize student participation.
 
 ## Student
 

@@ -92,7 +92,7 @@ As a student and school administrator, I need students to request catalog reward
 
 ### User Story 5 - Challenges, Missions & Submission Abuse Prevention (Priority: P2)
 
-As a school administrator, teacher, and student, I need administrators to create fixed-value challenges and missions with per-student completion limits, teachers and administrators to award points for completions, students to submit verification requests, and the system to enforce temporary submission bans after repeated rejections while allowing administrative overrides.
+As a school administrator, and student, I need administrators to create fixed-value challenges and missions with per-student completion limits, administrators to award points for completions, students to submit verification requests, and the system to enforce temporary submission bans after repeated rejections while allowing administrative overrides.
 
 **Why this priority**: Challenges and missions provide engagement pathways beyond routine classroom tasks, requiring verified completion controls and abuse prevention.
 

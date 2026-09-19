@@ -125,7 +125,7 @@ The system enables teachers to award points to students for actions such as comp
 - Students shall be able to earn points by completing challenges and missions.
 - A mission may require an action such as joining the school's Instagram social page.
 - A challenge may require completing a specified task.
-- Teachers and administrators shall be able to award points for challenge and mission completion.
+- Administrators shall be able to award points for challenge and mission completion.
 - Students shall be able to submit a verification request for a completed challenge or mission.
 - An administrator shall manually review each verification request.
 - If the administrator confirms the submission is valid, the system shall mark the challenge or mission completed for the student and award the configured mission or challenge points.
