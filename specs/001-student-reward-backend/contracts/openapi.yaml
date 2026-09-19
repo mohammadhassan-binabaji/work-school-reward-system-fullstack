@@ -1,0 +1,1840 @@
+openapi: 3.0.3
+info:
+  title: Student Reward System Backend API
+  version: 1.0.0
+  description: >
+    Production REST API specification for the Student Reward System Backend.
+    Provides authentication and RBAC, academic structure, atomic point transactions,
+    reward redemptions, challenges/missions with abuse ban protection, student task
+    proposals with messaging, rankings, 5-tier classification, and immutable audit reporting.
+servers:
+  - url: /api/v1
+    description: Primary API Gateway v1
+
+security:
+  - BearerAuth: []
+
+paths:
+  # ==========================================
+  # Authentication & Account Provisioning
+  # ==========================================
+  /auth/provision-admin:
+    post:
+      summary: Provision Initial School Administrator
+      description: Seeds or provisions the first school administrator when no users exist.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProvisionAdminRequest'
+      responses:
+        '201':
+          description: Administrator provisioned successfully
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/X-Correlation-ID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '409':
+          $ref: '#/components/responses/409Conflict'
+
+  /auth/users:
+    post:
+      summary: Provision User Account (Admin Only)
+      description: Administrators create additional administrator, teacher, and student accounts.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: Account created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+        '409':
+          $ref: '#/components/responses/409Conflict'
+
+  /auth/login:
+    post:
+      summary: Authenticate User
+      description: Authenticates user by 10-digit national ID and password.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Authentication successful
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/X-Correlation-ID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+
+  /auth/me:
+    get:
+      summary: Get Current User Profile
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+
+  # ==========================================
+  # Academic Structure & Membership
+  # ==========================================
+  /academic/classes:
+    get:
+      summary: List Classes
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [Active, Inactive]
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ClassResponse'
+    post:
+      summary: Create Class (Admin Only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateClassRequest'
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassResponse'
+
+  /academic/classes/{id}/students:
+    post:
+      summary: Assign Student to Class (Admin Only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [studentId]
+              properties:
+                studentId:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassResponse'
+
+  /academic/students/{id}/class:
+    put:
+      summary: Reassign Student Class (Admin Only)
+      description: Preserves student points, active requests, and proposals intact.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [newClassId]
+              properties:
+                newClassId:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+
+  /academic/students/{id}/departure:
+    put:
+      summary: Mark Student as Departed (Admin Only)
+      description: Removes student balance, cancels active reward requests, and excludes from rankings.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+
+  /academic/subjects:
+    get:
+      summary: List Subjects
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SubjectResponse'
+    post:
+      summary: Create Subject (Admin Only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSubjectRequest'
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubjectResponse'
+
+  /academic/assignments:
+    get:
+      summary: List Teacher-Class-Subject Assignments
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AssignmentResponse'
+    post:
+      summary: Assign Teacher to Class for Subject (Admin Only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAssignmentRequest'
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssignmentResponse'
+
+  /academic/assignments/{id}:
+    delete:
+      summary: Remove Teacher Class Assignment (Admin Only)
+      description: Removes assignment without changing teacher point balance.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Assignment removed successfully
+
+  /academic/teachers/{id}/status:
+    put:
+      summary: Update Teacher Account State (Admin Only)
+      description: Handles deactivation (preserves points & assignments) or departure (clears points & assignments).
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [Active, Deactivated, Departed]
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+
+  # ==========================================
+  # Point Economy & Teacher Awards
+  # ==========================================
+  /points/pool:
+    get:
+      summary: Get Master Point Pool Status (Admin Only)
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PointPoolResponse'
+
+  /points/pool/transfer:
+    post:
+      summary: Transfer Points from System Pool to Teacher Budget (Admin Only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [teacherId, amount]
+              properties:
+                teacherId:
+                  type: string
+                  format: uuid
+                amount:
+                  type: integer
+                  minimum: 1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PointPoolResponse'
+
+  /points/tasks:
+    get:
+      summary: List Point Transfer Tasks & Predefined Options
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PointTaskResponse'
+    post:
+      summary: Define Point Transfer Task & Options (Admin Only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePointTaskRequest'
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PointTaskResponse'
+
+  /points/award:
+    post:
+      summary: Award Points to Student (Teacher Only)
+      description: Teacher awards positive points by selecting an admin-defined task and predefined option.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TeacherAwardRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PointTransactionResult'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+
+  /points/adjust:
+    post:
+      summary: Direct Point Adjustment (Admin Only)
+      description: Adds or subtracts points directly from student balance (never resulting in negative balance).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminAdjustRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PointTransactionResult'
+
+  # ==========================================
+  # Reward Catalog & Redemptions
+  # ==========================================
+  /rewards:
+    get:
+      summary: List Rewards Catalog
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RewardResponse'
+    post:
+      summary: Create Catalog Reward (Admin Only)
+      description: Reward price is strictly immutable once created.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRewardRequest'
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RewardResponse'
+
+  /rewards/{id}:
+    put:
+      summary: Update Reward Metadata (Admin Only)
+      description: Allows updating name, description, image, and inventory. Price modification is rejected.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRewardRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RewardResponse'
+    delete:
+      summary: Remove Reward from Catalog (Admin Only)
+      description: Closes all active requests and returns reserved points to students.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Reward removed and active requests refunded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  refundedRequestsCount:
+                    type: integer
+                  totalPointsRefunded:
+                    type: integer
+
+  /rewards/requests:
+    get:
+      summary: List Reward Requests
+      description: Admins see all requests; students see only their own requests.
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [Pending to Approve, Pending to Receive, Completed, Declined]
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RewardRequestResponse'
+    post:
+      summary: Submit Reward Request (Student Only)
+      description: Immediately reserves required points; decrements inventory if non-approval.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [rewardId]
+              properties:
+                rewardId:
+                  type: string
+                  format: uuid
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RewardRequestResponse'
+
+  /rewards/requests/{id}/approve:
+    put:
+      summary: Approve Reward Request (Admin Only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RewardRequestResponse'
+
+  /rewards/requests/{id}/decline:
+    put:
+      summary: Decline Reward Request (Admin Only)
+      description: Returns reserved points immediately to student balance.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RewardRequestResponse'
+
+  /rewards/requests/{id}/receive:
+    put:
+      summary: Mark Reward Request as Received (Admin Only)
+      description: Handover confirmation; transitions status to Completed and finalizes points.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RewardRequestResponse'
+
+  # ==========================================
+  # Challenges, Missions & Verification
+  # ==========================================
+  /activities:
+    get:
+      summary: List Challenges and Missions
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [Challenge, Mission]
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ActivityResponse'
+    post:
+      summary: Create Challenge or Mission (Admin Only)
+      description: Fixed point value is strictly immutable once created.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateActivityRequest'
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActivityResponse'
+
+  /activities/{id}:
+    put:
+      summary: Update Challenge or Mission Metadata (Admin Only)
+      description: Allows updating title, description, and completion limit. Point value cannot be edited.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateActivityRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActivityResponse'
+
+  /activities/{id}/verifications:
+    get:
+      summary: List Verification Requests for Activity
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/VerificationResponse'
+    post:
+      summary: Submit Verification Request (Student Only)
+      description: Supports text description and direct multipart file/image attachments.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [evidenceDescription]
+              properties:
+                evidenceDescription:
+                  type: string
+                attachments:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerificationResponse'
+        '403':
+          description: Rejected due to active abuse ban or completion limit reached
+
+  /activities/verifications/{id}/review:
+    put:
+      summary: Review Activity Verification (Admin or Teacher)
+      description: Accepting awards points; rejecting counts towards 3-rejection abuse ban.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action]
+              properties:
+                action:
+                  type: string
+                  enum: [Accepted, Rejected]
+                reviewNotes:
+                  type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerificationResponse'
+
+  /activities/bans/{studentId}/{activityId}/unban:
+    put:
+      summary: Admin Override Unban Student for Activity (Admin Only)
+      parameters:
+        - name: studentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: activityId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: unbanned
+                  studentId:
+                    type: string
+                    format: uuid
+                  activityId:
+                    type: string
+                    format: uuid
+
+  # ==========================================
+  # Student Voluntary Task Proposals & Messaging
+  # ==========================================
+  /proposals:
+    get:
+      summary: List Task Proposals
+      description: Students see only their own proposals; Admins see all school proposals; Teachers are rejected.
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [Pending to Approve, Ready to Do, Completed, Declined, Canceled]
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProposalResponse'
+        '403':
+          description: Teachers cannot view proposals (FR-053)
+    post:
+      summary: Submit Voluntary Task Proposal (Student Only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [description]
+              properties:
+                description:
+                  type: string
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProposalResponse'
+
+  /proposals/{id}:
+    get:
+      summary: Get Proposal Details and Message Thread
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProposalDetailResponse'
+
+  /proposals/{id}/approve:
+    put:
+      summary: Approve Proposal & Assign Point Amount (Admin Only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [assignedPointValue]
+              properties:
+                assignedPointValue:
+                  type: integer
+                  minimum: 1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProposalResponse'
+
+  /proposals/{id}/points:
+    put:
+      summary: Update Assigned Points in Ready to Do (Admin Only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [assignedPointValue]
+              properties:
+                assignedPointValue:
+                  type: integer
+                  minimum: 1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProposalResponse'
+
+  /proposals/{id}/cancel:
+    put:
+      summary: Cancel Proposal (Student Only - Ready to Do Only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProposalResponse'
+
+  /proposals/{id}/complete:
+    put:
+      summary: Confirm Completion & Award Points (Admin Only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProposalResponse'
+
+  /proposals/{id}/messages:
+    post:
+      summary: Post Message to Proposal (Student or Admin Only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [messageBody]
+              properties:
+                messageBody:
+                  type: string
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+
+  # ==========================================
+  # Analytics, Rankings & Tiers
+  # ==========================================
+  /analytics/rankings:
+    get:
+      summary: Get Student Rankings & Top-Student Boards
+      description: Implements standard competition ranking (1224). Students receive own rank, count, and privacy-filtered top-N board only.
+      parameters:
+        - name: scope
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [class, school]
+        - name: classId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RankingResponse'
+
+  /analytics/tiers:
+    get:
+      summary: Get 5 Configured Student Tiers
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TierResponse'
+    put:
+      summary: Configure Student Tiers (Admin Only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              minItems: 5
+              maxItems: 5
+              items:
+                $ref: '#/components/schemas/UpdateTierItem'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TierResponse'
+
+  /analytics/students/{id}/history:
+    get:
+      summary: Get Weekly Student Daily Balance History
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DailySnapshotResponse'
+
+  # ==========================================
+  # Guidance Cards
+  # ==========================================
+  /guidance/cards:
+    get:
+      summary: List Earning Guidance Cards (Display Only)
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GuidanceCardResponse'
+    post:
+      summary: Create Guidance Card (Admin Only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateGuidanceCardRequest'
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GuidanceCardResponse'
+
+  /guidance/cards/{id}:
+    put:
+      summary: Update Guidance Card (Admin Only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateGuidanceCardRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GuidanceCardResponse'
+    delete:
+      summary: Remove Guidance Card (Admin Only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Guidance card removed
+
+  # ==========================================
+  # Immutable Audit Logging & Reporting
+  # ==========================================
+  /reports/point-flow:
+    get:
+      summary: Query On-Demand Point-Flow Report
+      description: Parameterized runtime filtering with role-based scoping applied.
+      parameters:
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: studentId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: teacherId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: classId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: subjectId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: actionType
+          in: query
+          schema:
+            type: string
+        - name: rewardId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: tierId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AuditRecordResponse'
+
+  /reports/point-flow/export:
+    get:
+      summary: Export Filtered Point-Flow Report
+      parameters:
+        - name: format
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [csv, excel, pdf]
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Binary file stream formatted per requested format
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+
+# ==========================================
+# Reusable Schemas & Headers
+# ==========================================
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  headers:
+    X-Correlation-ID:
+      schema:
+        type: string
+        format: uuid
+      description: Unique correlation identifier for tracing request lifecycle logs.
+
+  responses:
+    400BadRequest:
+      description: Bad Request - Validation error or business rule precondition violated
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    401Unauthorized:
+      description: Unauthorized - Invalid or missing credentials
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    403Forbidden:
+      description: Forbidden - Insufficient role permissions or assignment eligibility
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    409Conflict:
+      description: Conflict - Unique constraint collision or concurrent modification
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [statusCode, error, message, correlationId]
+      properties:
+        statusCode:
+          type: integer
+          example: 400
+        error:
+          type: string
+          example: Bad Request
+        message:
+          type: string
+          example: Teacher award balance insufficient for requested award
+        correlationId:
+          type: string
+          format: uuid
+          example: e1f2a3b4-5678-90ab-cdef-1234567890ab
+
+    ProvisionAdminRequest:
+      type: object
+      required: [nationalId, username, password, firstName, lastName]
+      properties:
+        nationalId:
+          type: string
+          pattern: '^\d{10}$'
+        username:
+          type: string
+          minLength: 3
+        password:
+          type: string
+          minLength: 8
+        firstName:
+          type: string
+        lastName:
+          type: string
+
+    CreateUserRequest:
+      type: object
+      required: [role, nationalId, username, password, firstName, lastName]
+      properties:
+        role:
+          type: string
+          enum: [ADMIN, TEACHER, STUDENT]
+        nationalId:
+          type: string
+          pattern: '^\d{10}$'
+        username:
+          type: string
+        password:
+          type: string
+          minLength: 8
+        firstName:
+          type: string
+        lastName:
+          type: string
+        classId:
+          type: string
+          format: uuid
+
+    LoginRequest:
+      type: object
+      required: [nationalId, password]
+      properties:
+        nationalId:
+          type: string
+          pattern: '^\d{10}$'
+        password:
+          type: string
+
+    LoginResponse:
+      type: object
+      required: [token, user]
+      properties:
+        token:
+          type: string
+        user:
+          $ref: '#/components/schemas/UserResponse'
+
+    UserResponse:
+      type: object
+      required: [id, nationalId, username, firstName, lastName, role, accountState]
+      properties:
+        id:
+          type: string
+          format: uuid
+        nationalId:
+          type: string
+        username:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        role:
+          type: string
+          enum: [ADMIN, TEACHER, STUDENT]
+        accountState:
+          type: string
+        pointBalance:
+          type: integer
+        currentPoints:
+          type: integer
+        reservedPoints:
+          type: integer
+        highestBalance:
+          type: integer
+        classId:
+          type: string
+          format: uuid
+        currentTier:
+          type: string
+
+    CreateClassRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        gradeLevel:
+          type: string
+        description:
+          type: string
+
+    ClassResponse:
+      type: object
+      required: [id, name, status]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        gradeLevel:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+
+    CreateSubjectRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+
+    SubjectResponse:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+
+    CreateAssignmentRequest:
+      type: object
+      required: [teacherId, classId, subjectId]
+      properties:
+        teacherId:
+          type: string
+          format: uuid
+        classId:
+          type: string
+          format: uuid
+        subjectId:
+          type: string
+          format: uuid
+
+    AssignmentResponse:
+      type: object
+      required: [id, teacherId, classId, subjectId, assignmentState]
+      properties:
+        id:
+          type: string
+          format: uuid
+        teacherId:
+          type: string
+          format: uuid
+        classId:
+          type: string
+          format: uuid
+        subjectId:
+          type: string
+          format: uuid
+        assignmentState:
+          type: string
+
+    PointPoolResponse:
+      type: object
+      required: [totalAllocated, availableBalance]
+      properties:
+        totalAllocated:
+          type: integer
+        availableBalance:
+          type: integer
+
+    CreatePointTaskRequest:
+      type: object
+      required: [name, options]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        options:
+          type: array
+          items:
+            type: integer
+            minimum: 1
+
+    PointTaskResponse:
+      type: object
+      required: [id, name, status, options]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+        options:
+          type: array
+          items:
+            type: integer
+
+    TeacherAwardRequest:
+      type: object
+      required: [studentId, taskId, pointAmount]
+      properties:
+        studentId:
+          type: string
+          format: uuid
+        taskId:
+          type: string
+          format: uuid
+        pointAmount:
+          type: integer
+          minimum: 1
+
+    AdminAdjustRequest:
+      type: object
+      required: [studentId, amount, reason]
+      properties:
+        studentId:
+          type: string
+          format: uuid
+        amount:
+          type: integer
+          description: Positive to add points; negative to subtract points
+        reason:
+          type: string
+
+    PointTransactionResult:
+      type: object
+      required: [success, transactionId, newBalance]
+      properties:
+        success:
+          type: boolean
+        transactionId:
+          type: string
+          format: uuid
+        newBalance:
+          type: integer
+
+    CreateRewardRequest:
+      type: object
+      required: [name, description, pointPrice, requiresApproval]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        imageRef:
+          type: string
+        pointPrice:
+          type: integer
+          minimum: 1
+        requiresApproval:
+          type: boolean
+        inventory:
+          type: integer
+          minimum: 0
+
+    UpdateRewardRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        imageRef:
+          type: string
+        inventory:
+          type: integer
+          minimum: 0
+
+    RewardResponse:
+      type: object
+      required: [id, name, description, pointPrice, requiresApproval, status]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        imageRef:
+          type: string
+        pointPrice:
+          type: integer
+        requiresApproval:
+          type: boolean
+        inventory:
+          type: integer
+        status:
+          type: string
+
+    RewardRequestResponse:
+      type: object
+      required: [id, studentId, rewardId, pointPriceSnapshot, reservedPoints, status, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        studentId:
+          type: string
+          format: uuid
+        rewardId:
+          type: string
+          format: uuid
+        rewardName:
+          type: string
+        pointPriceSnapshot:
+          type: integer
+        reservedPoints:
+          type: integer
+        status:
+          type: string
+          enum: [Pending to Approve, Pending to Receive, Completed, Declined]
+        statusColor:
+          type: string
+          enum: [Blue, Green, Red]
+        createdAt:
+          type: string
+          format: date-time
+
+    CreateActivityRequest:
+      type: object
+      required: [type, name, description, pointValue, completionLimit]
+      properties:
+        type:
+          type: string
+          enum: [Challenge, Mission]
+        name:
+          type: string
+        description:
+          type: string
+        pointValue:
+          type: integer
+          minimum: 1
+        completionLimit:
+          type: integer
+          minimum: 1
+
+    UpdateActivityRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        completionLimit:
+          type: integer
+          minimum: 1
+
+    ActivityResponse:
+      type: object
+      required: [id, type, name, description, pointValue, completionLimit, status]
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        pointValue:
+          type: integer
+        completionLimit:
+          type: integer
+        status:
+          type: string
+
+    VerificationResponse:
+      type: object
+      required: [id, studentId, activityId, evidenceDescription, status, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        studentId:
+          type: string
+          format: uuid
+        activityId:
+          type: string
+          format: uuid
+        evidenceDescription:
+          type: string
+        status:
+          type: string
+          enum: [Pending, Accepted, Rejected]
+        reviewNotes:
+          type: string
+        attachments:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    ProposalResponse:
+      type: object
+      required: [id, studentId, description, status, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        studentId:
+          type: string
+          format: uuid
+        description:
+          type: string
+        status:
+          type: string
+          enum: [Pending to Approve, Ready to Do, Completed, Declined, Canceled]
+        assignedPointValue:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
+    ProposalDetailResponse:
+      allOf:
+        - $ref: '#/components/schemas/ProposalResponse'
+        - type: object
+          properties:
+            messages:
+              type: array
+              items:
+                $ref: '#/components/schemas/MessageResponse'
+
+    MessageResponse:
+      type: object
+      required: [id, senderRole, senderId, messageBody, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        senderRole:
+          type: string
+          enum: [STUDENT, ADMIN]
+        senderId:
+          type: string
+          format: uuid
+        messageBody:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    RankingResponse:
+      type: object
+      required: [scope, totalActiveCount, topStudents]
+      properties:
+        scope:
+          type: string
+          enum: [class, school]
+        ownRank:
+          type: integer
+          description: Included when requester is a student
+        ownPoints:
+          type: integer
+          description: Included when requester is a student
+        totalActiveCount:
+          type: integer
+        topStudents:
+          type: array
+          items:
+            type: object
+            required: [rank, studentName, currentPoints]
+            properties:
+              rank:
+                type: integer
+              studentName:
+                type: string
+              currentPoints:
+                type: integer
+
+    TierResponse:
+      type: object
+      required: [id, tierIndex, tierName, minPoints]
+      properties:
+        id:
+          type: string
+          format: uuid
+        tierIndex:
+          type: integer
+        tierName:
+          type: string
+        minPoints:
+          type: integer
+        displayColor:
+          type: string
+
+    UpdateTierItem:
+      type: object
+      required: [tierIndex, tierName, minPoints]
+      properties:
+        tierIndex:
+          type: integer
+          minimum: 1
+          maximum: 5
+        tierName:
+          type: string
+        minPoints:
+          type: integer
+          minimum: 0
+        displayColor:
+          type: string
+
+    DailySnapshotResponse:
+      type: object
+      required: [snapshotDate, endOfDayBalance]
+      properties:
+        snapshotDate:
+          type: string
+          format: date
+        endOfDayBalance:
+          type: integer
+
+    CreateGuidanceCardRequest:
+      type: object
+      required: [title, description, logoId, suggestedPointsText]
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        logoId:
+          type: string
+        suggestedPointsText:
+          type: string
+
+    GuidanceCardResponse:
+      type: object
+      required: [id, title, description, logoId, suggestedPointsText, status]
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        logoId:
+          type: string
+        suggestedPointsText:
+          type: string
+        status:
+          type: string
+
+    AuditRecordResponse:
+      type: object
+      required: [id, correlationId, eventTimestamp, actionType, actorRole, pointAmount]
+      properties:
+        id:
+          type: string
+          format: uuid
+        correlationId:
+          type: string
+        eventTimestamp:
+          type: string
+          format: date-time
+        actionType:
+          type: string
+        actorRole:
+          type: string
+        sourceType:
+          type: string
+        recipientType:
+          type: string
+        pointAmount:
+          type: integer
+        taskName:
+          type: string
+        pointOption:
+          type: integer
+        reasonDescription:
+          type: string
+        resultingBalanceState:
+          type: object
