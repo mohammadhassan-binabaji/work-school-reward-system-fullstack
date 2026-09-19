@@ -48,7 +48,7 @@ As a school administrator, I need to create classes, assign students exclusively
 
 1. **Given** an active class, **When** an administrator assigns a student to that class, **Then** the student is associated with that class and cannot simultaneously belong to any other class.
 2. **Given** a student enrolled in Class A with an existing point balance and active reward requests, **When** an administrator reassigns the student to Class B, **Then** the student's point balance, active reward requests, and historical records remain intact and unchanged.
-3. **Given** an enrolled student with an active balance and active reward requests, **When** the student is marked as departed/leaving the school, **Then** the backend removes the student's point balance, removes the student's active reward requests, and excludes the student from active rankings.
+3. **Given** an enrolled student with an active balance, active reward requests, and open task proposals, **When** the student is marked as departed/leaving the school, **Then** the backend removes the student's point balance, cancels active reward requests (clearing reserved points), cancels any open task proposals, and excludes the student from active rankings.
 4. **Given** an active teacher assigned to a class for a specific subject, **When** the teacher is deactivated, **Then** the backend preserves the teacher's point balance, class assignments, and subject relationships, but prevents the teacher from performing any system actions.
 5. **Given** an active teacher assigned to a class, **When** the teacher is removed from that specific class assignment, **Then** the assignment is removed while the teacher's point balance remains unchanged.
 6. **Given** an active teacher, **When** the teacher is marked as departed/leaving the school, **Then** the backend removes the teacher's point balance, class assignments, and teacher-class-subject relationships.
@@ -113,7 +113,7 @@ As a school administrator, and student, I need administrators to create fixed-va
 2. **Given** an active challenge or mission, **When** a student submits a verification request with a text description and attached file or image evidence, **Then** the request is recorded in pending review state for administrative verification.
 3. **Given** a pending verification request, **When** an administrator accepts the submission, **Then** the backend awards the activity's fixed point value to the student, increments the student's completion count for that activity, updates the student's highest balance if exceeded, and records the completion in immutable audit history.
 4. **Given** a student who has reached the configured completion limit for a challenge or mission, **When** the student attempts to submit another verification request for that activity, **Then** the backend rejects the submission as the activity is marked done for that student.
-5. **Given** a student with 2 previous rejections for a specific challenge or mission, **When** an administrator rejects a 3rd verification request for the same activity, **Then** the backend records the rejection and places a temporary submission ban (approximately one month) on that student for that specific activity.
+5. **Given** a student with 2 previous rejections for a specific challenge or mission, **When** an administrator rejects a 3rd verification request for the same activity, **Then** the backend records the rejection and places a 30-calendar-day submission ban on that student for that specific activity.
 6. **Given** a student under an active submission ban for an activity, **When** the student attempts to submit a verification request for that activity, **Then** the backend rejects the submission due to the active ban.
 7. **Given** a student under an active submission ban for an activity, **When** an administrator unbans/unblocks the student via the administrator profile/details interface, **Then** the ban is cleared and the student is immediately permitted to submit verification requests up to the remaining completion limit.
 
@@ -227,7 +227,7 @@ As a school administrator, teacher, and student, I need the system to permanentl
 - **FR-007**: The system MUST allow administrators to create and manage classes and subjects.
 - **FR-008**: The system MUST enforce that each student belongs to exactly one class at any given time.
 - **FR-009**: The system MUST preserve a student's point balance, active reward requests, task proposals, and point history when the student is reassigned to a different class.
-- **FR-010**: When a student leaves the school (departed state), the system MUST remove the student's point balance, cancel active reward requests (clearing reserved points), and exclude the student from active rankings.
+- **FR-010**: When a student leaves the school (departed state), the system MUST remove the student's point balance, cancel active reward requests (clearing reserved points), cancel any open student task proposals (transitioning them to `Canceled`), and exclude the student from active rankings.
 - **FR-011**: The system MUST allow administrators to assign teachers to classes by subject, supporting multiple subjects per class, multiple classes per teacher, and multiple subject assignments for the same teacher in the same class.
 - **FR-012**: When an administrator deactivates a teacher, the system MUST preserve the teacher's point balance, class assignments, and subject relationships, while preventing the teacher from executing any system actions.
 - **FR-013**: When an administrator removes a teacher from a specific class assignment, the system MUST remove that assignment without modifying the teacher's point balance.
@@ -264,10 +264,10 @@ As a school administrator, teacher, and student, I need the system to permanentl
 - **FR-036**: The system MUST allow administrators to edit the title, description, and completion limit of an existing challenge or mission, while enforcing that the fixed point value remains strictly immutable once created (changing a point value requires removing and recreating the activity).
 - **FR-037**: The system MUST allow students to submit verification requests for active challenges and missions until the student's completion count reaches the configured limit.
 - **FR-038**: When an administrator accepts a challenge or mission verification request, the system MUST award the configured fixed points to the student, increment the student's completion count for that activity, and mark the request accepted.
-- **FR-039**: The system MUST allow teachers and administrators to award points directly for challenge and mission completion within the configured completion limits.
+- **FR-039**: The system MUST allow administrators to award points for challenge and mission completion within the configured completion limits by reviewing and accepting student verification submissions (or via administrative direct balance adjustments).
 - **FR-040**: When a student reaches the configured completion limit for a challenge or mission, the system MUST mark the activity done for that student and reject further verification submissions.
 - **FR-041**: The system MUST retain rejected verification requests and maintain a count of rejections per student and activity.
-- **FR-042**: When a student accumulates 3 rejected verification requests for the same challenge or mission, the system MUST apply a submission ban of approximately one month for that student on that activity.
+- **FR-042**: When a student accumulates 3 rejected verification requests for the same challenge or mission, the system MUST apply a 30-calendar-day submission ban for that student on that activity.
 - **FR-043**: The system MUST allow administrators to manually unban/unblock a student for an activity from the student's profile/details page, immediately restoring submission eligibility.
 
 #### Student Task Proposals & In-Request Messaging

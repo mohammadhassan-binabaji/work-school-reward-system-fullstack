@@ -86,7 +86,7 @@ description: "Task list for Student Reward System Backend implementation"
 ### Implementation for User Story 2
 
 - [ ] T024 [P] [US2] Define TypeBox schemas for classes, subjects, student class assignment, student departure, teacher assignments, and teacher status in `backend/src/modules/academic/academic.schemas.ts`
-- [ ] T025 [US2] Implement `AcademicService` with atomic transactions for class/subject creation, student single-class assignment, student reassignment (preserving points and requests), student departure cleanup, teacher assignment management, and teacher status updates with instant Redis session revocation in `backend/src/modules/academic/academic.service.ts`
+- [ ] T025 [US2] Implement `AcademicService` with atomic transactions for class/subject creation, student single-class assignment, student reassignment (preserving points and requests), student departure cleanup (zeroing points, canceling active reward requests and open task proposals), teacher assignment management, and teacher status updates with instant Redis session revocation in `backend/src/modules/academic/academic.service.ts`
 - [ ] T026 [US2] Implement Fastify routes for `/academic/classes`, `/academic/classes/:id/students`, `/academic/students/:id/class`, `/academic/students/:id/departure`, `/academic/subjects`, `/academic/assignments`, `/academic/assignments/:id`, and `/academic/teachers/:id/status` in `backend/src/modules/academic/academic.routes.ts`
 
 **Checkpoint**: User Stories 1 and 2 complete — school structure and membership boundaries are active.
@@ -147,7 +147,7 @@ description: "Task list for Student Reward System Backend implementation"
 ### Implementation for User Story 5
 
 - [ ] T037 [P] [US5] Define TypeBox schemas for challenge/mission creation, multipart verification submissions (size `<= 10485760` bytes, MIME allowlist `image/jpeg`, `image/png`, `application/pdf`), review decisions, and admin unban in `backend/src/modules/activities/activities.schemas.ts`
-- [ ] T038 [US5] Implement `ActivitiesService` handling activity CRUD, streaming upload file storage in `backend/src/uploads/`, verification acceptance (awarding points and updating highest balance), rejection tracking, automated 30-day `StudentActivityBan` creation on 3rd rejection, ban enforcement, and admin unban override in `backend/src/modules/activities/activities.service.ts`
+- [ ] T038 [US5] Implement `ActivitiesService` handling activity CRUD, streaming upload file storage in `backend/src/uploads/`, verification acceptance by administrators (awarding points and updating highest balance), rejection tracking, automated 30-day `StudentActivityBan` creation on 3rd rejection, ban enforcement, and admin unban override in `backend/src/modules/activities/activities.service.ts`
 - [ ] T039 [US5] Implement Fastify routes for `/activities`, `/activities/:id`, `/activities/:id/verifications`, `/activities/verifications/:id/review`, and `/activities/bans/:studentId/:activityId/unban` in `backend/src/modules/activities/activities.routes.ts`
 
 **Checkpoint**: User Story 5 complete — challenges, missions, verification evidence, and abuse prevention bans are operational.
