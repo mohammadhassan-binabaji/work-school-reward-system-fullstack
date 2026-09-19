@@ -1,19 +1,11 @@
 <!--
 ## Sync Impact Report
-- Version change: 0.0.0 → 1.0.0
-- Modified principles: None (initial adoption)
-- Added sections:
-  - Core Principles:
-    - I. Requirements & Specification First
-    - II. Backend-First Delivery
-    - III. Modular Architecture & Separation of Concerns
-    - IV. API & Data Contract Discipline
-    - V. Security & Input Validation
-    - VI. Testability & Verification
-  - Compliance & Deviation Handling (new section)
-  - Amendment Process (new section)
-  - Governance
-- Removed sections: None (initial adoption)
+- Version change: 1.0.0 → 1.1.0
+- Modified principles: None
+- Added principles:
+  - VII. Error Handling & Observability (new)
+- Added sections: None
+- Removed sections: None
 - Follow-up TODOs: None
 -->
 
@@ -99,6 +91,44 @@
 - Existing tests MUST remain passing unless a specification change
   explicitly requires their modification.
 
+### VII. Error Handling & Observability
+
+- Errors MUST propagate through application layers without losing
+  their original semantic meaning, cause, or stack information.
+- A layer that recognizes an error type or application error MUST
+  preserve and propagate that error without unnecessary
+  re-wrapping.
+- A layer that cannot recognize or appropriately classify an error
+  MUST wrap it in the layer's defined default error type while
+  preserving the original error as its cause.
+- Error handling MUST NOT silently swallow errors.
+- HTTP handlers MUST provide a consistent completion outcome for
+  every request.
+- Every HTTP handler MUST produce a structured completion log.
+- Successful HTTP requests MUST be logged at INFO level with the
+  request and response context defined by the application's
+  logging specification.
+- Failed HTTP requests MUST be logged at ERROR level with the
+  request context and structured error information defined by the
+  application's logging specification.
+- Logging MUST preserve sufficient context to correlate a request
+  with errors occurring in lower application layers.
+- Logs MUST NOT expose secrets, credentials, authentication
+  tokens, or other sensitive information.
+- Error responses exposed through public APIs MUST NOT
+  unintentionally expose internal implementation details, stack
+  traces, or sensitive error context.
+- Every HTTP request MUST have a unique request correlation
+  identifier that is propagated through all relevant application
+  layers and included in all logs generated within the request
+  lifecycle.
+- If the underlying framework or infrastructure already provides a
+  suitable request identifier (for example, a trace ID or request
+  ID), the existing identifier MUST be reused rather than creating
+  a redundant identifier.
+- The correlation identifier MUST enable reliable correlation of
+  all logs and errors belonging to the same request lifecycle.
+
 ## Compliance & Deviation Handling
 
 - Every implementation plan MUST include a constitution compliance
@@ -127,4 +157,4 @@
   requirement, specification, plan, or constitution; it MUST NOT be
   silently ignored.
 
-**Version**: 1.0.0 | **Ratified**: 2026-09-19 | **Last Amended**: 2026-09-19
+**Version**: 1.1.0 | **Ratified**: 2026-09-19 | **Last Amended**: 2026-09-19
