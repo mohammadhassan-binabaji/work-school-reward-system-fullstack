@@ -21,11 +21,11 @@ description: "Task list for Student Reward System Backend implementation"
 
 **Purpose**: Project initialization, dependency manifest, build tooling, and test environment configuration.
 
-- [ ] T001 Create backend directory structure per implementation plan in `backend/`
-- [ ] T002 Initialize `backend/package.json` with Node.js 24 LTS and TypeScript 5.x dependencies (`fastify`, `prisma`, `@prisma/client`, `@sinclair/typebox`, `@node-rs/argon2`, `ioredis`, `@fastify/cookie`, `@fastify/multipart`, `@fastify/swagger`, `@fastify/swagger-ui`, `@fastify/cors`, `pino`, `csv-stringify`, `exceljs`, `pdfkit`, `vitest`, `@vitest/coverage-v8`, `supertest`, `ioredis-mock`)
-- [ ] T003 [P] Configure TypeScript compiler options in `backend/tsconfig.json`
-- [ ] T004 [P] Configure Vitest test runner, test timeout, and coverage thresholds in `backend/vitest.config.ts`
-- [ ] T005 [P] Setup environment variable configuration, defaults, and TypeBox schema validation in `backend/src/core/config.ts`
+- [X] T001 Create backend directory structure per implementation plan in `backend/`
+- [X] T002 Initialize `backend/package.json` with Node.js 24 LTS and TypeScript 5.x dependencies (`fastify`, `prisma`, `@prisma/client`, `@sinclair/typebox`, `@node-rs/argon2`, `ioredis`, `@fastify/cookie`, `@fastify/multipart`, `@fastify/swagger`, `@fastify/swagger-ui`, `@fastify/cors`, `pino`, `csv-stringify`, `exceljs`, `pdfkit`, `vitest`, `@vitest/coverage-v8`, `supertest`, `ioredis-mock`)
+- [X] T003 [P] Configure TypeScript compiler options in `backend/tsconfig.json`
+- [X] T004 [P] Configure Vitest test runner, test timeout, and coverage thresholds in `backend/vitest.config.ts`
+- [X] T005 [P] Setup environment variable configuration, defaults, and TypeBox schema validation in `backend/src/core/config.ts`
 
 ---
 
@@ -35,18 +35,18 @@ description: "Task list for Student Reward System Backend implementation"
 
 **⚠️ CRITICAL**: No user story work can begin until this foundational phase is complete.
 
-- [ ] T006 Setup complete Prisma ORM schema with all 17 domain entities, SQLite WAL connection, and verbatim constraints (`Administrator`: `nationalId` String(10) unique regex `^\d{10}$`, `username` String(50) unique, `accountState` `Active`|`Inactive`; `Teacher`: `pointBalance` Integer check `>= 0`, `accountState` `Active`|`Deactivated`|`Departed`; `Student`: `currentPoints` check `>= 0`, `reservedPoints` check `>= 0`, `highestBalance` check `>= 0`, foreign key `classId`, foreign key `currentTierId`; `Class`: `name` String(50) unique; `Subject`: `name` String(50) unique; `TeacherClassSubject`: compound unique index on `(teacherId, classId, subjectId)`; `SystemPointPool`: singleton check `>= 0`; `PointTransferTask`: `name` String(100) unique; `PointTransferTaskOption`: check `pointAmount > 0`, compound unique index on `(taskId, pointAmount)`; `Reward`: `pointPrice > 0` immutable, check `inventory >= 0` nullable; `RewardRequest`: status enum `Pending to Approve`|`Pending to Receive`|`Completed`|`Declined`; `ChallengeMission`: `pointValue > 0` immutable, `completionLimit > 0`; `ActivityVerificationRequest`: evidence narrative + foreign keys; `VerificationAttachment`: check `sizeBytes > 0` and `<= 10485760`; `StudentActivityBan`: 30-day window; `StudentTaskProposal`: status enum `Pending to Approve`|`Ready to Do`|`Completed`|`Declined`|`Canceled`; `TaskProposalMessage`: role `STUDENT`|`ADMIN`; `PointEarningGuidanceCard`: predefined `logoId`; `StudentTier`: 5 tiers, `tierIndex` 1..5 unique, `minPoints >= 0`; `DailyStudentBalanceSnapshot`: compound unique on `(studentId, snapshotDate)`; `AuditRecord`: append-only immutable event log) in `backend/prisma/schema.prisma`
-- [ ] T007 Execute initial Prisma migration and generate type-safe Prisma Client in `backend/prisma/migrations/`
-- [ ] T008 [P] Implement Redis connection client with error handling and ping health check in `backend/src/core/redis.ts`
-- [ ] T009 [P] Implement `ApplicationError` hierarchy with cause chaining, status codes, and standardized error response formatting per Constitution Principle VII in `backend/src/core/errors.ts`
-- [ ] T010 [P] Implement Pino structured logger with credential and secret redaction (`password`, `passwordHash`, `token`, `sessionId`, `cookie`) in `backend/src/core/logger.ts`
-- [ ] T011 [P] Implement request correlation identifier middleware (`X-Correlation-ID`) and lifecycle completion logging hooks (`onRequest`, `onResponse`, `onError`) in `backend/src/core/correlation.ts`
-- [ ] T012 Implement Redis stateful session store, TTL management (7-day TTL), and instant multi-session revocation helper `revokeUserSessions(userId)` using `user_sessions:{userId}` in `backend/src/core/session.ts`
-- [ ] T013 [P] Implement authentication middleware verifying Redis session and enforcing `accountState === 'Active'` in `backend/src/middleware/authenticate.ts`
-- [ ] T014 [P] Implement role-based authorization guards for `ADMIN`, `TEACHER`, and `STUDENT` roles in `backend/src/middleware/authorize.ts`
-- [ ] T015 Implement Fastify application factory registering plugins (`@fastify/cookie`, `@fastify/cors`, `@fastify/multipart`, `@fastify/swagger`, `@fastify/swagger-ui`), error handler, and correlation hooks in `backend/src/app.ts`
-- [ ] T016 Implement server entrypoint with port binding, database connectivity, and graceful shutdown in `backend/src/server.ts`
-- [ ] T017 Implement database seed script provisioning initial `SystemPointPool` balance (10,000 points), default 5 tiers (Tier 1 to 5), and baseline admin account in `backend/prisma/seed.ts`
+- [X] T006 Setup complete Prisma ORM schema with all 17 domain entities, SQLite WAL connection, and verbatim constraints (`Administrator`: `nationalId` String(10) unique regex `^\d{10}$`, `username` String(50) unique, `accountState` `Active`|`Inactive`; `Teacher`: `pointBalance` Integer check `>= 0`, `accountState` `Active`|`Deactivated`|`Departed`; `Student`: `currentPoints` check `>= 0`, `reservedPoints` check `>= 0`, `highestBalance` check `>= 0`, foreign key `classId`, foreign key `currentTierId`; `Class`: `name` String(50) unique; `Subject`: `name` String(50) unique; `TeacherClassSubject`: compound unique index on `(teacherId, classId, subjectId)`; `SystemPointPool`: singleton check `>= 0`; `PointTransferTask`: `name` String(100) unique; `PointTransferTaskOption`: check `pointAmount > 0`, compound unique index on `(taskId, pointAmount)`; `Reward`: `pointPrice > 0` immutable, check `inventory >= 0` nullable; `RewardRequest`: status enum `Pending to Approve`|`Pending to Receive`|`Completed`|`Declined`; `ChallengeMission`: `pointValue > 0` immutable, `completionLimit > 0`; `ActivityVerificationRequest`: evidence narrative + foreign keys; `VerificationAttachment`: check `sizeBytes > 0` and `<= 10485760`; `StudentActivityBan`: 30-day window; `StudentTaskProposal`: status enum `Pending to Approve`|`Ready to Do`|`Completed`|`Declined`|`Canceled`; `TaskProposalMessage`: role `STUDENT`|`ADMIN`; `PointEarningGuidanceCard`: predefined `logoId`; `StudentTier`: 5 tiers, `tierIndex` 1..5 unique, `minPoints >= 0`; `DailyStudentBalanceSnapshot`: compound unique on `(studentId, snapshotDate)`; `AuditRecord`: append-only immutable event log) in `backend/prisma/schema.prisma`
+- [X] T007 Execute initial Prisma migration and generate type-safe Prisma Client in `backend/prisma/migrations/`
+- [X] T008 [P] Implement Redis connection client with error handling and ping health check in `backend/src/core/redis.ts`
+- [X] T009 [P] Implement `ApplicationError` hierarchy with cause chaining, status codes, and standardized error response formatting per Constitution Principle VII in `backend/src/core/errors.ts`
+- [X] T010 [P] Implement Pino structured logger with credential and secret redaction (`password`, `passwordHash`, `token`, `sessionId`, `cookie`) in `backend/src/core/logger.ts`
+- [X] T011 [P] Implement request correlation identifier middleware (`X-Correlation-ID`) and lifecycle completion logging hooks (`onRequest`, `onResponse`, `onError`) in `backend/src/core/correlation.ts`
+- [X] T012 Implement Redis stateful session store, TTL management (7-day TTL), and instant multi-session revocation helper `revokeUserSessions(userId)` using `user_sessions:{userId}` in `backend/src/core/session.ts`
+- [X] T013 [P] Implement authentication middleware verifying Redis session and enforcing `accountState === 'Active'` in `backend/src/middleware/authenticate.ts`
+- [X] T014 [P] Implement role-based authorization guards for `ADMIN`, `TEACHER`, and `STUDENT` roles in `backend/src/middleware/authorize.ts`
+- [X] T015 Implement Fastify application factory registering plugins (`@fastify/cookie`, `@fastify/cors`, `@fastify/multipart`, `@fastify/swagger`, `@fastify/swagger-ui`), error handler, and correlation hooks in `backend/src/app.ts`
+- [X] T016 Implement server entrypoint with port binding, database connectivity, and graceful shutdown in `backend/src/server.ts`
+- [X] T017 Implement database seed script provisioning initial `SystemPointPool` balance (10,000 points), default 5 tiers (Tier 1 to 5), and baseline admin account in `backend/prisma/seed.ts`
 
 **Checkpoint**: Foundation ready — database schema, Redis session management, observability hooks, and auth middleware are operational.
 
@@ -60,14 +60,14 @@ description: "Task list for Student Reward System Backend implementation"
 
 ### Tests for User Story 1
 
-- [ ] T018 [P] [US1] Integration tests for admin provisioning, user account creation, Argon2id authentication, session cookie issuance, and RBAC rejection in `backend/tests/integration/auth-flow.test.ts`
-- [ ] T019 [P] [US1] Integration test for instant 0-second session invalidation in Redis upon user state change to Inactive or Deactivated in `backend/tests/integration/session-invalidation.test.ts`
+- [X] T018 [P] [US1] Integration tests for admin provisioning, user account creation, Argon2id authentication, session cookie issuance, and RBAC rejection in `backend/tests/integration/auth-flow.test.ts`
+- [X] T019 [P] [US1] Integration test for instant 0-second session invalidation in Redis upon user state change to Inactive or Deactivated in `backend/tests/integration/session-invalidation.test.ts`
 
 ### Implementation for User Story 1
 
-- [ ] T020 [P] [US1] Define TypeBox schemas for `/auth/provision-admin`, `/auth/users`, `/auth/login`, `/auth/logout`, and `/auth/me` with verbatim constraints (`nationalId` Regex `^\d{10}$`, `username` String(50), `firstName` String(50), `lastName` String(50), `role` enum `ADMIN`|`TEACHER`|`STUDENT`) in `backend/src/modules/auth/auth.schemas.ts`
-- [ ] T021 [US1] Implement `AuthService` handling Argon2id password hashing, credential validation, Redis session generation, logout session destruction, and user retrieval in `backend/src/modules/auth/auth.service.ts`
-- [ ] T022 [US1] Implement Fastify routes for `/auth/provision-admin`, `/auth/users`, `/auth/login`, `/auth/logout`, and `/auth/me` in `backend/src/modules/auth/auth.routes.ts`
+- [X] T020 [P] [US1] Define TypeBox schemas for `/auth/provision-admin`, `/auth/users`, `/auth/login`, `/auth/logout`, and `/auth/me` with verbatim constraints (`nationalId` Regex `^\d{10}$`, `username` String(50), `firstName` String(50), `lastName` String(50), `role` enum `ADMIN`|`TEACHER`|`STUDENT`) in `backend/src/modules/auth/auth.schemas.ts`
+- [X] T021 [US1] Implement `AuthService` handling Argon2id password hashing, credential validation, Redis session generation, logout session destruction, and user retrieval in `backend/src/modules/auth/auth.service.ts`
+- [X] T022 [US1] Implement Fastify routes for `/auth/provision-admin`, `/auth/users`, `/auth/login`, `/auth/logout`, and `/auth/me` in `backend/src/modules/auth/auth.routes.ts`
 
 **Checkpoint**: User Story 1 complete — system can authenticate all roles and enforce RBAC.
 
@@ -81,13 +81,13 @@ description: "Task list for Student Reward System Backend implementation"
 
 ### Tests for User Story 2
 
-- [ ] T023 [P] [US2] Integration tests for classes, subjects, teacher-class-subject assignments, single-class constraint, student reassignment, student departure, teacher deactivation session purge, and teacher departure in `backend/tests/integration/academic-flow.test.ts`
+- [X] T023 [P] [US2] Integration tests for classes, subjects, teacher-class-subject assignments, single-class constraint, student reassignment, student departure, teacher deactivation session purge, and teacher departure in `backend/tests/integration/academic-flow.test.ts`
 
 ### Implementation for User Story 2
 
-- [ ] T024 [P] [US2] Define TypeBox schemas for classes, subjects, student class assignment, student departure, teacher assignments, and teacher status in `backend/src/modules/academic/academic.schemas.ts`
-- [ ] T025 [US2] Implement `AcademicService` with atomic transactions for class/subject creation, student single-class assignment, student reassignment (preserving points and requests), student departure cleanup (zeroing points, canceling active reward requests and open task proposals), teacher assignment management, and teacher status updates with instant Redis session revocation in `backend/src/modules/academic/academic.service.ts`
-- [ ] T026 [US2] Implement Fastify routes for `/academic/classes`, `/academic/classes/:id/students`, `/academic/students/:id/class`, `/academic/students/:id/departure`, `/academic/subjects`, `/academic/assignments`, `/academic/assignments/:id`, and `/academic/teachers/:id/status` in `backend/src/modules/academic/academic.routes.ts`
+- [X] T024 [P] [US2] Define TypeBox schemas for classes, subjects, student class assignment, student departure, teacher assignments, and teacher status in `backend/src/modules/academic/academic.schemas.ts`
+- [X] T025 [US2] Implement `AcademicService` with atomic transactions for class/subject creation, student single-class assignment, student reassignment (preserving points and requests), student departure cleanup (zeroing points, canceling active reward requests and open task proposals), teacher assignment management, and teacher status updates with instant Redis session revocation in `backend/src/modules/academic/academic.service.ts`
+- [X] T026 [US2] Implement Fastify routes for `/academic/classes`, `/academic/classes/:id/students`, `/academic/students/:id/class`, `/academic/students/:id/departure`, `/academic/subjects`, `/academic/assignments`, `/academic/assignments/:id`, and `/academic/teachers/:id/status` in `backend/src/modules/academic/academic.routes.ts`
 
 **Checkpoint**: User Stories 1 and 2 complete — school structure and membership boundaries are active.
 
@@ -101,13 +101,13 @@ description: "Task list for Student Reward System Backend implementation"
 
 ### Tests for User Story 3
 
-- [ ] T027 [P] [US3] Integration tests for pool funding, transfer task definitions, teacher award eligibility, budget deduction, student balance addition, highest balance update, admin direct adjustment, negative balance rejection, and concurrent atomic awards in `backend/tests/integration/point-atomic.test.ts`
+- [X] T027 [P] [US3] Integration tests for pool funding, transfer task definitions, teacher award eligibility, budget deduction, student balance addition, highest balance update, admin direct adjustment, negative balance rejection, and concurrent atomic awards in `backend/tests/integration/point-atomic.test.ts`
 
 ### Implementation for User Story 3
 
-- [ ] T028 [P] [US3] Define TypeBox schemas for point pool transfer, task creation with positive options (`pointAmount > 0`), teacher point award, and admin direct adjustment in `backend/src/modules/points/points.schemas.ts`
-- [ ] T029 [US3] Implement `PointsService` with atomic transactions for pool transfers, task management, teacher award validation (verifying active teacher, assigned class eligibility, and available budget), student balance increments, highest balance peak updates, tier re-evaluation, admin adjustments, and `AuditRecord` creation in `backend/src/modules/points/points.service.ts`
-- [ ] T030 [US3] Implement Fastify routes for `/points/pool`, `/points/pool/transfer`, `/points/tasks`, `/points/award`, and `/points/adjust` in `backend/src/modules/points/points.routes.ts`
+- [X] T028 [P] [US3] Define TypeBox schemas for point pool transfer, task creation with positive options (`pointAmount > 0`), teacher point award, and admin direct adjustment in `backend/src/modules/points/points.schemas.ts`
+- [X] T029 [US3] Implement `PointsService` with atomic transactions for pool transfers, task management, teacher award validation (verifying active teacher, assigned class eligibility, and available budget), student balance increments, highest balance peak updates, tier re-evaluation, admin adjustments, and `AuditRecord` creation in `backend/src/modules/points/points.service.ts`
+- [X] T030 [US3] Implement Fastify routes for `/points/pool`, `/points/pool/transfer`, `/points/tasks`, `/points/award`, and `/points/adjust` in `backend/src/modules/points/points.routes.ts`
 
 **Checkpoint**: User Stories 1, 2, and 3 complete — foundational point economy and award transactions are fully functional.
 
@@ -121,13 +121,13 @@ description: "Task list for Student Reward System Backend implementation"
 
 ### Tests for User Story 4
 
-- [ ] T031 [P] [US4] Integration tests for reward CRUD, price immutability, inventory deductions, approval transitions, point reservations, return on decline, handover completion, catalog removal with active request cancellation, and student cancellation rejection in `backend/tests/integration/rewards-flow.test.ts`
+- [X] T031 [P] [US4] Integration tests for reward CRUD, price immutability, inventory deductions, approval transitions, point reservations, return on decline, handover completion, catalog removal with active request cancellation, and student cancellation rejection in `backend/tests/integration/rewards-flow.test.ts`
 
 ### Implementation for User Story 4
 
-- [ ] T032 [P] [US4] Define TypeBox schemas for reward catalog management and reward request lifecycle transitions (`requiresApproval`, `pointPrice > 0`, `inventory >= 0`, status `Pending to Approve`|`Pending to Receive`|`Completed`|`Declined`) in `backend/src/modules/rewards/rewards.schemas.ts`
-- [ ] T033 [US4] Implement `RewardsService` with atomic transactions for reward creation, metadata updates (rejecting price modification), student requests (atomically reserving points and decrementing inventory), admin approval, admin decline (returning reserved points), admin completion (finalizing reserved points), and reward deletion (closing active requests and returning reserved points with audit logs) in `backend/src/modules/rewards/rewards.service.ts`
-- [ ] T034 [US4] Implement Fastify routes for `/rewards`, `/rewards/:id`, `/rewards/requests`, `/rewards/requests/:id/approve`, `/rewards/requests/:id/decline`, and `/rewards/requests/:id/receive` in `backend/src/modules/rewards/rewards.routes.ts`
+- [X] T032 [P] [US4] Define TypeBox schemas for reward catalog management and reward request lifecycle transitions (`requiresApproval`, `pointPrice > 0`, `inventory >= 0`, status `Pending to Approve`|`Pending to Receive`|`Completed`|`Declined`) in `backend/src/modules/rewards/rewards.schemas.ts`
+- [X] T033 [US4] Implement `RewardsService` with atomic transactions for reward creation, metadata updates (rejecting price modification), student requests (atomically reserving points and decrementing inventory), admin approval, admin decline (returning reserved points), admin completion (finalizing reserved points), and reward deletion (closing active requests and returning reserved points with audit logs) in `backend/src/modules/rewards/rewards.service.ts`
+- [X] T034 [US4] Implement Fastify routes for `/rewards`, `/rewards/:id`, `/rewards/requests`, `/rewards/requests/:id/approve`, `/rewards/requests/:id/decline`, and `/rewards/requests/:id/receive` in `backend/src/modules/rewards/rewards.routes.ts`
 
 **Checkpoint**: User Stories 1 through 4 complete — reward redemption lifecycle is operational.
 
@@ -141,14 +141,14 @@ description: "Task list for Student Reward System Backend implementation"
 
 ### Tests for User Story 5
 
-- [ ] T035 [P] [US5] Unit tests for rejection counter evaluation, 30-day ban window calculation, and expiration logic in `backend/tests/unit/ban-calculator.test.ts`
-- [ ] T036 [P] [US5] Integration tests for challenge/mission CRUD, multipart verification upload, review acceptance, rejection counting, automated 3-rejection ban trigger, and admin unban override in `backend/tests/integration/activities-flow.test.ts`
+- [X] T035 [P] [US5] Unit tests for rejection counter evaluation, 30-day ban window calculation, and expiration logic in `backend/tests/unit/ban-calculator.test.ts`
+- [X] T036 [P] [US5] Integration tests for challenge/mission CRUD, multipart verification upload, review acceptance, rejection counting, automated 3-rejection ban trigger, and admin unban override in `backend/tests/integration/activities-flow.test.ts`
 
 ### Implementation for User Story 5
 
-- [ ] T037 [P] [US5] Define TypeBox schemas for challenge/mission creation, multipart verification submissions (size `<= 10485760` bytes, MIME allowlist `image/jpeg`, `image/png`, `application/pdf`), review decisions, and admin unban in `backend/src/modules/activities/activities.schemas.ts`
-- [ ] T038 [US5] Implement `ActivitiesService` handling activity CRUD, streaming upload file storage in `backend/src/uploads/`, verification acceptance by administrators (awarding points and updating highest balance), rejection tracking, automated 30-day `StudentActivityBan` creation on 3rd rejection, ban enforcement, and admin unban override in `backend/src/modules/activities/activities.service.ts`
-- [ ] T039 [US5] Implement Fastify routes for `/activities`, `/activities/:id`, `/activities/:id/verifications`, `/activities/verifications/:id/review`, and `/activities/bans/:studentId/:activityId/unban` in `backend/src/modules/activities/activities.routes.ts`
+- [X] T037 [P] [US5] Define TypeBox schemas for challenge/mission creation, multipart verification submissions (size `<= 10485760` bytes, MIME allowlist `image/jpeg`, `image/png`, `application/pdf`), review decisions, and admin unban in `backend/src/modules/activities/activities.schemas.ts`
+- [X] T038 [US5] Implement `ActivitiesService` handling activity CRUD, streaming upload file storage in `backend/src/uploads/`, verification acceptance by administrators (awarding points and updating highest balance), rejection tracking, automated 30-day `StudentActivityBan` creation on 3rd rejection, ban enforcement, and admin unban override in `backend/src/modules/activities/activities.service.ts`
+- [X] T039 [US5] Implement Fastify routes for `/activities`, `/activities/:id`, `/activities/:id/verifications`, `/activities/verifications/:id/review`, and `/activities/bans/:studentId/:activityId/unban` in `backend/src/modules/activities/activities.routes.ts`
 
 **Checkpoint**: User Story 5 complete — challenges, missions, verification evidence, and abuse prevention bans are operational.
 
@@ -162,13 +162,13 @@ description: "Task list for Student Reward System Backend implementation"
 
 ### Tests for User Story 6
 
-- [ ] T040 [P] [US6] Integration tests for proposal lifecycle state machine, point pricing and adjustments, student cancellation restrictions, completion point award, in-thread message exchange, student proposal query isolation, and teacher 403 access denial in `backend/tests/integration/proposals-flow.test.ts`
+- [X] T040 [P] [US6] Integration tests for proposal lifecycle state machine, point pricing and adjustments, student cancellation restrictions, completion point award, in-thread message exchange, student proposal query isolation, and teacher 403 access denial in `backend/tests/integration/proposals-flow.test.ts`
 
 ### Implementation for User Story 6
 
-- [ ] T041 [P] [US6] Define TypeBox schemas for task proposal submission, review approval, point adjustment (`assignedPointValue > 0`), cancellation, completion, and message posting in `backend/src/modules/proposals/proposals.schemas.ts`
-- [ ] T042 [US6] Implement `ProposalsService` with lifecycle state transitions (`Pending to Approve` -> `Ready to Do` -> `Completed`|`Declined`|`Canceled`), point pricing, student cancellation validation (allowed only in `Ready to Do`), completion point awards, student ownership query scoping, teacher access rejection, and message thread storage in `backend/src/modules/proposals/proposals.service.ts`
-- [ ] T043 [US6] Implement Fastify routes for `/proposals`, `/proposals/:id`, `/proposals/:id/approve`, `/proposals/:id/points`, `/proposals/:id/cancel`, `/proposals/:id/complete`, and `/proposals/:id/messages` in `backend/src/modules/proposals/proposals.routes.ts`
+- [X] T041 [P] [US6] Define TypeBox schemas for task proposal submission, review approval, point adjustment (`assignedPointValue > 0`), cancellation, completion, and message posting in `backend/src/modules/proposals/proposals.schemas.ts`
+- [X] T042 [US6] Implement `ProposalsService` with lifecycle state transitions (`Pending to Approve` -> `Ready to Do` -> `Completed`|`Declined`|`Canceled`), point pricing, student cancellation validation (allowed only in `Ready to Do`), completion point awards, student ownership query scoping, teacher access rejection, and message thread storage in `backend/src/modules/proposals/proposals.service.ts`
+- [X] T043 [US6] Implement Fastify routes for `/proposals`, `/proposals/:id`, `/proposals/:id/approve`, `/proposals/:id/points`, `/proposals/:id/cancel`, `/proposals/:id/complete`, and `/proposals/:id/messages` in `backend/src/modules/proposals/proposals.routes.ts`
 
 **Checkpoint**: User Story 6 complete — voluntary task proposals and in-request messaging are fully functional.
 
@@ -182,15 +182,15 @@ description: "Task list for Student Reward System Backend implementation"
 
 ### Tests for User Story 7
 
-- [ ] T044 [P] [US7] Unit tests for standard competition ranking (1224 with ties and skips) and student privacy projection in `backend/tests/unit/ranking.test.ts`
-- [ ] T045 [P] [US7] Unit tests for dynamic 5-tier threshold resolution and highest-balance updates in `backend/tests/unit/tiers.test.ts`
-- [ ] T046 [P] [US7] Integration tests for rankings API (class and school scopes), student privacy filtering, 5-tier configuration updates, and daily balance snapshot reconciliation in `backend/tests/integration/analytics-flow.test.ts`
+- [X] T044 [P] [US7] Unit tests for standard competition ranking (1224 with ties and skips) and student privacy projection in `backend/tests/unit/ranking.test.ts`
+- [X] T045 [P] [US7] Unit tests for dynamic 5-tier threshold resolution and highest-balance updates in `backend/tests/unit/tiers.test.ts`
+- [X] T046 [P] [US7] Integration tests for rankings API (class and school scopes), student privacy filtering, 5-tier configuration updates, and daily balance snapshot reconciliation in `backend/tests/integration/analytics-flow.test.ts`
 
 ### Implementation for User Story 7
 
-- [ ] T047 [P] [US7] Define TypeBox schemas for rankings query parameters, top-student responses, tier configurations (enforcing exactly 5 tiers, `tierIndex` 1..5, `minPoints >= 0`), and daily balance history in `backend/src/modules/analytics/analytics.schemas.ts`
-- [ ] T048 [US7] Implement `AnalyticsService` executing standard competition ranking (1224 algorithm), inactive student filtering, student privacy projection, dynamic tier threshold resolution, and daily balance snapshot reconciliation in `backend/src/modules/analytics/analytics.service.ts`
-- [ ] T049 [US7] Implement Fastify routes for `/analytics/rankings`, `/analytics/tiers`, `/analytics/students/:id/history`, and `/analytics/snapshots/trigger` in `backend/src/modules/analytics/analytics.routes.ts`
+- [X] T047 [P] [US7] Define TypeBox schemas for rankings query parameters, top-student responses, tier configurations (enforcing exactly 5 tiers, `tierIndex` 1..5, `minPoints >= 0`), and daily balance history in `backend/src/modules/analytics/analytics.schemas.ts`
+- [X] T048 [US7] Implement `AnalyticsService` executing standard competition ranking (1224 algorithm), inactive student filtering, student privacy projection, dynamic tier threshold resolution, and daily balance snapshot reconciliation in `backend/src/modules/analytics/analytics.service.ts`
+- [X] T049 [US7] Implement Fastify routes for `/analytics/rankings`, `/analytics/tiers`, `/analytics/students/:id/history`, and `/analytics/snapshots/trigger` in `backend/src/modules/analytics/analytics.routes.ts`
 
 **Checkpoint**: User Story 7 complete — rankings, tiers, and historical balance snapshots are operational.
 
@@ -204,13 +204,13 @@ description: "Task list for Student Reward System Backend implementation"
 
 ### Tests for User Story 8
 
-- [ ] T050 [P] [US8] Integration tests for guidance card admin CRUD, student read-only query access, and rejection of student mutation requests in `backend/tests/integration/guidance-flow.test.ts`
+- [X] T050 [P] [US8] Integration tests for guidance card admin CRUD, student read-only query access, and rejection of student mutation requests in `backend/tests/integration/guidance-flow.test.ts`
 
 ### Implementation for User Story 8
 
-- [ ] T051 [P] [US8] Define TypeBox schemas for guidance cards creation, update, and list response (`title` String(100), `description` Text, `logoId` String(50), `suggestedPointsText` String(50)) in `backend/src/modules/guidance/guidance.schemas.ts`
-- [ ] T052 [US8] Implement `GuidanceService` handling guidance card CRUD and enforcing student read-only access in `backend/src/modules/guidance/guidance.service.ts`
-- [ ] T053 [US8] Implement Fastify routes for `/guidance/cards` and `/guidance/cards/:id` in `backend/src/modules/guidance/guidance.routes.ts`
+- [X] T051 [P] [US8] Define TypeBox schemas for guidance cards creation, update, and list response (`title` String(100), `description` Text, `logoId` String(50), `suggestedPointsText` String(50)) in `backend/src/modules/guidance/guidance.schemas.ts`
+- [X] T052 [US8] Implement `GuidanceService` handling guidance card CRUD and enforcing student read-only access in `backend/src/modules/guidance/guidance.service.ts`
+- [X] T053 [US8] Implement Fastify routes for `/guidance/cards` and `/guidance/cards/:id` in `backend/src/modules/guidance/guidance.routes.ts`
 
 **Checkpoint**: User Story 8 complete — guidance cards are operational.
 
@@ -224,17 +224,17 @@ description: "Task list for Student Reward System Backend implementation"
 
 ### Tests for User Story 9
 
-- [ ] T054 [P] [US9] Integration tests confirming audit trail immutability, rejection of modifications/deletions, and role-based report scoping in `backend/tests/integration/audit-immutability.test.ts`
-- [ ] T055 [P] [US9] Integration tests for parameterized reporting filters and CSV, Excel, and PDF export generation in `backend/tests/integration/reporting-flow.test.ts`
+- [X] T054 [P] [US9] Integration tests confirming audit trail immutability, rejection of modifications/deletions, and role-based report scoping in `backend/tests/integration/audit-immutability.test.ts`
+- [X] T055 [P] [US9] Integration tests for parameterized reporting filters and CSV, Excel, and PDF export generation in `backend/tests/integration/reporting-flow.test.ts`
 
 ### Implementation for User Story 9
 
-- [ ] T056 [P] [US9] Define TypeBox schemas for point-flow report filter query parameters and export format parameter (`format` enum `csv`|`excel`|`pdf`) in `backend/src/modules/reporting/reporting.schemas.ts`
-- [ ] T057 [P] [US9] Implement streaming CSV export adapter using `csv-stringify` in `backend/src/modules/reporting/exporters/csv.exporter.ts`
-- [ ] T058 [P] [US9] Implement styled Excel workbook export adapter using `exceljs` in `backend/src/modules/reporting/exporters/excel.exporter.ts`
-- [ ] T059 [P] [US9] Implement tabular PDF report export adapter with summary headers using `pdfkit` in `backend/src/modules/reporting/exporters/pdf.exporter.ts`
-- [ ] T060 [US9] Implement `ReportingService` executing parameterized queries over `AuditRecord`, enforcing role-based scoping (admin school-wide, teacher assigned classes, student self), and dispatching export streams in `backend/src/modules/reporting/reporting.service.ts`
-- [ ] T061 [US9] Implement Fastify routes for `/reports/point-flow` and `/reports/point-flow/export` in `backend/src/modules/reporting/reporting.routes.ts`
+- [X] T056 [P] [US9] Define TypeBox schemas for point-flow report filter query parameters and export format parameter (`format` enum `csv`|`excel`|`pdf`) in `backend/src/modules/reporting/reporting.schemas.ts`
+- [X] T057 [P] [US9] Implement streaming CSV export adapter using `csv-stringify` in `backend/src/modules/reporting/exporters/csv.exporter.ts`
+- [X] T058 [P] [US9] Implement styled Excel workbook export adapter using `exceljs` in `backend/src/modules/reporting/exporters/excel.exporter.ts`
+- [X] T059 [P] [US9] Implement tabular PDF report export adapter with summary headers using `pdfkit` in `backend/src/modules/reporting/exporters/pdf.exporter.ts`
+- [X] T060 [US9] Implement `ReportingService` executing parameterized queries over `AuditRecord`, enforcing role-based scoping (admin school-wide, teacher assigned classes, student self), and dispatching export streams in `backend/src/modules/reporting/reporting.service.ts`
+- [X] T061 [US9] Implement Fastify routes for `/reports/point-flow` and `/reports/point-flow/export` in `backend/src/modules/reporting/reporting.routes.ts`
 
 **Checkpoint**: User Story 9 complete — audit logging, role-filtered reporting, and multi-format exports are fully functional.
 
@@ -244,10 +244,10 @@ description: "Task list for Student Reward System Backend implementation"
 
 **Purpose**: OpenAPI contract adherence verification, full quickstart scenario validation, security/redaction checks, and final build validation.
 
-- [ ] T062 [P] Implement automated OpenAPI contract adherence test validating route schemas against `specs/001-student-reward-backend/contracts/openapi.yaml` in `backend/tests/contract/openapi-adherence.test.ts`
-- [ ] T063 [P] Implement automated end-to-end integration test executing all 10 quickstart scenarios from `quickstart.md` in `backend/tests/integration/quickstart-scenarios.test.ts`
-- [ ] T064 [P] Implement automated security test verifying zero exposure of passwords, hashes, tokens, or credentials in logs, error payloads, and audit records in `backend/tests/unit/redaction.test.ts`
-- [ ] T065 Run complete TypeScript typecheck, ESLint validation, and full Vitest test suite with coverage report
+- [X] T062 [P] Implement automated OpenAPI contract adherence test validating route schemas against `specs/001-student-reward-backend/contracts/openapi.yaml` in `backend/tests/contract/openapi-adherence.test.ts`
+- [X] T063 [P] Implement automated end-to-end integration test executing all 10 quickstart scenarios from `quickstart.md` in `backend/tests/integration/quickstart-scenarios.test.ts`
+- [X] T064 [P] Implement automated security test verifying zero exposure of passwords, hashes, tokens, or credentials in logs, error payloads, and audit records in `backend/tests/unit/redaction.test.ts`
+- [X] T065 Run complete TypeScript typecheck, ESLint validation, and full Vitest test suite with coverage report
 
 ---
 

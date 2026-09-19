@@ -1,0 +1,310 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Administrator {
+  id           String   @id @default(uuid())
+  nationalId   String   @unique
+  username     String   @unique
+  firstName    String
+  lastName     String
+  passwordHash String
+  accountState String   @default("Active") // Active, Inactive
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  reviewedRewards   RewardRequest[]       @relation("AdminRewardReviewer")
+  unbannedBans      StudentActivityBan[]  @relation("AdminUnbanner")
+  reviewedProposals StudentTaskProposal[] @relation("AdminProposalReviewer")
+}
+
+model Teacher {
+  id           String   @id @default(uuid())
+  nationalId   String   @unique
+  username     String   @unique
+  firstName    String
+  lastName     String
+  passwordHash String
+  accountState String   @default("Active") // Active, Deactivated, Departed
+  pointBalance Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  teacherClassSubjects TeacherClassSubject[]
+}
+
+model Student {
+  id             String   @id @default(uuid())
+  nationalId     String   @unique
+  username       String   @unique
+  firstName      String
+  lastName       String
+  passwordHash   String
+  accountState   String   @default("Active") // Active, Inactive, Deactivated, Departed
+  currentPoints  Int      @default(0)
+  reservedPoints Int      @default(0)
+  highestBalance Int      @default(0)
+  classId        String?
+  currentTierId  String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  class                Class?                        @relation(fields: [classId], references: [id])
+  currentTier          StudentTier?                  @relation(fields: [currentTierId], references: [id])
+  rewardRequests       RewardRequest[]
+  verificationRequests ActivityVerificationRequest[]
+  activityBans         StudentActivityBan[]
+  taskProposals        StudentTaskProposal[]
+  dailySnapshots       DailyStudentBalanceSnapshot[]
+}
+
+model Class {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  gradeLevel  String?
+  description String?
+  status      String   @default("Active") // Active, Inactive
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  students             Student[]
+  teacherClassSubjects TeacherClassSubject[]
+}
+
+model Subject {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  teacherClassSubjects TeacherClassSubject[]
+}
+
+model TeacherClassSubject {
+  id              String   @id @default(uuid())
+  teacherId       String
+  classId         String
+  subjectId       String
+  assignmentState String   @default("Active") // Active, Removed
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  teacher Teacher @relation(fields: [teacherId], references: [id])
+  class   Class   @relation(fields: [classId], references: [id])
+  subject Subject @relation(fields: [subjectId], references: [id])
+
+  @@unique([teacherId, classId, subjectId])
+}
+
+model SystemPointPool {
+  id               String   @id @default(uuid())
+  totalAllocated   Int      @default(0)
+  availableBalance Int      @default(0)
+  updatedAt        DateTime @updatedAt
+}
+
+model PointTransferTask {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  status      String   @default("Active") // Active, Inactive
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  options PointTransferTaskOption[]
+}
+
+model PointTransferTaskOption {
+  id          String   @id @default(uuid())
+  taskId      String
+  pointAmount Int
+  createdAt   DateTime @default(now())
+
+  task PointTransferTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, pointAmount])
+}
+
+model Reward {
+  id               String   @id @default(uuid())
+  name             String
+  description      String
+  imageRef         String?
+  pointPrice       Int
+  requiresApproval Boolean  @default(false)
+  inventory        Int?
+  status           String   @default("Active") // Active, Removed
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  rewardRequests RewardRequest[]
+}
+
+model RewardRequest {
+  id                       String    @id @default(uuid())
+  studentId                String
+  rewardId                 String
+  requiresApprovalSnapshot Boolean
+  pointPriceSnapshot       Int
+  reservedPoints           Int
+  status                   String // Pending to Approve, Pending to Receive, Completed, Declined
+  reviewerId               String?
+  reviewedAt               DateTime?
+  receivedAt               DateTime?
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+
+  student  Student        @relation(fields: [studentId], references: [id])
+  reward   Reward         @relation(fields: [rewardId], references: [id])
+  reviewer Administrator? @relation("AdminRewardReviewer", fields: [reviewerId], references: [id])
+}
+
+model ChallengeMission {
+  id              String   @id @default(uuid())
+  type            String // Challenge, Mission
+  name            String
+  description     String
+  pointValue      Int
+  completionLimit Int
+  status          String   @default("Active") // Active, Inactive, Removed
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  verificationRequests ActivityVerificationRequest[]
+  bans                 StudentActivityBan[]
+}
+
+model ActivityVerificationRequest {
+  id                  String    @id @default(uuid())
+  studentId           String
+  activityId          String
+  evidenceDescription String
+  status              String    @default("Pending") // Pending, Accepted, Rejected
+  reviewerId          String?
+  reviewNotes         String?
+  reviewedAt          DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  student     Student                  @relation(fields: [studentId], references: [id])
+  activity    ChallengeMission         @relation(fields: [activityId], references: [id])
+  attachments VerificationAttachment[]
+}
+
+model VerificationAttachment {
+  id                    String   @id @default(uuid())
+  verificationRequestId String
+  originalFilename      String
+  storedPath            String   @unique
+  mimeType              String
+  sizeBytes             Int
+  createdAt             DateTime @default(now())
+
+  verificationRequest ActivityVerificationRequest @relation(fields: [verificationRequestId], references: [id], onDelete: Cascade)
+}
+
+model StudentActivityBan {
+  id          String    @id @default(uuid())
+  studentId   String
+  activityId  String
+  bannedAt    DateTime  @default(now())
+  bannedUntil DateTime
+  unbannedAt  DateTime?
+  unbannedById String?
+  reason      String
+  createdAt   DateTime  @default(now())
+
+  student    Student        @relation(fields: [studentId], references: [id])
+  activity   ChallengeMission @relation(fields: [activityId], references: [id])
+  unbannedBy Administrator? @relation("AdminUnbanner", fields: [unbannedById], references: [id])
+}
+
+model StudentTaskProposal {
+  id                 String    @id @default(uuid())
+  studentId          String
+  description        String
+  status             String    @default("Pending to Approve") // Pending to Approve, Ready to Do, Completed, Declined, Canceled
+  assignedPointValue Int?
+  reviewerId         String?
+  approvedAt         DateTime?
+  completedAt        DateTime?
+  canceledAt         DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  student  Student               @relation(fields: [studentId], references: [id])
+  reviewer Administrator?        @relation("AdminProposalReviewer", fields: [reviewerId], references: [id])
+  messages TaskProposalMessage[]
+}
+
+model TaskProposalMessage {
+  id          String   @id @default(uuid())
+  proposalId  String
+  senderRole  String // STUDENT, ADMIN
+  senderId    String
+  messageBody String
+  createdAt   DateTime @default(now())
+
+  proposal StudentTaskProposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+}
+
+model PointEarningGuidanceCard {
+  id                  String   @id @default(uuid())
+  title               String
+  description         String
+  logoId              String
+  suggestedPointsText String
+  status              String   @default("Active") // Active, Removed
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model StudentTier {
+  id           String   @id @default(uuid())
+  tierIndex    Int      @unique // 1..5
+  tierName     String
+  minPoints    Int
+  displayColor String?
+  updatedAt    DateTime @updatedAt
+
+  students Student[]
+}
+
+model DailyStudentBalanceSnapshot {
+  id              String   @id @default(uuid())
+  studentId       String
+  snapshotDate    String // YYYY-MM-DD
+  endOfDayBalance Int
+  createdAt       DateTime @default(now())
+
+  student Student @relation(fields: [studentId], references: [id])
+
+  @@unique([studentId, snapshotDate])
+}
+
+model AuditRecord {
+  id                    String   @id @default(uuid())
+  correlationId         String
+  eventTimestamp        DateTime @default(now())
+  actionType            String // POOL_TRANSFER, TEACHER_AWARD, ADMIN_ADJUSTMENT, REWARD_RESERVATION, REWARD_COMPLETED, REWARD_DECLINE_RETURN, REWARD_REMOVAL_RETURN, CHALLENGE_AWARD, PROPOSAL_AWARD
+  actorRole             String // ADMIN, TEACHER, STUDENT, SYSTEM
+  actorId               String
+  sourceType            String // SYSTEM_POOL, TEACHER, STUDENT, REWARD_RESERVED
+  sourceId              String?
+  recipientType         String // TEACHER, STUDENT, SYSTEM_POOL, REWARD_RESERVED
+  recipientId           String?
+  pointAmount           Int
+  taskName              String?
+  pointOption           Int?
+  reasonDescription     String?
+  relatedEntityType     String? // REWARD, REQUEST, CHALLENGE, PROPOSAL, CLASS, SUBJECT
+  relatedEntityId       String?
+  resultingBalanceState String // JSON serialized string
+  createdAt             DateTime @default(now())
+}
