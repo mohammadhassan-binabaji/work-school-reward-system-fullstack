@@ -63,6 +63,24 @@ Learners who earn points, redeem catalog rewards, submit activity verifications,
 | `createdAt` | Timestamp | No | Default: `now()` | Record creation timestamp |
 | `updatedAt` | Timestamp | No | Auto-update | Last modification timestamp |
 
+#### `UserSession` (Redis In-Memory Store)
+Stateful authentication session record stored in Redis, tracking active user logins with fast TTL and multi-device revocation.
+
+- **Primary Session Key**: `session:{sessionId}` (String key storing JSON payload, TTL: 7 days)
+- **User Index Set**: `user_sessions:{userId}` (Set storing all active `sessionId` strings for the user, allowing instant bulk revocation)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `sessionId` | UUID v4 | Cryptographically random session identifier issued in signed cookie / token |
+| `userId` | UUID | Foreign reference to `Administrator.id`, `Teacher.id`, or `Student.id` |
+| `role` | Enum | User role: `ADMIN`, `TEACHER`, or `STUDENT` |
+| `nationalId` | String(10) | User's 10-digit national ID |
+| `firstName` | String | User first name cached for request context |
+| `lastName` | String | User last name cached for request context |
+| `accountState` | Enum | Cached account state (must be `Active` to pass auth middleware) |
+| `createdAt` | Timestamp | Time session was initiated |
+| `expiresAt` | Timestamp | Absolute expiration timestamp (aligned with Redis TTL) |
+
 ---
 
 ### 1.2 Academic Structure Entities
@@ -451,14 +469,20 @@ stateDiagram-v2
 
 ---
 
-### 2.4 User Account State Transitions
+### 2.4 User Account State Transitions & Session Invalidation
 
 - **Administrator**: `Active` <-> `Inactive`
 - **Teacher**:
-  - `Active` -> `Deactivated`: Point balance and class assignments preserved, but all system actions blocked (FR-012).
-  - `Deactivated` -> `Active`: Restores action capabilities.
-  - `*` -> `Departed`: Point balance cleared to zero, assignments removed, relationships deleted (FR-014).
+  - `Active` -> `Deactivated`: Point balance and class assignments preserved, but all system actions blocked (FR-012). **All active Redis sessions for the teacher are immediately purged from Redis.**
+  - `Deactivated` -> `Active`: Restores action capabilities; teacher can log in again.
+  - `*` -> `Departed`: Point balance cleared to zero, assignments removed, relationships deleted (FR-014). **All active Redis sessions for the teacher are immediately purged from Redis.**
 - **Student**:
-  - `Active` <-> `Inactive`: Excluded from rankings and leaderboards while inactive.
-  - `Active` <-> `Deactivated`: Account disabled; excluded from rankings.
-  - `*` -> `Departed`: Point balance zeroed, active reward requests canceled (reserved points cleared), excluded from rankings (FR-010).
+  - `Active` <-> `Inactive`: Excluded from rankings and leaderboards while inactive. **All active Redis sessions are immediately purged from Redis upon entering Inactive.**
+  - `Active` <-> `Deactivated`: Account disabled; excluded from rankings. **All active Redis sessions are immediately purged from Redis upon entering Deactivated.**
+  - `*` -> `Departed`: Point balance zeroed, active reward requests canceled (reserved points cleared), excluded from rankings (FR-010). **All active Redis sessions are immediately purged from Redis.**
+
+**Session Invalidation Invariant**:
+Whenever an account state transition moves a user away from `Active` (`Deactivated`, `Departed`, or `Inactive`), the backend transaction executes:
+1. Lookup all `sessionId` strings in `user_sessions:{userId}`.
+2. Atomically delete all `session:{sessionId}` keys and the `user_sessions:{userId}` set from Redis.
+3. Any subsequent incoming HTTP request presenting any of those session IDs will fail Redis session lookup in the authentication middleware, immediately returning HTTP `401 Unauthorized` with error code `ACCOUNT_INACTIVE` or `SESSION_REVOKED`.

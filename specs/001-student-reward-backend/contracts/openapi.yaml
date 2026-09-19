@@ -12,6 +12,7 @@ servers:
     description: Primary API Gateway v1
 
 security:
+  - SessionCookie: []
   - BearerAuth: []
 
 paths:
@@ -81,16 +82,41 @@ paths:
               $ref: '#/components/schemas/LoginRequest'
       responses:
         '200':
-          description: Authentication successful
+          description: Authentication successful. Sets signed HTTP-only session cookie.
           headers:
             X-Correlation-ID:
               $ref: '#/components/headers/X-Correlation-ID'
+            Set-Cookie:
+              schema:
+                type: string
+                example: sessionId=s%3A7b326da4-25e2-45e0-9ec8-608b8b9f1d07...; Path=/; HttpOnly; Secure; SameSite=Lax
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/LoginResponse'
         '401':
           $ref: '#/components/responses/401Unauthorized'
+
+  /auth/logout:
+    post:
+      summary: Terminate Current Session
+      description: Destroys session in Redis and clears HTTP-only session cookie.
+      responses:
+        '200':
+          description: Session terminated successfully
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: sessionId=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Logged out successfully
 
   /auth/me:
     get:
@@ -1185,10 +1211,15 @@ paths:
 # ==========================================
 components:
   securitySchemes:
+    SessionCookie:
+      type: apiKey
+      in: cookie
+      name: sessionId
+      description: Signed HTTP-only session cookie set upon successful login.
     BearerAuth:
       type: http
       scheme: bearer
-      bearerFormat: JWT
+      description: Session identifier passed via Authorization Bearer header for non-browser or automated API clients.
 
   headers:
     X-Correlation-ID:
@@ -1295,10 +1326,12 @@ components:
 
     LoginResponse:
       type: object
-      required: [token, user]
+      required: [sessionId, user]
       properties:
-        token:
+        sessionId:
           type: string
+          format: uuid
+          description: Unique session identifier stored in Redis and set as cookie
         user:
           $ref: '#/components/schemas/UserResponse'
 

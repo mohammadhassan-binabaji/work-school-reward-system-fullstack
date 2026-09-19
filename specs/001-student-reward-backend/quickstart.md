@@ -13,25 +13,29 @@ This guide provides step-by-step instructions and runnable scenarios to validate
 ### Prerequisites
 - **Node.js**: v24.x LTS (installed: `node -v`)
 - **npm**: v12.x (installed: `npm -v`)
-- **SQLite**: Bundled / file-based (zero-external daemon required)
+- **SQLite**: Bundled / file-based (zero-external database daemon required)
+- **Redis**: v7.x running on `localhost:6379` (local daemon `redis-server` or via Docker: `docker run -d -p 6379:6379 redis:7-alpine`)
 
 ### Setup Commands
 From the repository root:
 
 ```bash
-# 1. Navigate to backend workspace
+# 1. Start Redis service (if using Docker)
+docker run -d --name student-rewards-redis -p 6379:6379 redis:7-alpine
+
+# 2. Navigate to backend workspace
 cd backend
 
-# 2. Install dependencies
+# 3. Install dependencies
 npm install
 
-# 3. Apply Prisma database migrations
+# 4. Apply Prisma database migrations
 npx prisma migrate dev --name init
 
-# 4. Generate Prisma Client
+# 5. Generate Prisma Client
 npx prisma generate
 
-# 5. Start the backend development server
+# 6. Start the backend development server
 npm run dev
 ```
 
@@ -45,7 +49,7 @@ OpenAPI documentation is available at `http://localhost:3000/documentation`.
 Run the complete automated test suite covering unit algorithms, integration flows, and contract adherence:
 
 ```bash
-# Run all unit, integration, and contract tests
+# Run all unit, integration, and contract tests (uses ioredis-mock or test redis)
 npm test
 
 # Run tests with code coverage report
@@ -58,12 +62,13 @@ npm run test:coverage
 - `rewards-flow.test.ts`: Confirms reserved point locking, return on decline or catalog removal, and completion on handover.
 - `proposals-flow.test.ts`: Confirms proposal state machine, messaging thread isolation, and teacher exclusion.
 - `audit-immutability.test.ts`: Confirms audit entries are recorded atomically for every point mutation.
+- `session-invalidation.test.ts`: Confirms that deactivating or departing a user purges all active Redis sessions and immediately yields 401 Unauthorized.
 
 ---
 
 ## 3. End-to-End Validation Scenarios
 
-### Scenario 1: Initial Admin Provisioning & Authentication (User Story 1)
+### Scenario 1: Initial Admin Provisioning & Session Authentication (User Story 1)
 
 **Goal**: Provision first school administrator with 10-digit national ID and authenticate.
 
@@ -82,15 +87,21 @@ curl -X POST http://localhost:3000/api/v1/auth/provision-admin \
 # Expected: 201 Created with user object (excluding passwordHash)
 
 # 2. Authenticate with national ID and password
-curl -X POST http://localhost:3000/api/v1/auth/login \
+curl -i -X POST http://localhost:3000/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "nationalId": "1234567890",
     "password": "Password123!"
   }'
 
-# Expected: 200 OK returning { "token": "<JWT_TOKEN>", "user": { "role": "ADMIN", ... } }
-# Save token: export ADMIN_TOKEN="<JWT_TOKEN>"
+# Expected Response Headers:
+# Set-Cookie: sessionId=s%3A7b326da4-25e2-45e0-9ec8-608b8b9f1d07...; Path=/; HttpOnly; Secure; SameSite=Lax
+# Expected Response Body:
+# {
+#   "sessionId": "7b326da4-25e2-45e0-9ec8-608b8b9f1d07",
+#   "user": { "role": "ADMIN", ... }
+# }
+# Save session: export ADMIN_SESSION="7b326da4-25e2-45e0-9ec8-608b8b9f1d07"
 ```
 
 ---
@@ -151,6 +162,30 @@ curl -X POST http://localhost:3000/api/v1/academic/assignments \
     "classId": "'"$CLASS_ID"'",
     "subjectId": "'"$SUBJECT_ID"'"
   }'
+
+# 5. Verify Instant Session Invalidation on Teacher Deactivation
+# Teacher logs in and obtains active session
+export TEACHER_SESSION=$(curl -s -X POST http://localhost:3000/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"nationalId": "2345678901", "password": "Password123!"}' | jq -r .sessionId)
+
+# Admin deactivates teacher
+curl -X PUT http://localhost:3000/api/v1/academic/teachers/$TEACHER_ID/status \
+  -H "Authorization: Bearer $ADMIN_SESSION" \
+  -H "Content-Type: application/json" \
+  -d '{ "status": "Deactivated" }'
+
+# Teacher attempts any request with the existing session
+curl -i -X GET http://localhost:3000/api/v1/auth/me \
+  -H "Authorization: Bearer $TEACHER_SESSION"
+
+# Expected: 401 Unauthorized (Session purged immediately from Redis; error: "Account is not active")
+
+# Re-activate teacher for subsequent testing
+curl -X PUT http://localhost:3000/api/v1/academic/teachers/$TEACHER_ID/status \
+  -H "Authorization: Bearer $ADMIN_SESSION" \
+  -H "Content-Type: application/json" \
+  -d '{ "status": "Active" }'
 ```
 
 ---
@@ -162,14 +197,14 @@ curl -X POST http://localhost:3000/api/v1/academic/assignments \
 ```bash
 # 1. Admin transfers 100 points to Teacher
 curl -X POST http://localhost:3000/api/v1/points/pool/transfer \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Authorization: Bearer $ADMIN_SESSION" \
   -H "Content-Type: application/json" \
   -d '{ "teacherId": "'"$TEACHER_ID"'", "amount": 100 }'
 # Expected: 200 OK. Teacher balance increases to 100.
 
 # 2. Admin creates transfer task "Doing Homework" with options [5, 10, 15]
 curl -X POST http://localhost:3000/api/v1/points/tasks \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Authorization: Bearer $ADMIN_SESSION" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Doing Homework",
@@ -178,14 +213,14 @@ curl -X POST http://localhost:3000/api/v1/points/tasks \
   }'
 # Save: export TASK_ID="<TASK_ID>"
 
-# 3. Log in as Teacher
-# export TEACHER_TOKEN=$(curl -s -X POST http://localhost:3000/api/v1/auth/login \
-#   -H "Content-Type: application/json" \
-#   -d '{"nationalId": "2345678901", "password": "Password123!"}' | jq -r .token)
+# 3. Log in as Teacher to obtain fresh session
+export TEACHER_SESSION=$(curl -s -X POST http://localhost:3000/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"nationalId": "2345678901", "password": "Password123!"}' | jq -r .sessionId)
 
 # 4. Teacher awards 10 points to Alice
 curl -X POST http://localhost:3000/api/v1/points/award \
-  -H "Authorization: Bearer $TEACHER_TOKEN" \
+  -H "Authorization: Bearer $TEACHER_SESSION" \
   -H "Content-Type: application/json" \
   -d '{
     "studentId": "'"$STUDENT_ID"'",
@@ -204,7 +239,7 @@ curl -X POST http://localhost:3000/api/v1/points/award \
 ```bash
 # 1. Admin creates Reward (requires approval = false, inventory = 5, price = 10)
 curl -X POST http://localhost:3000/api/v1/rewards \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Authorization: Bearer $ADMIN_SESSION" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "School Pen Set",
@@ -216,12 +251,12 @@ curl -X POST http://localhost:3000/api/v1/rewards \
 # Save: export REWARD_ID="<REWARD_ID>"
 
 # 2. Student logs in & requests reward
-# export STUDENT_TOKEN=$(curl -s -X POST http://localhost:3000/api/v1/auth/login \
-#   -H "Content-Type: application/json" \
-#   -d '{"nationalId": "3456789012", "password": "Password123!"}' | jq -r .token)
+export STUDENT_SESSION=$(curl -s -X POST http://localhost:3000/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"nationalId": "3456789012", "password": "Password123!"}' | jq -r .sessionId)
 
 curl -X POST http://localhost:3000/api/v1/rewards/requests \
-  -H "Authorization: Bearer $STUDENT_TOKEN" \
+  -H "Authorization: Bearer $STUDENT_SESSION" \
   -H "Content-Type: application/json" \
   -d '{ "rewardId": "'"$REWARD_ID"'" }'
 # Expected: 201 Created. Status is "Pending to Receive".
@@ -229,7 +264,7 @@ curl -X POST http://localhost:3000/api/v1/rewards/requests \
 
 # 3. Admin marks reward as received after handover
 curl -X PUT http://localhost:3000/api/v1/rewards/requests/<REQUEST_ID>/receive \
-  -H "Authorization: Bearer $ADMIN_TOKEN"
+  -H "Authorization: Bearer $ADMIN_SESSION"
 # Expected: 200 OK. Status is "Completed". Reserved points finalized (0).
 ```
 
@@ -242,7 +277,7 @@ curl -X PUT http://localhost:3000/api/v1/rewards/requests/<REQUEST_ID>/receive \
 ```bash
 # 1. Admin creates Challenge with fixed point value 20, limit 1
 curl -X POST http://localhost:3000/api/v1/activities \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Authorization: Bearer $ADMIN_SESSION" \
   -H "Content-Type: application/json" \
   -d '{
     "type": "Challenge",
@@ -261,7 +296,7 @@ curl -X POST http://localhost:3000/api/v1/activities \
 
 # 4. Admin overrides and unblocks student
 curl -X PUT http://localhost:3000/api/v1/activities/bans/$STUDENT_ID/$ACTIVITY_ID/unban \
-  -H "Authorization: Bearer $ADMIN_TOKEN"
+  -H "Authorization: Bearer $ADMIN_SESSION"
 # Expected: 200 OK. Student is unbanned immediately.
 ```
 
@@ -274,27 +309,27 @@ curl -X PUT http://localhost:3000/api/v1/activities/bans/$STUDENT_ID/$ACTIVITY_I
 ```bash
 # 1. Student submits proposal
 curl -X POST http://localhost:3000/api/v1/proposals \
-  -H "Authorization: Bearer $STUDENT_TOKEN" \
+  -H "Authorization: Bearer $STUDENT_SESSION" \
   -H "Content-Type: application/json" \
   -d '{ "description": "Organize classroom library books by genre" }'
 # Save: export PROPOSAL_ID="<PROPOSAL_ID>"
 
 # 2. Admin approves and assigns 25 points
 curl -X PUT http://localhost:3000/api/v1/proposals/$PROPOSAL_ID/approve \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Authorization: Bearer $ADMIN_SESSION" \
   -H "Content-Type: application/json" \
   -d '{ "assignedPointValue": 25 }'
 # Expected: 200 OK. Status is "Ready to Do".
 
 # 3. Post message in thread
 curl -X POST http://localhost:3000/api/v1/proposals/$PROPOSAL_ID/messages \
-  -H "Authorization: Bearer $STUDENT_TOKEN" \
+  -H "Authorization: Bearer $STUDENT_SESSION" \
   -H "Content-Type: application/json" \
   -d '{ "messageBody": "Completed organizing section A through D!" }'
 
 # 4. Admin confirms completion
 curl -X PUT http://localhost:3000/api/v1/proposals/$PROPOSAL_ID/complete \
-  -H "Authorization: Bearer $ADMIN_TOKEN"
+  -H "Authorization: Bearer $ADMIN_SESSION"
 # Expected: 200 OK. Status is "Completed". Student receives 25 points.
 ```
 
@@ -307,7 +342,7 @@ curl -X PUT http://localhost:3000/api/v1/proposals/$PROPOSAL_ID/complete \
 ```bash
 # Query ranking as Student
 curl -X GET "http://localhost:3000/api/v1/analytics/rankings?scope=school" \
-  -H "Authorization: Bearer $STUDENT_TOKEN"
+  -H "Authorization: Bearer $STUDENT_SESSION"
 
 # Expected Response:
 # {
@@ -331,22 +366,22 @@ curl -X GET "http://localhost:3000/api/v1/analytics/rankings?scope=school" \
 ```bash
 # 1. Parameterized report query
 curl -X GET "http://localhost:3000/api/v1/reports/point-flow?startDate=2026-09-01&endDate=2026-09-30" \
-  -H "Authorization: Bearer $ADMIN_TOKEN"
+  -H "Authorization: Bearer $ADMIN_SESSION"
 # Expected: 200 OK with array of immutable audit records.
 
 # 2. Export to CSV
 curl -X GET "http://localhost:3000/api/v1/reports/point-flow/export?format=csv" \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Authorization: Bearer $ADMIN_SESSION" \
   --output report.csv
 
 # 3. Export to Excel
 curl -X GET "http://localhost:3000/api/v1/reports/point-flow/export?format=excel" \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Authorization: Bearer $ADMIN_SESSION" \
   --output report.xlsx
 
 # 4. Export to PDF
 curl -X GET "http://localhost:3000/api/v1/reports/point-flow/export?format=pdf" \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Authorization: Bearer $ADMIN_SESSION" \
   --output report.pdf
 ```
 
@@ -358,7 +393,7 @@ curl -X GET "http://localhost:3000/api/v1/reports/point-flow/export?format=pdf" 
 
 ```bash
 curl -i -X GET http://localhost:3000/api/v1/guidance/cards \
-  -H "Authorization: Bearer $STUDENT_TOKEN" \
+  -H "Authorization: Bearer $STUDENT_SESSION" \
   -H "X-Correlation-ID: test-corr-id-12345"
 
 # Expected Response Headers:
@@ -374,4 +409,24 @@ curl -i -X GET http://localhost:3000/api/v1/guidance/cards \
 #   "responseTime": 2.4,
 #   "msg": "request completed"
 # }
+```
+
+---
+
+### Scenario 10: Session Termination & Logout Verification
+
+**Goal**: Verify that logging out destroys the session in Redis and clears the session cookie.
+
+```bash
+# 1. Logout
+curl -i -X POST http://localhost:3000/api/v1/auth/logout \
+  -H "Authorization: Bearer $STUDENT_SESSION"
+
+# Expected: 200 OK, Set-Cookie clears sessionId
+
+# 2. Attempt subsequent authenticated action with the terminated session
+curl -i -X GET http://localhost:3000/api/v1/auth/me \
+  -H "Authorization: Bearer $STUDENT_SESSION"
+
+# Expected: 401 Unauthorized (Session no longer exists in Redis)
 ```

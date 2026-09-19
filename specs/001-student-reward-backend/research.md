@@ -40,18 +40,28 @@ This document captures the technical investigations, architecture evaluations, a
 
 ## 3. Authentication, Password Security & Role-Based Access Control (RBAC)
 
-- **Decision**: **Argon2id** (via `@node-rs/argon2` or `argon2`) for credential hashing; **JWT (JSON Web Tokens)** with stateless Bearer authentication; pre-handler Fastify authorization hooks enforcing `ADMIN`, `TEACHER`, and `STUDENT` role boundaries.
+- **Decision**: **Argon2id** (via `@node-rs/argon2` or `argon2`) for credential hashing; **Stateful Redis Sessions** with secure, signed HTTP-only cookies (and fallback `Authorization: Bearer <sessionId>` header for API clients); pre-handler Fastify authorization hooks enforcing `ADMIN`, `TEACHER`, and `STUDENT` role boundaries with **instant 0-second session invalidation on user state changes**.
 - **Rationale**:
-  - **Credential Security (FR-003, FR-005)**: Passwords must never be exposed or logged. Argon2id is the OWASP-recommended modern hashing standard, resistant to GPU/ASIC cracking.
-  - **10-Digit National ID (FR-003, FR-004)**: National ID is verified against the strict regex `^\d{10}$` at the schema boundary before reaching the authentication service.
-  - **Role-Based Guards (FR-006, Principle V)**: Route plugins verify token signatures and claims (`sub`, `role`, `nationalId`). Domain guards enforce:
+  - **Account State Verification & Invalidation Invariant**: Users whose account state is not `Active` (i.e. `Inactive`, `Deactivated`, or `Departed`) MUST NOT be permitted to authenticate. Crucially, when an administrator changes a user's state (e.g. deactivating a teacher per FR-012, or departing a student/teacher per FR-010/014), all active sessions for that user MUST be invalidated immediately so that subsequent requests are rejected on the next HTTP call.
+  - **Redis Session Architecture**:
+    - On login (`POST /auth/login`), credentials and `accountState === 'Active'` are verified. A cryptographically random `sessionId` (UUID v4) is generated.
+    - The session payload is written to Redis under key `session:{sessionId}` with a configurable TTL (e.g. 7 days): `{ userId, role, nationalId, firstName, lastName, accountState, createdAt }`.
+    - Active sessions for each user are tracked in a Redis set `user_sessions:{userId}` containing all active `sessionId` members for that user.
+    - The session identifier is issued to the client via an HTTP-only, secure, `SameSite=Lax` cookie (and also returned in the JSON login response for non-browser/API clients).
+  - **Instant Revocation Trigger**:
+    - When any user state mutation occurs (teacher deactivated/departed, student departed/deactivated/inactive, administrator deactivated), the transaction publishes a revocation event or calls the session manager to delete all `session:{sessionId}` keys listed in `user_sessions:{userId}` and clears the set.
+    - Any subsequent request bearing that `sessionId` immediately receives `401 Unauthorized` (`SESSION_REVOKED` / `ACCOUNT_INACTIVE`).
+  - **Credential Security (FR-003, FR-005)**: Passwords are encrypted with Argon2id and never returned in responses or logs.
+  - **10-Digit National ID (FR-003, FR-004)**: Validated against regex `^\d{10}$` at the schema boundary.
+  - **Role-Based Guards (FR-006, Principle V)**: Auth middleware loads session from Redis, verifies `accountState === 'Active'`, and enforces:
     - *Admin*: Full administrative operations.
     - *Teacher*: Scoped exclusively to classes and students assigned via `TeacherClassSubject`.
     - *Student*: Scoped strictly to the student's own records (proposals, balances, redemptions); blocked from querying other students' private data.
     - *Teacher Isolation*: Teachers are strictly rejected from accessing student task proposals or proposal message threads (FR-053).
 - **Alternatives Considered**:
-  - *Stateful Server Sessions (Redis / DB Session Table)*: Requires additional state storage and cleanup jobs; stateless JWT with appropriate expiration is self-contained and standard for REST APIs.
-  - *Bcrypt*: Mature, but Argon2id provides superior memory-hardness configuration and resistance to side-channel attacks.
+  - *Stateless JWT*: Rejected by user requirement because JWT signatures cannot be revoked immediately upon user deactivation without secondary database lookups or token revocation blacklists.
+  - *Short-Lived JWT (5 min) + Refresh Token*: Rejected because deactivated users retain access during the remaining lifetime of their short-lived access token (up to 5 minutes) before token expiration triggers refresh rejection.
+  - *Relational DB Session Table*: Viable, but Redis provides sub-millisecond memory-speed session verification and native key expiration (TTL) without periodic database cleanup cron jobs.
 
 ---
 

@@ -19,16 +19,17 @@ Build the complete, production-ready backend for the Student Reward System based
 - **Web Framework**: Fastify v4.x / v5.x (high performance, native JSON Schema validation, built-in Pino structured logging, lifecycle hooks)
 - **Validation**: TypeBox / JSON Schema
 - **Documentation**: `@fastify/swagger` and `@fastify/swagger-ui` (OpenAPI 3.0 generation)
-- **Security & Auth**: `@fastify/jwt`, `argon2` / `@node-rs/argon2` (OWASP-recommended Argon2id password hashing)
+- **Security & Session Auth**: `@fastify/cookie` (signed HTTP-only session cookies), `ioredis` (Redis session persistence & invalidation), `argon2` / `@node-rs/argon2` (OWASP-recommended Argon2id password hashing)
 - **File Uploads**: `@fastify/multipart` (streaming file/image verification attachments)
 - **Export Engines**: `csv-stringify` (streaming CSV), `exceljs` (styled Excel workbooks), `pdfkit` (tabular PDF reports)
 
 **Storage**:
 - **ORM**: Prisma ORM
 - **Database Engine**: SQLite (WAL mode) for local development and automated integration testing; fully compatible with PostgreSQL via connection string configuration for production
+- **Session Cache**: Redis 7.x (in-memory session state, TTL management, multi-session tracking, instant 0-second purge on user state mutation)
 
 **Testing**:
-- **Test Runner & Framework**: Vitest (fast, native ESM and TypeScript support)
+- **Test Runner & Framework**: Vitest (fast, native ESM and TypeScript support) with `ioredis-mock` or embedded Redis for automated integration tests
 - **Integration HTTP Client**: Supertest / Fastify `inject()`
 - **Coverage Tool**: Vitest `@vitest/coverage-v8`
 
@@ -36,10 +37,12 @@ Build the complete, production-ready backend for the Student Reward System based
 **Project Type**: Standalone REST API Web Service  
 **Performance Goals**:
 - P95 latency < 50ms for point-balance reads and ranking queries
+- Session authentication verification in Redis < 2ms per request
 - Atomic point transaction throughput > 500 req/s with zero deadlock or double-spend
 - Complete structured request lifecycle logging in < 1ms overhead per request
 
 **Constraints**:
+- Non-active users (`Inactive`, `Deactivated`, `Departed`) cannot log in; any active sessions for a user are purged immediately when their status changes
 - Zero negative point balances permitted for teachers or students
 - Strictly immutable append-only audit trail (no UPDATE or DELETE endpoints)
 - Complete isolation: Students cannot access other students' proposals or non-top rankings; teachers cannot access task proposals or students outside their assigned classes
@@ -47,7 +50,7 @@ Build the complete, production-ready backend for the Student Reward System based
 
 **Scale/Scope**:
 - Complete backend implementation covering all 9 User Stories, 95 Functional Requirements, and 72 Business Rules
-- 17 Domain Entities, 40+ REST API endpoints, 3 Export formats, and 3 Role Permission matrices
+- 17 Domain Entities + Redis Session Schema, 40+ REST API endpoints, 3 Export formats, and 3 Role Permission matrices
 
 ---
 
@@ -59,10 +62,10 @@ Build the complete, production-ready backend for the Student Reward System based
 |-----------|------------------------|--------|-------------------------------------|
 | **I. Requirements & Specification First** | Every change traces back to requirements; no silent behavior shifts. | **PASS** | Design explicitly maps 1-to-1 with FR-001..FR-095, BR-001..BR-072, and US-1..US-9. |
 | **II. Backend-First Delivery** | Backend independently runnable and testable without frontend dependencies. | **PASS** | Standalone Fastify service with runnable integration tests via Fastify `inject()` / Supertest and standalone seed data. |
-| **III. Modular Architecture & Separation of Concerns** | Clear separation between routes, business logic, persistence, and core infra. | **PASS** | Clean 4-layer architecture: `api/` (routes/schemas/guards), `services/` (transactions & state machines), `repositories/` (Prisma ORM), `core/` (errors, logging, config). |
+| **III. Modular Architecture & Separation of Concerns** | Clear separation between routes, business logic, persistence, and core infra. | **PASS** | Clean 4-layer architecture: `api/` (routes/schemas/guards), `services/` (transactions & state machines), `repositories/` (Prisma ORM & Redis session store), `core/` (errors, logging, config). |
 | **IV. API & Data Contract Discipline** | Public API explicitly specified; predictable error and status semantics. | **PASS** | Full OpenAPI 3.0 contract specified in `contracts/openapi.yaml`; strictly typed request/response schemas and standardized error responses. |
-| **V. Security & Input Validation** | All input untrusted; backend-enforced RBAC; zero sensitive data in logs/errors. | **PASS** | Strict TypeBox schemas on all endpoints, Argon2id password hashing, JWT role guards, and Pino credential redactors. |
-| **VI. Testability & Verification** | Business-critical behavior covered by automated tests. | **PASS** | Test suite covers atomic transactions, concurrency, standard competition ranking, tier transitions, ban triggers, and export generation. |
+| **V. Security & Input Validation** | All input untrusted; backend-enforced RBAC; zero sensitive data in logs/errors; instant deactivation. | **PASS** | Strict TypeBox schemas on all endpoints, Argon2id password hashing, Redis stateful session guards with immediate invalidation upon deactivation, and Pino credential redactors. |
+| **VI. Testability & Verification** | Business-critical behavior covered by automated tests. | **PASS** | Test suite covers atomic transactions, concurrency, standard competition ranking, tier transitions, ban triggers, session invalidation, and export generation. |
 | **VII. Error Handling & Observability** | Errors propagate with causes; structured completion logs (INFO/ERROR); correlation IDs. | **PASS** | Fastify lifecycle hooks (`onRequest`, `onResponse`, `onError`) with Pino; `X-Correlation-ID` propagated throughout; custom `ApplicationError` hierarchy with cause chaining. |
 
 ---
@@ -95,14 +98,16 @@ backend/
 │   ├── server.ts                  # Server entrypoint & graceful shutdown
 │   ├── core/                      # Infrastructure & cross-cutting concerns
 │   │   ├── config.ts              # Environment configuration & validation
+│   │   ├── redis.ts               # Redis connection client & health checks
+│   │   ├── session.ts             # Session store, TTL management, multi-device invalidation
 │   │   ├── errors.ts              # Custom ApplicationError hierarchy & causes
 │   │   ├── logger.ts              # Pino structured logger with secret redaction
 │   │   └── correlation.ts         # Correlation ID middleware & lifecycle hooks
 │   ├── middleware/                # Route guards & common interceptors
-│   │   ├── authenticate.ts        # JWT token verification & user context injection
+│   │   ├── authenticate.ts        # Redis session verification & user context injection
 │   │   └── authorize.ts           # Role-based guards (Admin, Teacher, Student)
 │   ├── modules/                   # Domain feature modules (routes, schemas, services)
-│   │   ├── auth/                  # Authentication & provisioning (FR-001..006)
+│   │   ├── auth/                  # Authentication, login, logout & provisioning (FR-001..006)
 │   │   │   ├── auth.routes.ts
 │   │   │   ├── auth.schemas.ts
 │   │   │   └── auth.service.ts
