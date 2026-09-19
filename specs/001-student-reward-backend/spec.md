@@ -8,6 +8,15 @@
 
 **Input**: User description: "Build the backend of the existing system based on the existing requirements documentation in docs/requirements/. Use the following documents as the source of truth: docs/requirements/requirements.md, docs/requirements/user-stories.md, docs/requirements/business-rules.md, docs/requirements/data-requirements.md, docs/requirements/open-questions.md. The goal is to create a complete behavioral specification for the backend scope of the existing system. Do not implement anything. Do not make technology or framework decisions. Do not create an implementation plan. Preserve the business intent and requirements from the existing documentation while making the expected system behavior precise, testable, and unambiguous. The backend specification should cover the complete currently defined backend scope rather than a single small feature."
 
+## Clarifications
+
+### Session 2026-09-19
+- Q: What evidence formats should students be allowed to submit when requesting verification for a challenge or mission? (FR-088) → A: Text description with direct file or image upload attachments (Option B).
+- Q: Can administrators edit non-point fields (such as title, description, and completion limit) of an existing challenge or mission, or must the activity be recreated to change any field? (FR-036) → A: Allow editing title, description, and completion limit, while point value remains strictly immutable (Option A).
+- Q: Should catalog rewards support image media (such as an image URL or image attachment) in addition to their name and text description? (FR-085) → A: Optional image (URL or image file reference) alongside name and description (Option A).
+- Q: Should point-flow reports be generated strictly on-demand using runtime filter criteria, or should the backend also persist named saved filter templates? (FR-069) → A: On-demand parameterized report queries only (Option A).
+- Q: Should classes and subjects support additional metadata attributes (such as academic year, grade level, or description) beyond their name or label? (FR-079, FR-080) → A: Name/label with optional grade level and description (Option A).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Account Provisioning & Role-Based Access Control (Priority: P1)
@@ -101,7 +110,7 @@ As a school administrator, and student, I need administrators to create fixed-va
 **Acceptance Scenarios**:
 
 1. **Given** an administrator, **When** the administrator creates a challenge or mission with a fixed point value and a maximum per-student completion limit, **Then** the activity is created and its point value cannot be modified thereafter.
-2. **Given** an active challenge or mission, **When** a student submits a verification request with evidence, **Then** the request is recorded in pending review state for administrative verification.
+2. **Given** an active challenge or mission, **When** a student submits a verification request with a text description and attached file or image evidence, **Then** the request is recorded in pending review state for administrative verification.
 3. **Given** a pending verification request, **When** an administrator accepts the submission, **Then** the backend awards the activity's fixed point value to the student, increments the student's completion count for that activity, updates the student's highest balance if exceeded, and records the completion in immutable audit history.
 4. **Given** a student who has reached the configured completion limit for a challenge or mission, **When** the student attempts to submit another verification request for that activity, **Then** the backend rejects the submission as the activity is marked done for that student.
 5. **Given** a student with 2 previous rejections for a specific challenge or mission, **When** an administrator rejects a 3rd verification request for the same activity, **Then** the backend records the rejection and places a temporary submission ban (approximately one month) on that student for that specific activity.
@@ -252,7 +261,7 @@ As a school administrator, teacher, and student, I need the system to permanentl
 
 #### Challenges, Missions & Verification
 - **FR-035**: The system MUST allow only administrators to create and manage challenges and missions with a title, description/action, fixed point value, and per-student completion limit.
-- **FR-036**: The system MUST enforce that challenge and mission point values are immutable once created; changing a point value requires removing and recreating the activity.
+- **FR-036**: The system MUST allow administrators to edit the title, description, and completion limit of an existing challenge or mission, while enforcing that the fixed point value remains strictly immutable once created (changing a point value requires removing and recreating the activity).
 - **FR-037**: The system MUST allow students to submit verification requests for active challenges and missions until the student's completion count reaches the configured limit.
 - **FR-038**: When an administrator accepts a challenge or mission verification request, the system MUST award the configured fixed points to the student, increment the student's completion count for that activity, and mark the request accepted.
 - **FR-039**: The system MUST allow teachers and administrators to award points directly for challenge and mission completion within the configured completion limits.
@@ -295,7 +304,7 @@ As a school administrator, teacher, and student, I need the system to permanentl
 - **FR-066**: The system MUST write an immutable audit log record for every point-modifying event, including pool transfers, teacher awards, administrator adjustments, reward reservations, redemptions, declines, cancellations, reward removals, challenge awards, and task proposal awards.
 - **FR-067**: Each audit record MUST capture the actor, source, recipient, amount, action type, task/reason description, related entity identifiers, timestamp, and resulting balance state.
 - **FR-068**: The system MUST permanently retain audit records and strictly prevent administrators or any users from modifying or deleting audit records.
-- **FR-069**: The system MUST provide point-flow reporting with filtering by date range, student, teacher, class, subject, action type, reward, and student tier.
+- **FR-069**: The system MUST provide on-demand point-flow reporting executed with runtime parameter filtering by date range, student, teacher, class, subject, action type, reward, and student tier (without requiring persisted saved filter entities).
 - **FR-070**: The system MUST restrict reporting visibility by role: administrators view school-wide data; teachers view only students in assigned classes; students view only their own point history.
 - **FR-071**: The system MUST support exporting filtered point reports to CSV, Excel, and PDF formats.
 
@@ -309,16 +318,16 @@ As a school administrator, teacher, and student, I need the system to permanentl
 - **FR-076**: The system MUST store for each administrator: first name, last name, national ID, username, password, and account state (`Active` or `Inactive`).
 - **FR-077**: The system MUST store for each teacher: first name, last name, national ID, username, password, account state (`Active`, `Deactivated`, or `Departed`), teacher point balance (award budget), and assigned classes and subjects.
 - **FR-078**: The system MUST store for each student: first name, last name, national ID, username, password, account state (`Active`, `Inactive`, `Deactivated`, or `Departed`), current point balance, reserved points, single assigned class, current tier, highest current-point balance, current class rank, current school rank, ranking population counts, and weekly end-of-day current-balance history.
-- **FR-079**: The system MUST store for each class: class name or label, active or inactive state, assigned students, and teacher-subject assignments.
-- **FR-080**: The system MUST store for each subject: subject name, the classes where the subject is taught, and the teachers assigned to teach the subject in each class.
+- **FR-079**: The system MUST store for each class: class name or label, optional grade level, optional description, active or inactive state, assigned students, and teacher-subject assignments.
+- **FR-080**: The system MUST store for each subject: subject name, optional description, the classes where the subject is taught, and the teachers assigned to teach the subject in each class.
 - **FR-081**: The system MUST store for each teacher-class-subject assignment: teacher reference, class reference, subject reference, and assignment state (`Active` or `Removed`).
 - **FR-082**: The system MUST distinguish between and separately maintain the system-wide point pool, individual teacher award-budget balances, individual student reward-point balances, and reserved student points for active reward requests.
 - **FR-083**: Each point activity record MUST preserve: actor, source, recipient, point amount, action type, selected task and point-amount option (for teacher awards), reason or description (for non-teacher-award actions), date and time, related entities (student, teacher, class, subject, activity, reward, or request when applicable), and resulting balance when needed to trace the flow.
 - **FR-084**: The system MUST store for each point transfer task: task name, task description (if provided), one or more predefined point-amount options, and active or inactive state.
-- **FR-085**: The system MUST store for each reward: reward name, description, point price (immutable), approval requirement flag, inventory quantity (finite for non-approval rewards; no limit for approval-required rewards), active or removed state, and creation and relevant change information.
+- **FR-085**: The system MUST store for each reward: reward name, description, optional image reference (URL or image attachment), point price (immutable), approval requirement flag, inventory quantity (finite for non-approval rewards; no limit for approval-required rewards), active or removed state, and creation and relevant change information.
 - **FR-086**: Each reward request MUST preserve: student reference, reward reference, whether the reward requires approval (snapshot at request time), point price at request time, original request date and time, current request state, reserved point amount, and approval, decline, or receive information when applicable.
 - **FR-087**: The system MUST store for each challenge or mission: activity type (challenge or mission), name, description or required action, fixed point value (immutable), per-student completion limit, active/inactive/removed state, and creation information.
-- **FR-088**: Each challenge or mission verification request MUST preserve: student reference, activity reference, submitted evidence or verification information (when provided), submission date and time, administrator reviewer, review date and time, review result, rejection history, current activity-completion count for the student, and ban or unblock state when applicable.
+- **FR-088**: Each challenge or mission verification request MUST preserve: student reference, activity reference, submitted evidence or verification information (supporting a text description and direct file or image upload attachments), submission date and time, administrator reviewer, review date and time, review result, rejection history, current activity-completion count for the student, and ban or unblock state when applicable.
 - **FR-089**: Each student task proposal MUST preserve: student proposer, proposed task description, current status, assigned point value (set by administrator upon approval; editable prior to completion), submission date and time, approval date and time, completion date and time, and reviewing administrator.
 - **FR-090**: Each task proposal message MUST preserve: task proposal reference, sender (student or administrator), message body, and sent date and time.
 - **FR-091**: The system MUST store for each guidance card: title, description, logo selected from a predefined set, suggested point value or range, and active or removed state.
@@ -386,6 +395,8 @@ When a student changes class, the balance and reward requests remain unchanged. 
 The system must store or display:
 
 - Class name or label (e.g., `7A` or `7 Grade A`)
+- Optional grade level
+- Optional description
 - Status: `Active` or `Inactive`
 - Assigned students
 - Teacher-subject assignments
@@ -397,6 +408,7 @@ A class can contain multiple subjects and teachers. Each student can belong to o
 The system must store or display:
 
 - Subject name
+- Optional description
 - The class or classes where the subject is taught
 - The teacher or teachers assigned to teach the subject in each class
 
@@ -454,6 +466,7 @@ The system must store or display:
 
 - Reward name
 - Reward description
+- Optional image reference (URL or image file reference)
 - Point price (immutable after creation)
 - Whether the reward requires administrator approval (boolean)
 - Inventory quantity (finite integer for rewards not requiring approval; no inventory limit for rewards requiring approval)
@@ -498,7 +511,7 @@ The system must store or display:
 - Status: `Active`, `Inactive`, or `Removed`
 - Creation information
 
-Only administrators create and manage these activities. The fixed point value cannot be changed after creation; changing it requires removing and recreating the activity.
+Only administrators create and manage these activities. Administrators may update the title, description, and completion limit, but the fixed point value cannot be changed after creation; changing a point value requires removing and recreating the activity.
 
 #### Activity Verification Request
 
@@ -506,7 +519,7 @@ Each verification request must preserve:
 
 - Student reference
 - Challenge or mission reference
-- Submitted evidence or verification information (when provided)
+- Submitted evidence or verification information (text description and direct file or image upload attachments)
 - Submission date and time
 - Administrator reviewer reference
 - Review date and time
@@ -605,7 +618,7 @@ Audit records cover transfers, awards, administrator adjustments, reward request
 
 #### Report
 
-A point-flow report must support:
+A point-flow report is generated on-demand using runtime filter parameters and must support:
 
 - Date range filter
 - Student filter
@@ -620,7 +633,7 @@ A point-flow report must support:
 - Excel export
 - PDF export
 
-Teachers may report only on students in their assigned classes. Students may view their own point activity.
+Teachers may report only on students in their assigned classes. Students may view their own point activity. Reports do not require persisted saved filter definitions.
 
 ---
 
@@ -652,8 +665,5 @@ Teachers may report only on students in their assigned classes. Students may vie
 - **Audit Storage**: Audit records are stored in permanent append-only data structures without soft-deletion or modification endpoints.
 - **Tiers in Current Phase**: Student tiers are strictly informational and analytical based on current points; tier-based reward discounts, privileges, or gating are out of scope for this phase.
 - **Role-Specific Account States**: Administrator accounts use `Active`/`Inactive` states only. Teacher accounts use `Active`/`Deactivated`/`Departed` states. Student accounts use `Active`/`Inactive`/`Deactivated`/`Departed` states. These role-specific state sets are derived from the data requirements.
-- **Class and Subject Display Fields**: Whether classes and subjects have descriptions, academic-year labels, or other display fields beyond name/label is not yet specified as a business requirement and should be confirmed before solution design.
-- **Reward Presentation Content**: Whether rewards need images or other presentation content in addition to descriptions is not yet specified and should be confirmed before solution design.
-- **Verification Evidence Formats**: Which evidence formats students may submit for challenge and mission verification is not yet specified and should be confirmed before solution design.
-- **Challenge/Mission Text Editing**: Whether administrators may edit the text or evidence requirements of an existing challenge or mission without changing its fixed points is not yet specified and should be confirmed before solution design.
-- **Report Persistence**: Whether reports need a stored report name, saved filter, or only on-demand filters is not yet specified and should be confirmed before solution design.
+
+---

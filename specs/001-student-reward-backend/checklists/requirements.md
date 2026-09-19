@@ -47,6 +47,6 @@
 
 - All validation checks have passed. Specification is ready for `/speckit-plan`.
 - Data requirements from `docs/requirements/data-requirements.md` have been fully incorporated as business-level entity definitions and data storage functional requirements (FR-076 through FR-095).
-- Five open data questions from the data-requirements document are documented in the Assumptions section as items to confirm before solution design.
+- All five open data questions from `docs/requirements/data-requirements.md` have been formally clarified and integrated directly into the specification requirements, entities, and scenarios.
 - Student task proposal read/list capabilities for students are explicitly specified in User Story 6 and FR-050/FR-051, ensuring complete student self-service visibility into their own open and historical proposals while preventing unauthorized visibility into other students' proposals.
-- Updated 2026-09-19: Added student open task proposal read/list capabilities and updated FR cross-references.
+- Clarification session completed 2026-09-19 resolving verification evidence attachments, challenge/mission field editing, reward images, on-demand reporting, and class/subject metadata attributes.
