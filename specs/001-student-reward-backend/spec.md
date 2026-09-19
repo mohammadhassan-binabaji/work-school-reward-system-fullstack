@@ -301,29 +301,322 @@ As a school administrator, teacher, and student, I need the system to permanentl
 - **FR-072**: The system MUST produce structured completion logs for all requests (INFO level for successful requests, ERROR level for failed requests with error context).
 - **FR-073**: The system MUST prevent secrets, passwords, credentials, and sensitive tokens from being emitted into logs or public error responses.
 
+#### Data Storage, Display & Entity Lifecycle
+- **FR-074**: The system MUST store for each administrator: first name, last name, national ID, username, password, and account state (`Active` or `Inactive`).
+- **FR-075**: The system MUST store for each teacher: first name, last name, national ID, username, password, account state (`Active`, `Deactivated`, or `Departed`), teacher point balance (award budget), and assigned classes and subjects.
+- **FR-076**: The system MUST store for each student: first name, last name, national ID, username, password, account state (`Active`, `Inactive`, `Deactivated`, or `Departed`), current point balance, reserved points, single assigned class, current tier, highest current-point balance, current class rank, current school rank, ranking population counts, and weekly end-of-day current-balance history.
+- **FR-077**: The system MUST store for each class: class name or label, active or inactive state, assigned students, and teacher-subject assignments.
+- **FR-078**: The system MUST store for each subject: subject name, the classes where the subject is taught, and the teachers assigned to teach the subject in each class.
+- **FR-079**: The system MUST store for each teacher-class-subject assignment: teacher reference, class reference, subject reference, and assignment state (`Active` or `Removed`).
+- **FR-080**: The system MUST distinguish between and separately maintain the system-wide point pool, individual teacher award-budget balances, individual student reward-point balances, and reserved student points for active reward requests.
+- **FR-081**: Each point activity record MUST preserve: actor, source, recipient, point amount, action type, selected task and point-amount option (for teacher awards), reason or description (for non-teacher-award actions), date and time, related entities (student, teacher, class, subject, activity, reward, or request when applicable), and resulting balance when needed to trace the flow.
+- **FR-082**: The system MUST store for each point transfer task: task name, task description (if provided), one or more predefined point-amount options, and active or inactive state.
+- **FR-083**: The system MUST store for each reward: reward name, description, point price (immutable), approval requirement flag, inventory quantity (finite for non-approval rewards; no limit for approval-required rewards), active or removed state, and creation and relevant change information.
+- **FR-084**: Each reward request MUST preserve: student reference, reward reference, whether the reward requires approval (snapshot at request time), point price at request time, original request date and time, current request state, reserved point amount, and approval, decline, or receive information when applicable.
+- **FR-085**: The system MUST store for each challenge or mission: activity type (challenge or mission), name, description or required action, fixed point value (immutable), per-student completion limit, active/inactive/removed state, and creation information.
+- **FR-086**: Each challenge or mission verification request MUST preserve: student reference, activity reference, submitted evidence or verification information (when provided), submission date and time, administrator reviewer, review date and time, review result, rejection history, current activity-completion count for the student, and ban or unblock state when applicable.
+- **FR-087**: Each student task proposal MUST preserve: student proposer, proposed task description, current status, assigned point value (set by administrator upon approval; editable prior to completion), submission date and time, approval date and time, completion date and time, and reviewing administrator.
+- **FR-088**: Each task proposal message MUST preserve: task proposal reference, sender (student or administrator), message body, and sent date and time.
+- **FR-089**: The system MUST store for each guidance card: title, description, logo selected from a predefined set, suggested point value or range, and active or removed state.
+- **FR-090**: The system MUST store exactly five student tiers, each with: tier name, minimum current-point threshold, display information, and active configuration state if needed while editing.
+- **FR-091**: The system MUST store ranking and top-student data including: current-point rank within the student's class, current-point rank across the school, number of active enrolled students in each ranking scope, student current points used for ranking, scope (class or school), and top-student name, rank, and current points.
+- **FR-092**: The system MUST support all data required for role-based behavior and permissions as defined in the functional requirements.
+- **FR-093**: Point-flow and reward-activity history MUST remain traceable and permanently retained where the requirements define it as audit history.
+
 ---
 
 ### Key Entities *(include if feature involves data)*
 
-- **User**: Represents any system actor. Attributes: 10-digit National ID (unique identifier), First Name, Last Name, Username, Stored Password (opaque/protected), Role (`Administrator`, `Teacher`, `Student`), Account Status (`Active`, `Inactive`, `Deactivated`, `Departed`), Creation Timestamp.
-- **Class**: Represents an academic class group. Attributes: Name/Label (e.g., `7A`), Status (`Active`, `Inactive`), Student Members, Teacher-Subject Assignments.
-- **Subject**: Represents an academic subject curriculum. Attributes: Name (e.g., `Mathematics`, `Science`), Active Status.
-- **Teacher-Class-Subject Assignment**: Represents a teacher's authorization to teach a specific subject in a specific class. Attributes: Teacher reference, Class reference, Subject reference, Status (`Active`, `Removed`).
-- **Point Pool / Balance**:
-  - `System Point Pool`: Master administrative point allocation pool.
-  - `Teacher Point Balance`: Award budget allocated to a specific teacher.
-  - `Student Point Balance`: Current redeemable point balance, Reserved points (for active requests), Highest point balance ever achieved.
-- **Point Transfer Task**: Predefined administrative task definition for teacher awards. Attributes: Task Name, Description, Predefined Point Options (list of positive integers), Status (`Active`, `Inactive`).
-- **Reward**: Item in the redemption catalog. Attributes: Name, Description, Point Price (immutable), Requires Approval flag (boolean), Inventory Quantity (integer, finite for non-approval rewards, unlimited for approval-required), Status (`Active`, `Removed`), Creation Timestamp.
-- **Reward Request**: Lifecycle instance of a student redeeming a reward. Attributes: Student reference, Reward reference, Point Price at request time, Reserved Point Amount, Status (`Pending to Approve`, `Pending to Receive`, `Completed`, `Declined`), Status Color (`blue`, `blue`, `green`, `red`), Request Timestamp, Approval/Decline Timestamp, Handover Timestamp, Administrator Reviewer reference.
-- **Challenge / Mission**: Structured activity for earning points. Attributes: Activity Type (`Challenge`, `Mission`), Title, Description/Required Action, Fixed Point Value (immutable), Per-Student Completion Limit, Status (`Active`, `Inactive`, `Removed`).
-- **Activity Verification Request**: Verification submission by a student. Attributes: Student reference, Activity reference, Submitted Evidence / Notes, Submission Timestamp, Reviewer reference, Review Timestamp, Outcome (`Accepted`, `Rejected`), Activity Ban Flag (boolean with timestamp).
-- **Student Task Proposal**: Student-initiated voluntary task. Attributes: Student reference, Description, Current Status (`Pending to Approve`, `Ready to Do`, `Completed`, `Declined`, `Canceled`), Assigned Point Value (positive integer, editable in `Ready to Do`), Submission Timestamp, Approval Timestamp, Completion Timestamp, Reviewing Administrator reference.
-- **Task Proposal Message**: Communication item in a proposal thread. Attributes: Proposal reference, Sender reference (Student or Administrator), Message Body, Sent Timestamp.
-- **Point Earning Guidance Card**: Informational card for students. Attributes: Title, Description, Predefined Logo Identifier, Suggested Point Value or Range, Status (`Active`, `Removed`).
-- **Student Tier Configuration**: Tier thresholds definition. Exactly 5 records. Attributes: Tier Rank/Index (1 to 5), Tier Name (e.g., `Bronze`, `Silver`, `Gold`), Minimum Current-Point Threshold.
-- **Daily Student Balance Snapshot**: End-of-day balance record for historical analytics. Attributes: Student reference, Snapshot Date, End-of-Day Current Point Balance.
-- **Audit Record**: Immutable ledger entry for all point-flow events. Attributes: Event ID, Correlation ID, Actor reference, Source Type & ID, Recipient Type & ID, Point Amount, Action Type, Reason / Task Name, Related Entity references (Class, Subject, Reward, Activity, Proposal), Timestamp, Resulting Balance Snapshot.
+#### Administrator
+
+The system must store or display:
+
+- First name
+- Last name
+- National ID (10-digit, unique identifier)
+- Username
+- Stored password (opaque/protected; never exposed in user-facing views)
+- Account state: `Active` or `Inactive`
+- Administrator role
+
+The first administrator is provisioned manually. Administrators can create additional administrator, teacher, and student accounts.
+
+#### Teacher
+
+The system must store or display:
+
+- First name
+- Last name
+- National ID (10-digit, unique identifier)
+- Username
+- Stored password (opaque/protected; never exposed in user-facing views)
+- Account state: `Active`, `Deactivated`, or `Departed`
+- Teacher point balance (award budget, distinct from student reward points)
+- Assigned classes and subjects (via Teacher-Class-Subject Assignments)
+
+The system must preserve a deactivated teacher's balance and assignments while preventing all teacher actions. When a teacher leaves the school (departed), the balance, assignments, and relationships are removed. Removing one class assignment must not change the teacher's point balance.
+
+#### Student
+
+The system must store or display:
+
+- First name
+- Last name
+- National ID (10-digit, unique identifier)
+- Username
+- Stored password (opaque/protected; never exposed in user-facing views)
+- Account state: `Active`, `Inactive`, `Deactivated`, or `Departed`
+- Current student point balance (reward points)
+- Reserved student points (for active reward requests, tracked separately from current balance)
+- Student's single assigned class
+- Current tier (derived from current points and tier thresholds)
+- Highest current-point balance ever achieved (stored separately from current balance)
+- Current class rank and school rank
+- Ranking population counts (e.g., `15 of 32`)
+- Weekly end-of-day current-balance history
+
+When a student changes class, the balance and reward requests remain unchanged. When a student leaves the school, the balance and active requests are removed. Inactive, deactivated, and departed students are excluded from rankings.
+
+#### Class
+
+The system must store or display:
+
+- Class name or label (e.g., `7A` or `7 Grade A`)
+- Status: `Active` or `Inactive`
+- Assigned students
+- Teacher-subject assignments
+
+A class can contain multiple subjects and teachers. Each student can belong to only one class.
+
+#### Subject
+
+The system must store or display:
+
+- Subject name
+- The class or classes where the subject is taught
+- The teacher or teachers assigned to teach the subject in each class
+
+#### Teacher-Class-Subject Assignment
+
+Each assignment must identify:
+
+- Teacher reference
+- Class reference
+- Subject reference
+- Assignment state: `Active` or `Removed`
+
+A teacher may have multiple assignments to the same class when the subjects differ and may teach multiple classes.
+
+#### Point Pool / Balance
+
+The system must distinguish between and separately maintain:
+
+- **System-wide point pool**: Master administrative point allocation pool.
+- **Teacher award-budget balance**: Points allocated to a specific teacher for awarding to students. Teacher points are an award budget and are not the same as student reward points.
+- **Student reward-point balance**: Current redeemable point balance held by a student.
+- **Reserved student points**: Points deducted from a student's available balance and held for an active reward request.
+
+#### Point Activity Record
+
+Each point activity record must preserve:
+
+- Actor who caused the change
+- Source of the points
+- Recipient of the points
+- Point amount
+- Action type
+- Selected task and point-amount option (for teacher awards)
+- Reason or description (for non-teacher-award actions)
+- Date and time
+- Related student, teacher, class, subject, activity, reward, or request (when applicable)
+- Resulting balance (when needed to trace the flow)
+
+Teacher awards are positive and reduce the teacher balance by the awarded amount. Administrators can add or subtract student points. Point activity history is immutable and permanently retained.
+
+#### Point Transfer Task
+
+Administrators define tasks used by teachers when awarding points. Each task must store:
+
+- Task name (e.g., `Doing Homework`)
+- Task description (optional)
+- One or more predefined point-amount options (positive integers)
+- Status: `Active` or `Inactive`
+
+Teachers must select one task and one of its point-amount options when awarding points. Custom tasks and custom point amounts are not allowed.
+
+#### Reward
+
+The system must store or display:
+
+- Reward name
+- Reward description
+- Point price (immutable after creation)
+- Whether the reward requires administrator approval (boolean)
+- Inventory quantity (finite integer for rewards not requiring approval; no inventory limit for rewards requiring approval)
+- Status: `Active` or `Removed`
+- Creation and relevant change information
+
+Reward price is fixed after creation. To use a different price, the administrator removes the old reward and creates a new one. Rewards not requiring approval must not accept new requests when inventory is zero.
+
+#### Reward Request
+
+Each request must preserve:
+
+- Student reference
+- Reward reference
+- Whether the reward requires approval (snapshot at request time)
+- Point price at request time
+- Original request date and time
+- Current request state
+- Reserved point amount
+- Approval, decline, or receive information (when applicable), including administrator reviewer reference and action timestamp
+
+Allowed request status labels and their display colors:
+
+| Status              | Color |
+|---------------------|-------|
+| Pending to Approve  | Blue  |
+| Pending to Receive  | Blue  |
+| Completed           | Green |
+| Declined            | Red   |
+
+Rewards not requiring approval enter `Pending to Receive` immediately on request and decrease inventory. Rewards requiring approval enter `Pending to Approve`; administrator approval moves them to `Pending to Receive`; decline returns reserved points. The administrator marks a request as received after handover, changing it to `Completed`. Students cannot cancel reward requests at any stage.
+
+#### Challenge / Mission
+
+The system must store or display:
+
+- Activity type: `Challenge` or `Mission`
+- Name
+- Description or required action
+- Fixed point value (immutable after creation)
+- Per-student completion limit (configured by administrator)
+- Status: `Active`, `Inactive`, or `Removed`
+- Creation information
+
+Only administrators create and manage these activities. The fixed point value cannot be changed after creation; changing it requires removing and recreating the activity.
+
+#### Activity Verification Request
+
+Each verification request must preserve:
+
+- Student reference
+- Challenge or mission reference
+- Submitted evidence or verification information (when provided)
+- Submission date and time
+- Administrator reviewer reference
+- Review date and time
+- Review result: `Accepted` or `Rejected`
+- Rejection history (retained for rejection counting per student and activity)
+- Current activity-completion count for the student
+- Ban or unblock state (when applicable), including ban timestamp
+
+Accepted verification marks the activity completed for the student and awards the fixed points. Three rejected requests for the same student and activity trigger a flexible approximately one-month ban. Administrators can manually unblock the student from the student profile.
+
+#### Student Task Proposal
+
+Each student task proposal must preserve:
+
+- Student proposer reference
+- Proposed task description or message
+- Current status: `Pending to Approve`, `Ready to Do`, `Completed`, `Declined`, or `Canceled`
+- Assigned point value (set by administrator upon approval; editable by administrator prior to completion)
+- Submission date and time
+- Approval date and time
+- Completion date and time
+- Reviewing administrator reference
+
+#### Task Proposal Message
+
+Each message within a task proposal must preserve:
+
+- Task proposal reference
+- Sender: Student or Administrator
+- Message body
+- Sent date and time
+
+#### Point Earning Guidance Card
+
+Each guidance card must store:
+
+- Title
+- Description
+- Logo selected from a predefined set of logos
+- Suggested point value or point range (e.g., 10 to 20 points)
+- Status: `Active` or `Removed`
+
+Only administrators can create, edit, and delete guidance cards. Cards are display-only for students and do not support any student interaction.
+
+#### Student Tier Configuration
+
+The system must store exactly five tiers. Each tier must have:
+
+- Tier rank or index (1 to 5)
+- Tier name (e.g., `Bronze`, `Silver`, `Gold`)
+- Minimum current-point threshold
+- Display information for the tier
+- Active configuration state (if needed while editing)
+
+Only administrators define and change tier names and thresholds. Tier membership is calculated from current points and is informational and reportable in the current phase.
+
+#### Daily Student Balance Snapshot
+
+End-of-day balance record for historical analytics:
+
+- Student reference
+- Snapshot date
+- End-of-day current point balance
+
+#### Ranking and Top-Student Data
+
+The system must provide:
+
+- Current-point rank within the student's class
+- Current-point rank across the school
+- Number of active enrolled students in each ranking scope
+- Student current points used for ranking
+- Class or school scope
+- Top-student name, rank, and current points
+
+Equal current points share a rank, and subsequent ranks skip tied positions. Rankings exclude inactive, deactivated, and departed students.
+
+#### Audit Record
+
+Each immutable audit record must preserve enough information to trace:
+
+- Event identifier
+- Correlation identifier (request lifecycle)
+- Point-flow action type
+- Actor reference
+- Source type and identifier
+- Recipient type and identifier
+- Point amount
+- Reason or action description
+- Selected task and point-amount option (for teacher awards)
+- Related entity references (student, teacher, class, subject, reward, activity, request, or proposal)
+- Date and time
+- Relevant resulting state or balance
+
+Audit records cover transfers, awards, administrator adjustments, reward requests, redemptions, cancellations, declines, and returned points. Administrators cannot correct or delete them. Audit records are permanently retained.
+
+#### Report
+
+A point-flow report must support:
+
+- Date range filter
+- Student filter
+- Teacher filter
+- Class filter
+- Subject filter
+- Action type filter
+- Reward filter
+- Student tier filter
+- Role-appropriate data visibility
+- CSV export
+- Excel export
+- PDF export
+
+Teachers may report only on students in their assigned classes. Students may view their own point activity.
 
 ---
 
@@ -354,3 +647,9 @@ As a school administrator, teacher, and student, I need the system to permanentl
 - **Notifications**: System notification state changes are represented through the status attributes and labels of requests/proposals; external push, email, or SMS messaging is explicitly out of scope for the backend in this phase.
 - **Audit Storage**: Audit records are stored in permanent append-only data structures without soft-deletion or modification endpoints.
 - **Tiers in Current Phase**: Student tiers are strictly informational and analytical based on current points; tier-based reward discounts, privileges, or gating are out of scope for this phase.
+- **Role-Specific Account States**: Administrator accounts use `Active`/`Inactive` states only. Teacher accounts use `Active`/`Deactivated`/`Departed` states. Student accounts use `Active`/`Inactive`/`Deactivated`/`Departed` states. These role-specific state sets are derived from the data requirements.
+- **Class and Subject Display Fields**: Whether classes and subjects have descriptions, academic-year labels, or other display fields beyond name/label is not yet specified as a business requirement and should be confirmed before solution design.
+- **Reward Presentation Content**: Whether rewards need images or other presentation content in addition to descriptions is not yet specified and should be confirmed before solution design.
+- **Verification Evidence Formats**: Which evidence formats students may submit for challenge and mission verification is not yet specified and should be confirmed before solution design.
+- **Challenge/Mission Text Editing**: Whether administrators may edit the text or evidence requirements of an existing challenge or mission without changing its fixed points is not yet specified and should be confirmed before solution design.
+- **Report Persistence**: Whether reports need a stored report name, saved filter, or only on-demand filters is not yet specified and should be confirmed before solution design.
