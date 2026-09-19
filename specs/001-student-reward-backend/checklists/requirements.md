@@ -27,13 +27,14 @@
 - [x] All entity data fields from data-requirements.md are represented in Key Entities
 - [x] Role-specific account states are distinguished (Administrator, Teacher, Student)
 - [x] Point balance types are explicitly distinguished (system pool, teacher budget, student balance, reserved points)
-- [x] Point activity record fields are fully enumerated (FR-081)
-- [x] Reward request preserves approval-requirement snapshot at request time (FR-084)
-- [x] Verification request preserves activity-completion count per student (FR-086)
-- [x] Student tier configuration includes display information and editing state (FR-090)
-- [x] Reward entity includes creation and change information (FR-083)
+- [x] Point activity record fields are fully enumerated (FR-083)
+- [x] Reward request preserves approval-requirement snapshot at request time (FR-086)
+- [x] Verification request preserves activity-completion count per student (FR-088)
+- [x] Student tier configuration includes display information and editing state (FR-092)
+- [x] Reward entity includes creation and change information (FR-085)
 - [x] Open data questions from data-requirements.md are documented in Assumptions
-- [x] Data storage functional requirements (FR-074 through FR-093) cover all entities
+- [x] Data storage functional requirements (FR-076 through FR-095) cover all entities
+- [x] Student task proposal listing/querying capabilities explicitly defined (FR-050, FR-051)
 
 ## Feature Readiness
 
@@ -45,6 +46,7 @@
 ## Notes
 
 - All validation checks have passed. Specification is ready for `/speckit-plan`.
-- Data requirements from `docs/requirements/data-requirements.md` have been fully incorporated as business-level entity definitions and data storage functional requirements (FR-074 through FR-093).
+- Data requirements from `docs/requirements/data-requirements.md` have been fully incorporated as business-level entity definitions and data storage functional requirements (FR-076 through FR-095).
 - Five open data questions from the data-requirements document are documented in the Assumptions section as items to confirm before solution design.
-- Updated 2026-09-19: Added Data Requirements Coverage section and data-focused functional requirements.
+- Student task proposal read/list capabilities for students are explicitly specified in User Story 6 and FR-050/FR-051, ensuring complete student self-service visibility into their own open and historical proposals while preventing unauthorized visibility into other students' proposals.
+- Updated 2026-09-19: Added student open task proposal read/list capabilities and updated FR cross-references.

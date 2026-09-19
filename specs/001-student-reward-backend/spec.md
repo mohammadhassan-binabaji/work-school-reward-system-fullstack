@@ -112,23 +112,25 @@ As a school administrator, and student, I need administrators to create fixed-va
 
 ### User Story 6 - Student Voluntary Task Proposals & In-Request Messaging (Priority: P3)
 
-As a student and school administrator, I need students to submit voluntary task proposals and exchange messages with administrators within the proposal, and administrators to approve, price, adjust points, verify completion, or decline proposals, while allowing students to cancel only while in `Ready to Do`.
+As a student and school administrator, I need students to submit voluntary task proposals, view and list their own open and historical task proposals, and exchange messages with administrators within the proposal, and administrators to view, filter, approve, price, adjust points, verify completion, or decline proposals, while allowing students to cancel only while in `Ready to Do`.
 
-**Why this priority**: Student task proposals encourage voluntary student initiative while maintaining strict administrator review, pricing control, and private communication.
+**Why this priority**: Student task proposals encourage voluntary student initiative while maintaining strict administrator review, pricing control, transparency for proposing students, and private communication.
 
-**Independent Test**: Can be tested by submitting proposals, exchanging messages between student and admin, transitioning across proposal states (`Pending to Approve` -> `Ready to Do` -> `Completed` / `Declined` / `Canceled`), adjusting point amounts prior to completion, verifying point award on completion, and ensuring teachers are strictly isolated from proposal data.
+**Independent Test**: Can be tested by submitting proposals, querying/listing proposals as the submitting student, verifying that students can only see their own proposals and not those of other students, exchanging messages between student and admin, transitioning across proposal states (`Pending to Approve` -> `Ready to Do` -> `Completed` / `Declined` / `Canceled`), adjusting point amounts prior to completion, verifying point award on completion, and ensuring teachers are strictly isolated from proposal data.
 
 **Acceptance Scenarios**:
 
 1. **Given** an enrolled student, **When** the student submits a task proposal with a proposed description, **Then** the proposal is created in `Pending to Approve` status.
-2. **Given** a proposal in `Pending to Approve`, **When** an administrator declines the proposal, **Then** the status transitions to `Declined` and the proposal closes.
-3. **Given** a proposal in `Pending to Approve`, **When** an administrator approves the proposal and assigns a positive point value, **Then** the status transitions to `Ready to Do`, the assigned point value is stored, and the value is visible to the student.
-4. **Given** a proposal in `Ready to Do` status, **When** an administrator updates the assigned point value, **Then** the proposal's point value is updated and displayed to the student.
-5. **Given** a proposal in `Ready to Do` status, **When** the student cancels the proposal, **Then** the status transitions to `Canceled` and the proposal closes.
-6. **Given** a proposal in `Pending to Approve` or `Completed`, **When** a student attempts to cancel the proposal, **Then** the backend rejects the cancellation.
-7. **Given** a proposal in `Ready to Do` status, **When** an administrator confirms the student performed the task and marks it completed, **Then** the backend transfers the assigned point value to the student's current balance, transitions the status to `Completed`, updates the student's highest balance if exceeded, and records an immutable audit record.
-8. **Given** an active task proposal, **When** the proposing student or an administrator posts a message to the proposal, **Then** the message body, sender identity, and timestamp are preserved in the proposal's message thread.
-9. **Given** an authenticated teacher, **When** the teacher attempts to query or view student task proposals or proposal messages, **Then** the backend rejects the request with an authorization failure.
+2. **Given** an authenticated student who has submitted task proposals in various states (`Pending to Approve`, `Ready to Do`, `Completed`, `Declined`, `Canceled`), **When** the student queries/lists their task proposals, **Then** the backend returns all task proposals submitted by that student with their status, assigned point value, description, and message thread history.
+3. **Given** an authenticated student, **When** the student attempts to view, query, or access a task proposal submitted by another student, **Then** the backend rejects the request or excludes other students' proposals to prevent data leakage.
+4. **Given** a proposal in `Pending to Approve`, **When** an administrator declines the proposal, **Then** the status transitions to `Declined` and the proposal closes.
+5. **Given** a proposal in `Pending to Approve`, **When** an administrator approves the proposal and assigns a positive point value, **Then** the status transitions to `Ready to Do`, the assigned point value is stored, and the value is visible to the student.
+6. **Given** a proposal in `Ready to Do` status, **When** an administrator updates the assigned point value, **Then** the proposal's point value is updated and displayed to the student.
+7. **Given** a proposal in `Ready to Do` status, **When** the student cancels the proposal, **Then** the status transitions to `Canceled` and the proposal closes.
+8. **Given** a proposal in `Pending to Approve` or `Completed`, **When** a student attempts to cancel the proposal, **Then** the backend rejects the cancellation.
+9. **Given** a proposal in `Ready to Do` status, **When** an administrator confirms the student performed the task and marks it completed, **Then** the backend transfers the assigned point value to the student's current balance, transitions the status to `Completed`, updates the student's highest balance if exceeded, and records an immutable audit record.
+10. **Given** an active task proposal, **When** the proposing student or an administrator posts a message to the proposal, **Then** the message body, sender identity, and timestamp are preserved in the proposal's message thread.
+11. **Given** an authenticated teacher, **When** the teacher attempts to query or view student task proposals or proposal messages, **Then** the backend rejects the request with an authorization failure.
 
 ---
 
@@ -268,60 +270,62 @@ As a school administrator, teacher, and student, I need the system to permanentl
 - **FR-047**: The system MUST allow a student to cancel a task proposal ONLY while the proposal is in `Ready to Do` status, transitioning the status to `Canceled` and closing the proposal.
 - **FR-048**: When an administrator verifies completion of a `Ready to Do` task proposal, the system MUST transfer the assigned points to the student's current balance, transition the status to `Completed`, and close the proposal.
 - **FR-049**: The system MUST support an in-request message thread on each task proposal between the proposing student and administrators throughout the proposal's lifecycle.
-- **FR-050**: The system MUST strictly isolate student task proposals and proposal messages from teachers (teachers cannot view, query, or participate in proposals).
-- **FR-051**: The system MUST allow administrators to filter task proposals by status (`Pending to Approve`, `Ready to Do`, `Completed`, `Declined`, `Canceled`).
+- **FR-050**: The system MUST allow students to view and list their own open task proposals (including proposals in `Pending to Approve` and `Ready to Do` states, as well as completed, declined, and canceled proposals), displaying the proposal description, current status, assigned point value, and full message thread history.
+- **FR-051**: The system MUST enforce that students can ONLY view, query, and access their own submitted task proposals and CANNOT view, list, or access task proposals submitted by other students.
+- **FR-052**: The system MUST allow administrators to view, query, and filter all task proposals across the school by status (`Pending to Approve`, `Ready to Do`, `Completed`, `Declined`, `Canceled`).
+- **FR-053**: The system MUST strictly isolate student task proposals and proposal messages from teachers (teachers cannot view, query, or participate in proposals).
 
 #### Rankings, Tiers & Student Analytics
-- **FR-052**: The system MUST calculate student rankings by current point balance at both class scope and school-wide scope.
-- **FR-053**: The system MUST use standard competition ranking where equal points receive identical ranks, and subsequent ranks skip positions corresponding to the number of tied students (e.g., [1, 2, 2, 4]).
-- **FR-054**: The system MUST exclude inactive, deactivated, and departed students from all rankings and top-student boards.
-- **FR-055**: The system MUST provide top-student boards for each class and for the entire school showing rank, student name, and current points.
-- **FR-056**: When returning ranking views to a student, the system MUST provide the student's own rank, current points, total population count (e.g., `15 of 32`), and the top-student board; the system MUST NOT expose names or point balances of students outside the top-student board to students.
-- **FR-057**: The system MUST store and automatically update each student's highest current-point balance whenever their current balance reaches a new peak.
-- **FR-058**: The system MUST maintain exactly five student tiers, configured exclusively by administrators with custom tier names and minimum current-point thresholds.
-- **FR-059**: The system MUST automatically update a student's tier whenever their current point balance crosses a configured threshold.
-- **FR-060**: The system MUST record each active student's current point balance at the end of each day to maintain a daily historical balance timeline for weekly history reporting.
-- **FR-061**: The system MUST allow administrators and teachers to view student point analytics in tables and diagrammatic views, restricting teachers strictly to students in their assigned classes.
+- **FR-054**: The system MUST calculate student rankings by current point balance at both class scope and school-wide scope.
+- **FR-055**: The system MUST use standard competition ranking where equal points receive identical ranks, and subsequent ranks skip positions corresponding to the number of tied students (e.g., [1, 2, 2, 4]).
+- **FR-056**: The system MUST exclude inactive, deactivated, and departed students from all rankings and top-student boards.
+- **FR-057**: The system MUST provide top-student boards for each class and for the entire school showing rank, student name, and current points.
+- **FR-058**: When returning ranking views to a student, the system MUST provide the student's own rank, current points, total population count (e.g., `15 of 32`), and the top-student board; the system MUST NOT expose names or point balances of students outside the top-student board to students.
+- **FR-059**: The system MUST store and automatically update each student's highest current-point balance whenever their current balance reaches a new peak.
+- **FR-060**: The system MUST maintain exactly five student tiers, configured exclusively by administrators with custom tier names and minimum current-point thresholds.
+- **FR-061**: The system MUST automatically update a student's tier whenever their current point balance crosses a configured threshold.
+- **FR-062**: The system MUST record each active student's current point balance at the end of each day to maintain a daily historical balance timeline for weekly history reporting.
+- **FR-063**: The system MUST allow administrators and teachers to view student point analytics in tables and diagrammatic views, restricting teachers strictly to students in their assigned classes.
 
 #### Point Earning Guidance
-- **FR-062**: The system MUST allow administrators to create, edit, and delete guidance cards with a title, description, logo identifier selected from predefined logos, and suggested point value or range (e.g., 10 to 20 points).
-- **FR-063**: The system MUST provide students with read-only query access to active guidance cards, without interactive submission capabilities.
+- **FR-064**: The system MUST allow administrators to create, edit, and delete guidance cards with a title, description, logo identifier selected from predefined logos, and suggested point value or range (e.g., 10 to 20 points).
+- **FR-065**: The system MUST provide students with read-only query access to active guidance cards, without interactive submission capabilities.
 
 #### Immutable Audit Trail & Reporting
-- **FR-064**: The system MUST write an immutable audit log record for every point-modifying event, including pool transfers, teacher awards, administrator adjustments, reward reservations, redemptions, declines, cancellations, reward removals, challenge awards, and task proposal awards.
-- **FR-065**: Each audit record MUST capture the actor, source, recipient, amount, action type, task/reason description, related entity identifiers, timestamp, and resulting balance state.
-- **FR-066**: The system MUST permanently retain audit records and strictly prevent administrators or any users from modifying or deleting audit records.
-- **FR-067**: The system MUST provide point-flow reporting with filtering by date range, student, teacher, class, subject, action type, reward, and student tier.
-- **FR-068**: The system MUST restrict reporting visibility by role: administrators view school-wide data; teachers view only students in assigned classes; students view only their own point history.
-- **FR-069**: The system MUST support exporting filtered point reports to CSV, Excel, and PDF formats.
+- **FR-066**: The system MUST write an immutable audit log record for every point-modifying event, including pool transfers, teacher awards, administrator adjustments, reward reservations, redemptions, declines, cancellations, reward removals, challenge awards, and task proposal awards.
+- **FR-067**: Each audit record MUST capture the actor, source, recipient, amount, action type, task/reason description, related entity identifiers, timestamp, and resulting balance state.
+- **FR-068**: The system MUST permanently retain audit records and strictly prevent administrators or any users from modifying or deleting audit records.
+- **FR-069**: The system MUST provide point-flow reporting with filtering by date range, student, teacher, class, subject, action type, reward, and student tier.
+- **FR-070**: The system MUST restrict reporting visibility by role: administrators view school-wide data; teachers view only students in assigned classes; students view only their own point history.
+- **FR-071**: The system MUST support exporting filtered point reports to CSV, Excel, and PDF formats.
 
 #### System Observability & Correlation
-- **FR-070**: The system MUST assign or propagate a unique request correlation identifier to every incoming request lifecycle.
-- **FR-071**: The system MUST include the correlation identifier across all application layers and in all structured log entries and error contexts.
-- **FR-072**: The system MUST produce structured completion logs for all requests (INFO level for successful requests, ERROR level for failed requests with error context).
-- **FR-073**: The system MUST prevent secrets, passwords, credentials, and sensitive tokens from being emitted into logs or public error responses.
+- **FR-072**: The system MUST assign or propagate a unique request correlation identifier to every incoming request lifecycle.
+- **FR-073**: The system MUST include the correlation identifier across all application layers and in all structured log entries and error contexts.
+- **FR-074**: The system MUST produce structured completion logs for all requests (INFO level for successful requests, ERROR level for failed requests with error context).
+- **FR-075**: The system MUST prevent secrets, passwords, credentials, and sensitive tokens from being emitted into logs or public error responses.
 
 #### Data Storage, Display & Entity Lifecycle
-- **FR-074**: The system MUST store for each administrator: first name, last name, national ID, username, password, and account state (`Active` or `Inactive`).
-- **FR-075**: The system MUST store for each teacher: first name, last name, national ID, username, password, account state (`Active`, `Deactivated`, or `Departed`), teacher point balance (award budget), and assigned classes and subjects.
-- **FR-076**: The system MUST store for each student: first name, last name, national ID, username, password, account state (`Active`, `Inactive`, `Deactivated`, or `Departed`), current point balance, reserved points, single assigned class, current tier, highest current-point balance, current class rank, current school rank, ranking population counts, and weekly end-of-day current-balance history.
-- **FR-077**: The system MUST store for each class: class name or label, active or inactive state, assigned students, and teacher-subject assignments.
-- **FR-078**: The system MUST store for each subject: subject name, the classes where the subject is taught, and the teachers assigned to teach the subject in each class.
-- **FR-079**: The system MUST store for each teacher-class-subject assignment: teacher reference, class reference, subject reference, and assignment state (`Active` or `Removed`).
-- **FR-080**: The system MUST distinguish between and separately maintain the system-wide point pool, individual teacher award-budget balances, individual student reward-point balances, and reserved student points for active reward requests.
-- **FR-081**: Each point activity record MUST preserve: actor, source, recipient, point amount, action type, selected task and point-amount option (for teacher awards), reason or description (for non-teacher-award actions), date and time, related entities (student, teacher, class, subject, activity, reward, or request when applicable), and resulting balance when needed to trace the flow.
-- **FR-082**: The system MUST store for each point transfer task: task name, task description (if provided), one or more predefined point-amount options, and active or inactive state.
-- **FR-083**: The system MUST store for each reward: reward name, description, point price (immutable), approval requirement flag, inventory quantity (finite for non-approval rewards; no limit for approval-required rewards), active or removed state, and creation and relevant change information.
-- **FR-084**: Each reward request MUST preserve: student reference, reward reference, whether the reward requires approval (snapshot at request time), point price at request time, original request date and time, current request state, reserved point amount, and approval, decline, or receive information when applicable.
-- **FR-085**: The system MUST store for each challenge or mission: activity type (challenge or mission), name, description or required action, fixed point value (immutable), per-student completion limit, active/inactive/removed state, and creation information.
-- **FR-086**: Each challenge or mission verification request MUST preserve: student reference, activity reference, submitted evidence or verification information (when provided), submission date and time, administrator reviewer, review date and time, review result, rejection history, current activity-completion count for the student, and ban or unblock state when applicable.
-- **FR-087**: Each student task proposal MUST preserve: student proposer, proposed task description, current status, assigned point value (set by administrator upon approval; editable prior to completion), submission date and time, approval date and time, completion date and time, and reviewing administrator.
-- **FR-088**: Each task proposal message MUST preserve: task proposal reference, sender (student or administrator), message body, and sent date and time.
-- **FR-089**: The system MUST store for each guidance card: title, description, logo selected from a predefined set, suggested point value or range, and active or removed state.
-- **FR-090**: The system MUST store exactly five student tiers, each with: tier name, minimum current-point threshold, display information, and active configuration state if needed while editing.
-- **FR-091**: The system MUST store ranking and top-student data including: current-point rank within the student's class, current-point rank across the school, number of active enrolled students in each ranking scope, student current points used for ranking, scope (class or school), and top-student name, rank, and current points.
-- **FR-092**: The system MUST support all data required for role-based behavior and permissions as defined in the functional requirements.
-- **FR-093**: Point-flow and reward-activity history MUST remain traceable and permanently retained where the requirements define it as audit history.
+- **FR-076**: The system MUST store for each administrator: first name, last name, national ID, username, password, and account state (`Active` or `Inactive`).
+- **FR-077**: The system MUST store for each teacher: first name, last name, national ID, username, password, account state (`Active`, `Deactivated`, or `Departed`), teacher point balance (award budget), and assigned classes and subjects.
+- **FR-078**: The system MUST store for each student: first name, last name, national ID, username, password, account state (`Active`, `Inactive`, `Deactivated`, or `Departed`), current point balance, reserved points, single assigned class, current tier, highest current-point balance, current class rank, current school rank, ranking population counts, and weekly end-of-day current-balance history.
+- **FR-079**: The system MUST store for each class: class name or label, active or inactive state, assigned students, and teacher-subject assignments.
+- **FR-080**: The system MUST store for each subject: subject name, the classes where the subject is taught, and the teachers assigned to teach the subject in each class.
+- **FR-081**: The system MUST store for each teacher-class-subject assignment: teacher reference, class reference, subject reference, and assignment state (`Active` or `Removed`).
+- **FR-082**: The system MUST distinguish between and separately maintain the system-wide point pool, individual teacher award-budget balances, individual student reward-point balances, and reserved student points for active reward requests.
+- **FR-083**: Each point activity record MUST preserve: actor, source, recipient, point amount, action type, selected task and point-amount option (for teacher awards), reason or description (for non-teacher-award actions), date and time, related entities (student, teacher, class, subject, activity, reward, or request when applicable), and resulting balance when needed to trace the flow.
+- **FR-084**: The system MUST store for each point transfer task: task name, task description (if provided), one or more predefined point-amount options, and active or inactive state.
+- **FR-085**: The system MUST store for each reward: reward name, description, point price (immutable), approval requirement flag, inventory quantity (finite for non-approval rewards; no limit for approval-required rewards), active or removed state, and creation and relevant change information.
+- **FR-086**: Each reward request MUST preserve: student reference, reward reference, whether the reward requires approval (snapshot at request time), point price at request time, original request date and time, current request state, reserved point amount, and approval, decline, or receive information when applicable.
+- **FR-087**: The system MUST store for each challenge or mission: activity type (challenge or mission), name, description or required action, fixed point value (immutable), per-student completion limit, active/inactive/removed state, and creation information.
+- **FR-088**: Each challenge or mission verification request MUST preserve: student reference, activity reference, submitted evidence or verification information (when provided), submission date and time, administrator reviewer, review date and time, review result, rejection history, current activity-completion count for the student, and ban or unblock state when applicable.
+- **FR-089**: Each student task proposal MUST preserve: student proposer, proposed task description, current status, assigned point value (set by administrator upon approval; editable prior to completion), submission date and time, approval date and time, completion date and time, and reviewing administrator.
+- **FR-090**: Each task proposal message MUST preserve: task proposal reference, sender (student or administrator), message body, and sent date and time.
+- **FR-091**: The system MUST store for each guidance card: title, description, logo selected from a predefined set, suggested point value or range, and active or removed state.
+- **FR-092**: The system MUST store exactly five student tiers, each with: tier name, minimum current-point threshold, display information, and active configuration state if needed while editing.
+- **FR-093**: The system MUST store ranking and top-student data including: current-point rank within the student's class, current-point rank across the school, number of active enrolled students in each ranking scope, student current points used for ranking, scope (class or school), and top-student name, rank, and current points.
+- **FR-094**: The system MUST support all data required for role-based behavior and permissions as defined in the functional requirements.
+- **FR-095**: Point-flow and reward-activity history MUST remain traceable and permanently retained where the requirements define it as audit history.
 
 ---
 
