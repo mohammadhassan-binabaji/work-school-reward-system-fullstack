@@ -16,9 +16,9 @@ yarn-debug.log*
 yarn-error.log*
 
 # Environment variables
-.env
-.env.*
-!.env.example
+# .env
+# .env.*
+# !.env.example
 
 # Local SQLite databases and test DBs
 *.sqlite
