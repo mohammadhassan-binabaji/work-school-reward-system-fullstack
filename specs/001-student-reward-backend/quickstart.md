@@ -111,7 +111,7 @@ The application starts on `http://localhost:3000`. Swagger API documentation is 
 ---
 
 ### Scenario 5: Challenge Submission, Rejections & Temporary Ban
-**Goal**: Verify FR-035, FR-037, FR-038, FR-041, FR-042, FR-043 (Verification evidence, rejection counter, 30-day ban, and admin unban).
+**Goal**: Verify FR-035, FR-037, FR-038, FR-041, FR-042, FR-043 (Verification evidence, rejection counter, dynamic ban via `ACTIVITY_BAN_DURATION_DAYS` defaulting to 30 days, and admin unban).
 
 1. **Step 1: Admin Creates Challenge**
    - `POST /api/v1/activities` $\rightarrow$ `{"type": "CHALLENGE", "title": "Science Fair Project", "description": "Submit hypothesis and photos", "pointValue": 50, "completionLimit": 1}`
@@ -119,7 +119,7 @@ The application starts on `http://localhost:3000`. Swagger API documentation is 
    - `POST /api/v1/activities/<challenge-id>/submissions` $\rightarrow$ `{"textDescription": "My solar oven model", "fileAttachmentUrl": "/uploads/evidence/test.jpg"}`
 3. **Step 3: Admin Rejects 3 Consecutive Submissions**
    - Admin rejects submission 1, 2, and 3.
-   - **Expected**: Upon 3rd rejection, `banned_until` is set to $t + 30\text{ days}$.
+   - **Expected**: Upon 3rd rejection, `banned_until` is set to $t + \text{ACTIVITY\_BAN\_DURATION\_DAYS}$ (defaults to $t + 30\text{ days}$).
 4. **Step 4: Verify Student is Blocked**
    - Student attempts 4th submission.
    - **Expected**: `403 Forbidden` (`STUDENT_ACTIVITY_BANNED`).

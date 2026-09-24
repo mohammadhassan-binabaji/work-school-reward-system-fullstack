@@ -16,6 +16,7 @@
 - Q: Should catalog rewards support image media (such as an image URL or image attachment) in addition to their name and text description? (FR-085) → A: Optional image (URL or image file reference) alongside name and description (Option A).
 - Q: Should point-flow reports be generated strictly on-demand using runtime filter criteria, or should the backend also persist named saved filter templates? (FR-069) → A: On-demand parameterized report queries only (Option A).
 - Q: Should classes and subjects support additional metadata attributes (such as academic year, grade level, or description) beyond their name or label? (FR-079, FR-080) → A: Name/label with optional grade level and description (Option A).
+- Q: How should the temporary submission ban duration for 3 challenge/mission verification rejections be configured? (FR-042) → A: Dynamic and configurable via an environment variable (`ACTIVITY_BAN_DURATION_DAYS`) with a default value of 30 calendar days.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -113,7 +114,7 @@ As a school administrator, and student, I need administrators to create fixed-va
 2. **Given** an active challenge or mission, **When** a student submits a verification request with a text description and attached file or image evidence, **Then** the request is recorded in pending review state for administrative verification.
 3. **Given** a pending verification request, **When** an administrator accepts the submission, **Then** the backend awards the activity's fixed point value to the student, increments the student's completion count for that activity, updates the student's highest balance if exceeded, and records the completion in immutable audit history.
 4. **Given** a student who has reached the configured completion limit for a challenge or mission, **When** the student attempts to submit another verification request for that activity, **Then** the backend rejects the submission as the activity is marked done for that student.
-5. **Given** a student with 2 previous rejections for a specific challenge or mission, **When** an administrator rejects a 3rd verification request for the same activity, **Then** the backend records the rejection and places a temporary submission ban (approximately one month) on that student for that specific activity.
+5. **Given** a student with 2 previous rejections for a specific challenge or mission, **When** an administrator rejects a 3rd verification request for the same activity, **Then** the backend records the rejection and places a temporary submission ban (configurable via `ACTIVITY_BAN_DURATION_DAYS`, defaulting to 30 calendar days) on that student for that specific activity.
 6. **Given** a student under an active submission ban for an activity, **When** the student attempts to submit a verification request for that activity, **Then** the backend rejects the submission due to the active ban.
 7. **Given** a student under an active submission ban for an activity, **When** an administrator unbans/unblocks the student via the administrator profile/details interface, **Then** the ban is cleared and the student is immediately permitted to submit verification requests up to the remaining completion limit.
 
@@ -267,7 +268,7 @@ As a school administrator, teacher, and student, I need the system to permanentl
 - **FR-039**: The system MUST allow teachers and administrators to award points directly for challenge and mission completion within the configured completion limits.
 - **FR-040**: When a student reaches the configured completion limit for a challenge or mission, the system MUST mark the activity done for that student and reject further verification submissions.
 - **FR-041**: The system MUST retain rejected verification requests and maintain a count of rejections per student and activity.
-- **FR-042**: When a student accumulates 3 rejected verification requests for the same challenge or mission, the system MUST apply a submission ban of approximately one month for that student on that activity.
+- **FR-042**: When a student accumulates 3 rejected verification requests for the same challenge or mission, the system MUST apply a temporary submission ban on that student for that specific activity, using a configurable duration that defaults to 30 calendar days (`ACTIVITY_BAN_DURATION_DAYS`).
 - **FR-043**: The system MUST allow administrators to manually unban/unblock a student for an activity from the student's profile/details page, immediately restoring submission eligibility.
 
 #### Student Task Proposals & In-Request Messaging
@@ -528,7 +529,7 @@ Each verification request must preserve:
 - Current activity-completion count for the student
 - Ban or unblock state (when applicable), including ban timestamp
 
-Accepted verification marks the activity completed for the student and awards the fixed points. Three rejected requests for the same student and activity trigger a flexible approximately one-month ban. Administrators can manually unblock the student from the student profile.
+Accepted verification marks the activity completed for the student and awards the fixed points. Three rejected requests for the same student and activity trigger a configurable ban (defaulting to 30 calendar days via `ACTIVITY_BAN_DURATION_DAYS`). Administrators can manually unblock the student from the student profile.
 
 #### Student Task Proposal
 
@@ -658,7 +659,7 @@ Teachers may report only on students in their assigned classes. Students may vie
 - **Authentication Method**: Standard username/national ID and credential authentication with session/token state management managed by the backend; no external identity provider is required for the baseline system.
 - **Ranking Population Size**: Top-student boards display a configurable top $N$ students (e.g., top 5 or top 10) by default per class and school-wide scope.
 - **Negative Balances**: Administrative direct adjustments cannot reduce a student's balance below 0 unless explicit policy overrides are introduced in future versions.
-- **Ban Period Flexibility**: The approximately one-month ban for 3 challenge rejections defaults to 30 calendar days from the 3rd rejection timestamp, with immediate override capability by an administrator at any time.
+- **Ban Period Flexibility**: The ban period for 3 challenge rejections is dynamic and configurable via the `ACTIVITY_BAN_DURATION_DAYS` environment variable (default: 30 calendar days from the 3rd rejection timestamp), with immediate override capability by an administrator at any time.
 - **Guidance Card Logos**: A fixed set of predefined logo identifiers (e.g., icon names or IDs) is configured in the system for administrator selection on guidance cards.
 - **End-of-Day Snapshot Timing**: Daily balance snapshots represent the student's balance at 23:59:59 (school local time) or are captured automatically on end-of-day reconciliation.
 - **Notifications**: System notification state changes are represented through the status attributes and labels of requests/proposals; external push, email, or SMS messaging is explicitly out of scope for the backend in this phase.

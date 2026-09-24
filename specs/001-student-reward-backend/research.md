@@ -94,12 +94,14 @@
 
 ## 7. Challenge & Mission Verification Abuse Prevention
 
-- **Decision**: Verification tracking table storing submission history, rejection counts, and an active `submission_ban_until` timestamp.
+- **Decision**: Verification tracking table storing submission history, rejection counts, and an active `banned_until` timestamp calculated dynamically via environment variable `ACTIVITY_BAN_DURATION_DAYS` (default: 30 days).
 - **Rationale**:
-  - On the 3rd rejection for a given activity and student, `submission_ban_until` is set to `now() + 30 days` (FR-042).
-  - Admins can invoke the unban endpoint (`DELETE /api/v1/students/:id/bans/:activityId` or `POST /api/v1/students/:id/unban`), which clears `submission_ban_until` and resets the rejection count (FR-043).
-  - Submissions check `completedCount < completionLimit` and `submission_ban_until < now()`.
+  - On the 3rd rejection for a given activity and student, `banned_until` is set to `now() + (ACTIVITY_BAN_DURATION_DAYS * 24 * 60 * 60 * 1000)` ms (FR-042).
+  - Configured via NestJS `ConfigService` with fallback to 30 days, allowing flexible school policy adjustments without code modifications.
+  - Admins can invoke the unban endpoint (`DELETE /api/v1/students/:id/bans/:activityId` or `POST /api/v1/students/:id/unban`), which clears `banned_until` and resets the rejection count (FR-043).
+  - Submissions check `completedCount < completionLimit` and `banned_until == null || banned_until < now()`.
 - **Alternatives Considered**:
+  - *Hardcoded 30-day duration*: Rigid; making it dynamic via environment configuration allows development/testing customization and flexible administrative policies.
   - *Global user ban*: Spec requires activity-specific ban rather than locking the entire student account.
 
 ---

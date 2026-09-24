@@ -21,7 +21,7 @@
 ## 2. Requirement Clarity & Precision
 
 - [ ] CHK006 - Is the format, character set, and validation pattern of the 10-digit national ID explicitly quantified? [Clarity, Spec §FR-003, §FR-004]
-- [ ] CHK007 - Is the duration of the temporary submission ban ("approximately one month") quantified with an exact temporal metric (e.g., 30 calendar days)? [Clarity, Ambiguity, Spec §FR-042, User Story 5 §Scenario 5]
+- [ ] CHK007 - Is the duration of the temporary submission ban quantified with an exact temporal metric and configurable dynamic environment variable (`ACTIVITY_BAN_DURATION_DAYS`, default 30 calendar days)? [Clarity, Ambiguity, Spec §FR-042, User Story 5 §Scenario 5]
 - [ ] CHK008 - Are tier threshold evaluation boundaries specified as inclusive or exclusive ($\ge$ vs $>$)? [Clarity, Spec §FR-060, §FR-061, Key Entities §Student Tier Configuration]
 - [ ] CHK009 - Are the semantic states and display color mappings (`Pending to Approve` [Blue], `Pending to Receive` [Blue], `Completed` [Green], `Declined` [Red]) unambiguously defined for all reward request transitions? [Clarity, Spec §FR-030-FR-033, User Story 4]
 - [ ] CHK010 - Is the size and display threshold for "top-student boards" quantified (e.g., top 3, top 5, or top 10 students)? [Clarity, Ambiguity, Spec §FR-057, §FR-058]

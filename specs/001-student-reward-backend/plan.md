@@ -8,7 +8,7 @@
 
 ## Summary
 
-Build the complete backend service for the Student Reward System as a TypeScript / NestJS Modular Monolith. The system provides role-based capabilities for School Administrators, Teachers, and Students, managing account provisioning (10-digit national ID + Argon2), academic structure assignments, point pool funding and teacher award budgets, reward catalog and redemption lifecycles, challenges/missions with abuse prevention (3-rejection ban), voluntary student task proposals with private messaging, standard competition ranking (1, 2, 2, 4) with 5 configurable tiers, daily midnight balance snapshots, immutable point audit logging, and multi-format report exports (CSV, XLSX, PDF).
+Build the complete backend service for the Student Reward System as a TypeScript / NestJS Modular Monolith. The system provides role-based capabilities for School Administrators, Teachers, and Students, managing account provisioning (10-digit national ID + Argon2), academic structure assignments, point pool funding and teacher award budgets, reward catalog and redemption lifecycles, challenges/missions with abuse prevention (3-rejection ban dynamic via `ACTIVITY_BAN_DURATION_DAYS`, defaulting to 30 days), voluntary student task proposals with private messaging, standard competition ranking (1, 2, 2, 4) with 5 configurable tiers, daily midnight balance snapshots, immutable point audit logging, and multi-format report exports (CSV, XLSX, PDF).
 
 ---
 
@@ -20,6 +20,10 @@ Build the complete backend service for the Student Reward System as a TypeScript
   - **Relational DB**: PostgreSQL 16 (Users, Profiles, Academic structures, Points, Rewards, Verification, Proposals, Tiers, and Immutable Audit Logs)
   - **In-Memory Store**: Redis 7 (Stateful sessions with TTL)
   - **Object Storage**: Local Disk (`uploads/`) for development / MinIO S3 container for staging & production
+- **Environment & Configuration**:
+  - `PORT` (default: 3000), `DATABASE_URL`, `REDIS_URL`, `SESSION_TTL_SECONDS` (default: 86400)
+  - `ACTIVITY_BAN_DURATION_DAYS` (dynamic temporary submission ban duration on 3rd rejection, integer, default: 30)
+  - `STORAGE_PROVIDER` (`local` | `minio` | `s3`)
 - **Testing**: Jest (`ts-jest`), Supertest (End-to-End API contract testing), `@nestjs/testing`
 - **Target Platform**: Linux container (Docker) / Node.js runtime
 - **Project Type**: RESTful Web Service (Modular Monolith)
@@ -88,7 +92,7 @@ backend/
 │   │   ├── academic/              # Classes, Subjects, Teacher-Class assignments
 │   │   ├── points/                # System pool, Task definitions, Teacher awards, Audit log
 │   │   ├── rewards/               # Reward catalog, Inventory, Redemptions lifecycle
-│   │   ├── activities/            # Challenges, Missions, Verification, 30-day ban
+│   │   ├── activities/            # Challenges, Missions, Verification, dynamic ban (default 30 days)
 │   │   ├── proposals/             # Voluntary student task proposals & message thread
 │   │   ├── rankings/              # Standard competition rankings, Tiers, Daily snapshots
 │   │   ├── guidance/              # Display-only guidance cards

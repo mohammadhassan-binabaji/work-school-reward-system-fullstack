@@ -251,7 +251,7 @@ Tracks completion counts, rejection counts, and temporary submission bans per st
 | `activity_id` | UUID | FK $\rightarrow$ `Activity.id` ON DELETE CASCADE, NOT NULL | Activity ID |
 | `completion_count` | INTEGER | NOT NULL, default: 0 | Number of accepted completions |
 | `rejection_count` | INTEGER | NOT NULL, default: 0 | Consecutive/total rejections count |
-| `banned_until` | TIMESTAMPTZ | NULLABLE | 30-day ban expiration timestamp if 3 rejections reached |
+| `banned_until` | TIMESTAMPTZ | NULLABLE | Dynamic ban expiration timestamp (default: 30 days via `ACTIVITY_BAN_DURATION_DAYS`) if 3 rejections reached |
 | `created_at` | TIMESTAMPTZ | NOT NULL, default: `now()` | Record creation |
 | `updated_at` | TIMESTAMPTZ | NOT NULL, default: `now()` | Record update |
 | *Constraint* | UNIQUE (`student_id`, `activity_id`) | Exactly one tracking row per student/activity |
@@ -376,6 +376,6 @@ stateDiagram-v2
     Pending --> Accepted: Admin Approves\n[Points Awarded, CompletionCount +1]
     Pending --> Rejected: Admin Rejects\n[RejectionCount +1]
     
-    Rejected --> Banned: RejectionCount reaches 3\n[Banned for 30 Days]
-    Banned --> Pending: Admin Manually Unbans / 30 Days Expire\n[RejectionCount Reset]
+    Rejected --> Banned: RejectionCount reaches 3\n[Banned for ACTIVITY_BAN_DURATION_DAYS (default 30d)]
+    Banned --> Pending: Admin Manually Unbans / Ban Expires\n[RejectionCount Reset]
 ```
