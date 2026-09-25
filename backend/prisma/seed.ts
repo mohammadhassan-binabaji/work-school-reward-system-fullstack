@@ -1,0 +1,197 @@
+import { PrismaClient, Role, AccountState, ActivityType, GuidanceCardStatus } from '@prisma/client';
+import * as argon2 from 'argon2';
+
+const prisma = new PrismaClient();
+
+async function main() {
+  console.log('Seeding Student Reward System database...');
+
+  // 1. Seed 5 Tier Configurations
+  const tiers = [
+    { tierNumber: 1, name: 'Bronze', minPointsThreshold: 0 },
+    { tierNumber: 2, name: 'Silver', minPointsThreshold: 100 },
+    { tierNumber: 3, name: 'Gold', minPointsThreshold: 250 },
+    { tierNumber: 4, name: 'Platinum', minPointsThreshold: 500 },
+    { tierNumber: 5, name: 'Diamond', minPointsThreshold: 1000 },
+  ];
+
+  for (const tier of tiers) {
+    await prisma.tierConfiguration.upsert({
+      where: { tierNumber: tier.tierNumber },
+      update: { name: tier.name, minPointsThreshold: tier.minPointsThreshold },
+      create: tier,
+    });
+  }
+  console.log('✓ Seeded 5 Tier Configurations');
+
+  // 2. Seed System Point Pool
+  const existingPool = await prisma.systemPointPool.findFirst();
+  if (!existingPool) {
+    await prisma.systemPointPool.create({
+      data: { balance: 10000 },
+    });
+    console.log('✓ Seeded System Point Pool with 10,000 points');
+  }
+
+  // 3. Seed Initial Administrator
+  const adminPasswordHash = await argon2.hash('AdminPassword123!', {
+    type: argon2.argon2id,
+  });
+
+  const admin = await prisma.user.upsert({
+    where: { nationalId: '1111111111' },
+    update: {},
+    create: {
+      nationalId: '1111111111',
+      firstName: 'Admin',
+      lastName: 'Super',
+      username: 'admin',
+      passwordHash: adminPasswordHash,
+      role: Role.ADMIN,
+      accountState: AccountState.ACTIVE,
+    },
+  });
+  console.log(`✓ Seeded Initial Admin (${admin.username})`);
+
+  // 4. Seed Classes & Subjects
+  const class7A = await prisma.class.upsert({
+    where: { name: 'Class 7A' },
+    update: {},
+    create: { name: 'Class 7A', gradeLevel: 'Grade 7', description: 'Grade 7 Section A' },
+  });
+
+  const class7B = await prisma.class.upsert({
+    where: { name: 'Class 7B' },
+    update: {},
+    create: { name: 'Class 7B', gradeLevel: 'Grade 7', description: 'Grade 7 Section B' },
+  });
+
+  const mathSubject = await prisma.subject.upsert({
+    where: { name: 'Mathematics' },
+    update: {},
+    create: { name: 'Mathematics', description: 'General Mathematics' },
+  });
+
+  const scienceSubject = await prisma.subject.upsert({
+    where: { name: 'Science' },
+    update: {},
+    create: { name: 'Science', description: 'General Science' },
+  });
+  console.log('✓ Seeded Classes and Subjects');
+
+  // 5. Seed Predefined Point Transfer Tasks
+  await prisma.pointTransferTask.upsert({
+    where: { name: 'Homework Excellence' },
+    update: {},
+    create: {
+      name: 'Homework Excellence',
+      description: 'Completing homework on time with high accuracy',
+      options: {
+        create: [
+          { points: 5, label: 'Good Effort' },
+          { points: 10, label: 'Full Marks' },
+        ],
+      },
+    },
+  });
+
+  await prisma.pointTransferTask.upsert({
+    where: { name: 'Classroom Leadership' },
+    update: {},
+    create: {
+      name: 'Classroom Leadership',
+      description: 'Helping peers, organizing activities, or leading group study',
+      options: {
+        create: [
+          { points: 10, label: 'Peer Assistance' },
+          { points: 20, label: 'Group Lead' },
+        ],
+      },
+    },
+  });
+  console.log('✓ Seeded Point Transfer Tasks');
+
+  // 6. Seed Rewards
+  await prisma.reward.createMany({
+    data: [
+      {
+        name: 'Sticker Pack',
+        description: 'Set of 10 holographic stickers',
+        pointPrice: 10,
+        requiresApproval: false,
+        inventoryQuantity: 50,
+      },
+      {
+        name: 'School Notebook',
+        description: 'A5 hardbound branded notebook',
+        pointPrice: 25,
+        requiresApproval: false,
+        inventoryQuantity: 30,
+      },
+      {
+        name: 'Library Book Voucher',
+        description: 'Special coupon for library book borrowing bonus',
+        pointPrice: 50,
+        requiresApproval: true,
+        inventoryQuantity: null,
+      },
+    ],
+    skipDuplicates: true,
+  });
+  console.log('✓ Seeded Sample Rewards');
+
+  // 7. Seed Challenges & Missions
+  await prisma.activity.createMany({
+    data: [
+      {
+        type: ActivityType.CHALLENGE,
+        title: 'Science Fair Project',
+        description: 'Submit hypothesis and photo of prototype',
+        pointValue: 50,
+        completionLimit: 1,
+      },
+      {
+        type: ActivityType.MISSION,
+        title: 'Weekly Reading Log',
+        description: 'Read a book and submit a 200-word summary',
+        pointValue: 15,
+        completionLimit: 4,
+      },
+    ],
+    skipDuplicates: true,
+  });
+  console.log('✓ Seeded Sample Activities');
+
+  // 8. Seed Guidance Cards
+  await prisma.guidanceCard.createMany({
+    data: [
+      {
+        title: 'Participate in Class Discussions',
+        description: 'Actively speak up and contribute thoughtful questions during class lessons',
+        logoKey: 'chat-bubble-outline',
+        pointRangeLabel: '5 to 15 pts',
+        status: GuidanceCardStatus.ACTIVE,
+      },
+      {
+        title: 'Complete Weekly STEM Challenges',
+        description: 'Solve creative engineering or math puzzles posted weekly by science teachers',
+        logoKey: 'lightbulb-outline',
+        pointRangeLabel: '20 to 50 pts',
+        status: GuidanceCardStatus.ACTIVE,
+      },
+    ],
+    skipDuplicates: true,
+  });
+  console.log('✓ Seeded Guidance Cards');
+
+  console.log('Database seeding complete.');
+}
+
+main()
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
