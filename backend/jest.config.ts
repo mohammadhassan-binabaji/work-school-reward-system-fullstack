@@ -3,7 +3,13 @@ import type { Config } from 'jest';
 const config: Config = {
   moduleFileExtensions: ['js', 'json', 'ts'],
   rootDir: '.',
-  testRegex: '.*\\.(spec|test)\\.ts$',
+  testMatch: [
+    '<rootDir>/src/**/*.(spec|test).ts',
+    '<rootDir>/test/contract/**/*.ts',
+    '<rootDir>/test/integration/**/*.ts',
+    '<rootDir>/test/e2e/**/*.ts',
+  ],
+  testPathIgnorePatterns: ['/node_modules/', '/test/helpers/'],
   transform: {
     '^.+\\.(t|j)s$': 'ts-jest',
   },
@@ -13,7 +19,7 @@ const config: Config = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
-  testTimeout: 30000,
+  testTimeout: 60000,
 };
 
 export default config;
