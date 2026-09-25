@@ -19,10 +19,7 @@ export interface PointFlowQueryFilter {
 export class ReportsService {
   constructor(private prisma: PrismaService) {}
 
-  async getPointFlowReport(
-    filter: PointFlowQueryFilter,
-    currentUser: { id: string; role: Role },
-  ) {
+  async getPointFlowReport(filter: PointFlowQueryFilter, currentUser: { id: string; role: Role }) {
     const where = await this.buildScopedWhereClause(filter, currentUser);
 
     const logs = await this.prisma.pointAuditLog.findMany({
@@ -81,7 +78,9 @@ export class ReportsService {
     const rows: AuditLogExportRow[] = logs.map((log) => ({
       timestamp: log.createdAt.toISOString(),
       actionType: log.actionType,
-      actor: log.actor ? `${log.actor.firstName} ${log.actor.lastName} (${log.actor.username})` : 'SYSTEM',
+      actor: log.actor
+        ? `${log.actor.firstName} ${log.actor.lastName} (${log.actor.username})`
+        : 'SYSTEM',
       source: log.sourceType,
       recipient: log.recipientType,
       amount: log.amount,
@@ -138,8 +137,14 @@ export class ReportsService {
     if (currentUser.role === Role.STUDENT) {
       // Student can ONLY see their own logs
       where.OR = [
-        { recipientId: currentUser.id, recipientType: { in: [RecipientType.STUDENT_CURRENT, RecipientType.STUDENT_RESERVED] } },
-        { sourceId: currentUser.id, sourceType: { in: [SourceType.STUDENT_CURRENT, SourceType.STUDENT_RESERVED] } },
+        {
+          recipientId: currentUser.id,
+          recipientType: { in: [RecipientType.STUDENT_CURRENT, RecipientType.STUDENT_RESERVED] },
+        },
+        {
+          sourceId: currentUser.id,
+          sourceType: { in: [SourceType.STUDENT_CURRENT, SourceType.STUDENT_RESERVED] },
+        },
         { actorId: currentUser.id },
       ];
     } else if (currentUser.role === Role.TEACHER) {
@@ -174,8 +179,14 @@ export class ReportsService {
       // School-wide admin filters
       if (filter.studentId) {
         where.OR = [
-          { recipientId: filter.studentId, recipientType: { in: [RecipientType.STUDENT_CURRENT, RecipientType.STUDENT_RESERVED] } },
-          { sourceId: filter.studentId, sourceType: { in: [SourceType.STUDENT_CURRENT, SourceType.STUDENT_RESERVED] } },
+          {
+            recipientId: filter.studentId,
+            recipientType: { in: [RecipientType.STUDENT_CURRENT, RecipientType.STUDENT_RESERVED] },
+          },
+          {
+            sourceId: filter.studentId,
+            sourceType: { in: [SourceType.STUDENT_CURRENT, SourceType.STUDENT_RESERVED] },
+          },
         ];
       } else if (filter.teacherId) {
         where.OR = [

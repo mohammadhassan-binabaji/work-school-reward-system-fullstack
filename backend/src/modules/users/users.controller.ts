@@ -9,11 +9,14 @@ import {
   HttpCode,
   HttpStatus,
   ParseUUIDPipe,
+  Req,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiCookieAuth } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { CreateUserDto, UpdateUserStateDto, UserResponseDto } from './dto/user.dto';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { RequestWithCorrelation } from '../../common/middleware/correlation.middleware';
 import { Role, AccountState } from '@prisma/client';
 
 @ApiTags('users')
@@ -35,10 +38,7 @@ export class UsersController {
   @Get()
   @ApiOperation({ summary: 'List all users with optional filters (Admin only)' })
   @ApiResponse({ status: 200, description: 'List of users', type: [UserResponseDto] })
-  async findAll(
-    @Query('role') role?: Role,
-    @Query('accountState') accountState?: AccountState,
-  ) {
+  async findAll(@Query('role') role?: Role, @Query('accountState') accountState?: AccountState) {
     return this.usersService.findAll(role, accountState);
   }
 
@@ -55,7 +55,21 @@ export class UsersController {
   async updateState(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateUserStateDto,
+    @CurrentUser('id') adminId: string,
+    @Req() req: RequestWithCorrelation,
   ) {
-    return this.usersService.updateUserState(id, dto);
+    return this.usersService.updateUserState(id, dto, adminId, req.correlationId);
+  }
+
+  @Patch(':id/status')
+  @ApiOperation({ summary: 'Update user account status (OpenAPI alias)' })
+  @ApiResponse({ status: 200, description: 'Account status updated' })
+  async updateStatus(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateUserStateDto,
+    @CurrentUser('id') adminId: string,
+    @Req() req: RequestWithCorrelation,
+  ) {
+    return this.usersService.updateUserState(id, dto, adminId, req.correlationId);
   }
 }

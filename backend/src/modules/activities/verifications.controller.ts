@@ -10,7 +10,7 @@ import {
   ParseUUIDPipe,
   Req,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiCookieAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiCookieAuth } from '@nestjs/swagger';
 import { ActivitiesService } from './activities.service';
 import { RejectVerificationDto } from './dto/activities.dto';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -50,6 +50,23 @@ export class VerificationsController {
     @CurrentUser() user?: { id: string; role: Role },
   ) {
     return this.activitiesService.findVerificationById(id, user!);
+  }
+
+  @Roles('ADMIN')
+  @Post(':id/review')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Admin reviews verification submission (OpenAPI contract endpoint)' })
+  async reviewVerification(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: { action: 'ACCEPT' | 'REJECT'; rejectionReason?: string },
+    @CurrentUser('id') adminId: string,
+    @Req() req: RequestWithCorrelation,
+  ) {
+    if (dto.action === 'ACCEPT') {
+      return this.activitiesService.acceptVerification(id, adminId, req.correlationId || '');
+    } else {
+      return this.activitiesService.rejectVerification(id, { rejectionReason: dto.rejectionReason }, adminId);
+    }
   }
 
   @Roles('ADMIN')

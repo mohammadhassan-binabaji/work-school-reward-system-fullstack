@@ -13,7 +13,15 @@ import {
   CreateAssignmentDto,
   AssignStudentClassDto,
 } from './dto/academic.dto';
-import { Role, AccountState, AssignmentStatus, ActionType, ActorRole, SourceType, RecipientType } from '@prisma/client';
+import {
+  Role,
+  AccountState,
+  AssignmentStatus,
+  ActionType,
+  ActorRole,
+  SourceType,
+  RecipientType,
+} from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
@@ -245,7 +253,7 @@ export class AcademicService {
   }
 
   // Student Departure Lifecycle (FR-010)
-  async handleStudentDeparture(studentId: string, correlationId?: string) {
+  async handleStudentDeparture(studentId: string, adminId?: string, correlationId?: string) {
     const student = await this.prisma.user.findUnique({
       where: { id: studentId },
       include: { studentProfile: true },
@@ -263,6 +271,10 @@ export class AcademicService {
       const reservedBalance = student.studentProfile?.reservedBalance || 0;
       const totalPointsToClear = currentBalance + reservedBalance;
 
+      const lowestTier = await tx.tierConfiguration.findFirst({
+        where: { tierNumber: 1 },
+      });
+
       // Update student profile balances to 0 and remove class
       await tx.studentProfile.update({
         where: { id: studentId },
@@ -270,6 +282,7 @@ export class AcademicService {
           classId: null,
           currentBalance: 0,
           reservedBalance: 0,
+          currentTierId: lowestTier?.id || null,
         },
       });
 
@@ -306,13 +319,36 @@ export class AcademicService {
         }
       }
 
+      // Cancel pending task proposals
+      await tx.studentTaskProposal.updateMany({
+        where: {
+          studentId,
+          status: { in: ['PENDING_TO_APPROVE', 'READY_TO_DO'] },
+        },
+        data: {
+          status: 'CANCELED',
+        },
+      });
+
+      // Cancel pending verification submissions
+      await tx.verificationRequest.updateMany({
+        where: {
+          studentId,
+          status: 'PENDING',
+        },
+        data: {
+          status: 'REJECTED',
+          rejectionReason: 'Student departed from institution',
+        },
+      });
+
       // Write departure audit log if points were removed
       if (totalPointsToClear > 0) {
         await tx.pointAuditLog.create({
           data: {
             correlationId: correlationId || uuidv4(),
-            actorId: studentId,
-            actorRole: ActorRole.SYSTEM,
+            actorId: adminId || studentId,
+            actorRole: adminId ? ActorRole.ADMIN : ActorRole.SYSTEM,
             sourceType: SourceType.STUDENT_CURRENT,
             sourceId: studentId,
             recipientType: RecipientType.NONE,
@@ -430,13 +466,14 @@ export class AcademicService {
       });
     }
 
-    return this.prisma.teacherClassSubjectAssignment.delete({
+    return this.prisma.teacherClassSubjectAssignment.update({
       where: { id },
+      data: { status: AssignmentStatus.REMOVED },
     });
   }
 
   // Teacher Departure Lifecycle (FR-014)
-  async handleTeacherDeparture(teacherId: string, correlationId?: string) {
+  async handleTeacherDeparture(teacherId: string, adminId?: string, correlationId?: string) {
     const teacher = await this.prisma.user.findUnique({
       where: { id: teacherId },
       include: { teacherProfile: true },
@@ -450,9 +487,10 @@ export class AcademicService {
     }
 
     return this.prisma.$transaction(async (tx) => {
-      // Remove all active assignments
-      await tx.teacherClassSubjectAssignment.deleteMany({
+      // Mark all assignments as REMOVED
+      await tx.teacherClassSubjectAssignment.updateMany({
         where: { teacherId },
+        data: { status: AssignmentStatus.REMOVED },
       });
 
       const remainingBudget = teacher.teacherProfile?.pointBalance || 0;
@@ -477,8 +515,8 @@ export class AcademicService {
         await tx.pointAuditLog.create({
           data: {
             correlationId: correlationId || uuidv4(),
-            actorId: teacherId,
-            actorRole: ActorRole.SYSTEM,
+            actorId: adminId || teacherId,
+            actorRole: adminId ? ActorRole.ADMIN : ActorRole.SYSTEM,
             sourceType: SourceType.TEACHER,
             sourceId: teacherId,
             recipientType: RecipientType.SYSTEM_POOL,

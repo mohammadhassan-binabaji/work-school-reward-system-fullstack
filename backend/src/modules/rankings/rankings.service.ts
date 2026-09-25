@@ -14,10 +14,7 @@ export class RankingsService {
   constructor(private prisma: PrismaService) {}
 
   // Class Rankings (FR-054, FR-056, FR-058, FR-093)
-  async getClassRankings(
-    classId: string,
-    currentUser: { id: string; role: Role },
-  ) {
+  async getClassRankings(classId: string, currentUser: { id: string; role: Role }) {
     const cls = await this.prisma.class.findUnique({ where: { id: classId } });
     if (!cls) {
       throw new NotFoundException({

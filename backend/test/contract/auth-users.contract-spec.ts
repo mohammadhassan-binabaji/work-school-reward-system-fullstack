@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 import { AppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/common/prisma/prisma.service';
 import { RedisService } from '../../src/common/redis/redis.service';
@@ -16,7 +16,9 @@ describe('Auth & Users Contract Tests (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
+    );
     await app.init();
 
     prisma = app.get(PrismaService);
@@ -31,15 +33,13 @@ describe('Auth & Users Contract Tests (e2e)', () => {
 
   it('POST /api/v1/auth/initial-admin schema contract', async () => {
     // Contract check for required fields
-    const res = await request(app.getHttpServer())
-      .post('/api/v1/auth/initial-admin')
-      .send({
-        nationalId: 'invalid-id',
-        firstName: 'Test',
-        lastName: 'Admin',
-        username: 'admin',
-        password: 'Password123!',
-      });
+    const res = await request(app.getHttpServer()).post('/api/v1/auth/initial-admin').send({
+      nationalId: 'invalid-id',
+      firstName: 'Test',
+      lastName: 'Admin',
+      username: 'admin',
+      password: 'Password123!',
+    });
 
     expect(res.status).toBe(400);
     expect(res.body).toHaveProperty('statusCode', 400);
@@ -47,12 +47,10 @@ describe('Auth & Users Contract Tests (e2e)', () => {
   });
 
   it('POST /api/v1/auth/login schema contract with invalid payload', async () => {
-    const res = await request(app.getHttpServer())
-      .post('/api/v1/auth/login')
-      .send({
-        nationalId: '123',
-        password: 'short',
-      });
+    const res = await request(app.getHttpServer()).post('/api/v1/auth/login').send({
+      nationalId: '123',
+      password: 'short',
+    });
 
     expect(res.status).toBe(400);
   });

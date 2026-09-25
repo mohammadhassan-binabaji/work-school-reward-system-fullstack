@@ -1,7 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateGuidanceCardDto, UpdateGuidanceCardDto } from './dto/guidance.dto';
 import { GuidanceCardStatus, Role } from '@prisma/client';

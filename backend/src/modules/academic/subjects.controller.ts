@@ -47,10 +47,7 @@ export class SubjectsController {
   @Roles('ADMIN')
   @Patch(':id')
   @ApiOperation({ summary: 'Update subject (Admin only)' })
-  async updateSubject(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: UpdateSubjectDto,
-  ) {
+  async updateSubject(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateSubjectDto) {
     return this.academicService.updateSubject(id, dto);
   }
 

@@ -16,6 +16,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiCookieAuth } from
 import { AcademicService } from './academic.service';
 import { CreateClassDto, UpdateClassDto, AssignStudentClassDto } from './dto/academic.dto';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequestWithCorrelation } from '../../common/middleware/correlation.middleware';
 
 @ApiTags('academic')
@@ -51,10 +52,7 @@ export class ClassesController {
   @Roles('ADMIN')
   @Patch(':id')
   @ApiOperation({ summary: 'Update class (Admin only)' })
-  async updateClass(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: UpdateClassDto,
-  ) {
+  async updateClass(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateClassDto) {
     return this.academicService.updateClass(id, dto);
   }
 
@@ -77,8 +75,9 @@ export class ClassesController {
   @ApiOperation({ summary: 'Mark student as departed and cleanup balances (Admin only)' })
   async departStudent(
     @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser('id') adminId: string,
     @Req() req: RequestWithCorrelation,
   ) {
-    return this.academicService.handleStudentDeparture(id, req.correlationId);
+    return this.academicService.handleStudentDeparture(id, adminId, req.correlationId);
   }
 }

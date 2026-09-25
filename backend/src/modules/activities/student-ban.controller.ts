@@ -1,13 +1,5 @@
-import {
-  Controller,
-  Post,
-  Body,
-  Param,
-  HttpCode,
-  HttpStatus,
-  ParseUUIDPipe,
-} from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiCookieAuth } from '@nestjs/swagger';
+import { Controller, Post, Body, Param, HttpCode, HttpStatus, ParseUUIDPipe } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiCookieAuth } from '@nestjs/swagger';
 import { ActivitiesService } from './activities.service';
 import { UnbanStudentDto } from './dto/activities.dto';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -23,10 +15,7 @@ export class StudentBanController {
   @Post(':id/unban')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Admin manual unban override for student activity (Admin only)' })
-  async unbanStudent(
-    @Param('id', ParseUUIDPipe) studentId: string,
-    @Body() dto: UnbanStudentDto,
-  ) {
+  async unbanStudent(@Param('id', ParseUUIDPipe) studentId: string, @Body() dto: UnbanStudentDto) {
     return this.activitiesService.unbanStudent(studentId, dto);
   }
 }

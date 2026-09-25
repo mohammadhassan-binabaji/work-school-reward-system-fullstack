@@ -47,7 +47,9 @@ export class DailySnapshotService {
       count++;
     }
 
-    this.logger.log(`Successfully recorded daily balance snapshots for ${count} active students on ${snapshotDate.toISOString()}`);
+    this.logger.log(
+      `Successfully recorded daily balance snapshots for ${count} active students on ${snapshotDate.toISOString()}`,
+    );
     return { snapshotDate, studentCount: count };
   }
 }

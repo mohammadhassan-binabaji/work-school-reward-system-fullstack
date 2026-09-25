@@ -10,9 +10,13 @@ import {
   HttpStatus,
   ParseUUIDPipe,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiCookieAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiCookieAuth } from '@nestjs/swagger';
 import { ActivitiesService } from './activities.service';
-import { CreateActivityDto, UpdateActivityMetadataDto, SubmitVerificationDto } from './dto/activities.dto';
+import {
+  CreateActivityDto,
+  UpdateActivityMetadataDto,
+  SubmitVerificationDto,
+} from './dto/activities.dto';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Role } from '@prisma/client';

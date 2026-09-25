@@ -83,11 +83,7 @@ export class ActivitiesService {
   }
 
   // Student Submissions & Verifications (FR-037, FR-088, FR-040)
-  async submitVerification(
-    activityId: string,
-    dto: SubmitVerificationDto,
-    studentId: string,
-  ) {
+  async submitVerification(activityId: string, dto: SubmitVerificationDto, studentId: string) {
     const activity = await this.prisma.activity.findUnique({
       where: { id: activityId },
     });
@@ -116,6 +112,12 @@ export class ActivitiesService {
           statusCode: 403,
           errorCode: 'STUDENT_ACTIVITY_BANNED',
           message: `You are temporarily banned from submitting to this activity until ${progress.bannedUntil.toISOString()}`,
+        });
+      } else if (progress.bannedUntil && progress.bannedUntil <= new Date()) {
+        // Ban expired, reset counter
+        await this.prisma.studentActivityProgress.update({
+          where: { id: progress.id },
+          data: { bannedUntil: null, rejectionCount: 0 },
         });
       }
 
@@ -213,11 +215,7 @@ export class ActivitiesService {
   }
 
   // Admin Acceptance (FR-038, FR-039)
-  async acceptVerification(
-    id: string,
-    adminId: string,
-    correlationId: string,
-  ) {
+  async acceptVerification(id: string, adminId: string, correlationId: string) {
     const verification = await this.prisma.verificationRequest.findUnique({
       where: { id },
       include: { activity: true },
@@ -317,11 +315,7 @@ export class ActivitiesService {
   }
 
   // Admin Rejection & Dynamic 3-Strike Ban (FR-041, FR-042)
-  async rejectVerification(
-    id: string,
-    dto: RejectVerificationDto,
-    adminId: string,
-  ) {
+  async rejectVerification(id: string, dto: RejectVerificationDto, adminId: string) {
     const verification = await this.prisma.verificationRequest.findUnique({
       where: { id },
       include: { activity: true },

@@ -411,10 +411,7 @@ export class ProposalsService {
     });
   }
 
-  async getProposalMessages(
-    proposalId: string,
-    currentUser: { id: string; role: Role },
-  ) {
+  async getProposalMessages(proposalId: string, currentUser: { id: string; role: Role }) {
     await this.findProposalById(proposalId, currentUser);
     return this.prisma.taskProposalMessage.findMany({
       where: { proposalId },

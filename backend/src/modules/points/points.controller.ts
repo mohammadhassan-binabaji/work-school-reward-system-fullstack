@@ -43,8 +43,12 @@ export class PointsController {
   @Roles('ADMIN')
   @Post('pool/balance')
   @ApiOperation({ summary: 'Set system point pool balance (Admin only)' })
-  async setPoolBalance(@Body() dto: SetPoolBalanceDto) {
-    return this.pointsService.setPoolBalance(dto);
+  async setPoolBalance(
+    @Body() dto: SetPoolBalanceDto,
+    @CurrentUser('id') adminId: string,
+    @Req() req: RequestWithCorrelation,
+  ) {
+    return this.pointsService.setPoolBalance(dto, adminId, req.correlationId || '');
   }
 
   @Roles('ADMIN')
@@ -85,10 +89,7 @@ export class PointsController {
   @Roles('ADMIN')
   @Patch('tasks/:id')
   @ApiOperation({ summary: 'Update point task definition (Admin only)' })
-  async updateTask(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: UpdatePointTaskDto,
-  ) {
+  async updateTask(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdatePointTaskDto) {
     return this.pointsService.updateTask(id, dto);
   }
 

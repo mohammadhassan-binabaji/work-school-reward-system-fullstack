@@ -66,10 +66,7 @@ export class RewardRequestsController {
   @Post(':id/approve')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Admin approves reward request (Admin only)' })
-  async approveRequest(
-    @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser('id') adminId: string,
-  ) {
+  async approveRequest(@Param('id', ParseUUIDPipe) id: string, @CurrentUser('id') adminId: string) {
     return this.rewardsService.approveRewardRequest(id, adminId);
   }
 

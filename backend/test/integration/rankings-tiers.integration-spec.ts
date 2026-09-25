@@ -12,7 +12,9 @@ describe('Rankings & Tiers Integration Tests', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
+    );
     await app.init();
   });
 
@@ -24,10 +26,38 @@ describe('Rankings & Tiers Integration Tests', () => {
 
   it('correctly calculates standard competition ranking (1, 2, 2, 4)', () => {
     const rawScores: RawStudentScore[] = [
-      { studentId: '1', nationalId: '1111111111', firstName: 'Alice', lastName: 'A', username: 'alice', points: 100 },
-      { studentId: '2', nationalId: '2222222222', firstName: 'Bob', lastName: 'B', username: 'bob', points: 80 },
-      { studentId: '3', nationalId: '3333333333', firstName: 'Charlie', lastName: 'C', username: 'charlie', points: 80 },
-      { studentId: '4', nationalId: '4444444444', firstName: 'David', lastName: 'D', username: 'david', points: 50 },
+      {
+        studentId: '1',
+        nationalId: '1111111111',
+        firstName: 'Alice',
+        lastName: 'A',
+        username: 'alice',
+        points: 100,
+      },
+      {
+        studentId: '2',
+        nationalId: '2222222222',
+        firstName: 'Bob',
+        lastName: 'B',
+        username: 'bob',
+        points: 80,
+      },
+      {
+        studentId: '3',
+        nationalId: '3333333333',
+        firstName: 'Charlie',
+        lastName: 'C',
+        username: 'charlie',
+        points: 80,
+      },
+      {
+        studentId: '4',
+        nationalId: '4444444444',
+        firstName: 'David',
+        lastName: 'D',
+        username: 'david',
+        points: 50,
+      },
     ];
 
     const ranked = RankingUtil.computeStandardCompetitionRanking(rawScores);
@@ -40,11 +70,46 @@ describe('Rankings & Tiers Integration Tests', () => {
 
   it('masks student ranking to protect privacy of non-top peers', () => {
     const rawScores: RawStudentScore[] = [
-      { studentId: '1', nationalId: '1111111111', firstName: 'Alice', lastName: 'A', username: 'alice', points: 100 },
-      { studentId: '2', nationalId: '2222222222', firstName: 'Bob', lastName: 'B', username: 'bob', points: 80 },
-      { studentId: '3', nationalId: '3333333333', firstName: 'Charlie', lastName: 'C', username: 'charlie', points: 80 },
-      { studentId: '4', nationalId: '4444444444', firstName: 'David', lastName: 'D', username: 'david', points: 50 },
-      { studentId: '5', nationalId: '5555555555', firstName: 'Eva', lastName: 'E', username: 'eva', points: 40 },
+      {
+        studentId: '1',
+        nationalId: '1111111111',
+        firstName: 'Alice',
+        lastName: 'A',
+        username: 'alice',
+        points: 100,
+      },
+      {
+        studentId: '2',
+        nationalId: '2222222222',
+        firstName: 'Bob',
+        lastName: 'B',
+        username: 'bob',
+        points: 80,
+      },
+      {
+        studentId: '3',
+        nationalId: '3333333333',
+        firstName: 'Charlie',
+        lastName: 'C',
+        username: 'charlie',
+        points: 80,
+      },
+      {
+        studentId: '4',
+        nationalId: '4444444444',
+        firstName: 'David',
+        lastName: 'D',
+        username: 'david',
+        points: 50,
+      },
+      {
+        studentId: '5',
+        nationalId: '5555555555',
+        firstName: 'Eva',
+        lastName: 'E',
+        username: 'eva',
+        points: 40,
+      },
     ];
 
     const ranked = RankingUtil.computeStandardCompetitionRanking(rawScores);

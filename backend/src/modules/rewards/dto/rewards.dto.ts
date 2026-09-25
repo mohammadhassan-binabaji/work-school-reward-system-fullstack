@@ -39,7 +39,11 @@ export class CreateRewardDto {
   @IsBoolean()
   requiresApproval: boolean;
 
-  @ApiPropertyOptional({ example: 20, minimum: 0, description: 'Finite inventory for non-approval rewards' })
+  @ApiPropertyOptional({
+    example: 20,
+    minimum: 0,
+    description: 'Finite inventory for non-approval rewards',
+  })
   @IsOptional()
   @IsInt()
   @Min(0)

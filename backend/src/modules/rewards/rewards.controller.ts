@@ -52,10 +52,7 @@ export class RewardsController {
   @Roles('ADMIN')
   @Patch(':id')
   @ApiOperation({ summary: 'Update reward metadata (price is immutable) (Admin only)' })
-  async updateReward(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: UpdateRewardMetadataDto,
-  ) {
+  async updateReward(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateRewardMetadataDto) {
     return this.rewardsService.updateRewardMetadata(id, dto);
   }
 

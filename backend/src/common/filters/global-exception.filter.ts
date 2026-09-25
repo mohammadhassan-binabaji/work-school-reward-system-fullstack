@@ -26,7 +26,8 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<RequestWithCorrelation>();
-    const correlationId = request.correlationId || (response.getHeader('X-Correlation-Id') as string) || '';
+    const correlationId =
+      request.correlationId || (response.getHeader('X-Correlation-Id') as string) || '';
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let errorCode = 'INTERNAL_SERVER_ERROR';
@@ -41,7 +42,9 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         message = res;
       } else if (typeof res === 'object' && res !== null) {
         const resObj = res as any;
-        message = Array.isArray(resObj.message) ? resObj.message.join(', ') : resObj.message || exception.message;
+        message = Array.isArray(resObj.message)
+          ? resObj.message.join(', ')
+          : resObj.message || exception.message;
         errorCode = resObj.errorCode || this.mapStatusToErrorCode(status);
         details = resObj.details || (Array.isArray(resObj.message) ? resObj.message : undefined);
       }

@@ -9,7 +9,11 @@ import { LocalStorageService, MinioS3StorageService } from './storage.service';
     MinioS3StorageService,
     {
       provide: 'STORAGE_SERVICE',
-      useFactory: (config: ConfigService, local: LocalStorageService, minio: MinioS3StorageService) => {
+      useFactory: (
+        config: ConfigService,
+        local: LocalStorageService,
+        minio: MinioS3StorageService,
+      ) => {
         const provider = config.get<string>('app.storageProvider') || 'local';
         return provider === 'minio' || provider === 's3' ? minio : local;
       },

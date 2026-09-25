@@ -31,7 +31,10 @@ export class RewardsService {
 
   // Catalog CRUD (FR-024, FR-085)
   async createReward(dto: CreateRewardDto) {
-    if (!dto.requiresApproval && (dto.inventoryQuantity === undefined || dto.inventoryQuantity === null)) {
+    if (
+      !dto.requiresApproval &&
+      (dto.inventoryQuantity === undefined || dto.inventoryQuantity === null)
+    ) {
       throw new BadRequestException({
         statusCode: 400,
         errorCode: 'INVENTORY_REQUIRED_FOR_NON_APPROVAL',
@@ -101,7 +104,9 @@ export class RewardsService {
       const activeRequests = await tx.rewardRequest.findMany({
         where: {
           rewardId: id,
-          status: { in: [RewardRequestStatus.PENDING_TO_APPROVE, RewardRequestStatus.PENDING_TO_RECEIVE] },
+          status: {
+            in: [RewardRequestStatus.PENDING_TO_APPROVE, RewardRequestStatus.PENDING_TO_RECEIVE],
+          },
         },
         include: { student: { include: { studentProfile: true } } },
       });
@@ -169,11 +174,7 @@ export class RewardsService {
   }
 
   // Student Redemption Request (FR-026 - FR-031, FR-086)
-  async createRewardRequest(
-    dto: CreateRewardRequestDto,
-    studentId: string,
-    correlationId: string,
-  ) {
+  async createRewardRequest(dto: CreateRewardRequestDto, studentId: string, correlationId: string) {
     const student = await this.prisma.user.findUnique({
       where: { id: studentId },
       include: { studentProfile: true },
@@ -441,7 +442,10 @@ export class RewardsService {
 
       const reservedAmount = req.reservedAmount;
       const newCurrentBalance = (studentProfile?.currentBalance || 0) + reservedAmount;
-      const newReservedBalance = Math.max(0, (studentProfile?.reservedBalance || 0) - reservedAmount);
+      const newReservedBalance = Math.max(
+        0,
+        (studentProfile?.reservedBalance || 0) - reservedAmount,
+      );
 
       const matchingTier = await tx.tierConfiguration.findFirst({
         where: { minPointsThreshold: { lte: newCurrentBalance } },
@@ -495,11 +499,7 @@ export class RewardsService {
   }
 
   // Physical Handover Completed (FR-033)
-  async receiveRewardRequest(
-    id: string,
-    adminId: string,
-    correlationId: string,
-  ) {
+  async receiveRewardRequest(id: string, adminId: string, correlationId: string) {
     const req = await this.prisma.rewardRequest.findUnique({
       where: { id },
       include: { reward: true },
@@ -528,7 +528,10 @@ export class RewardsService {
       });
 
       const reservedAmount = req.reservedAmount;
-      const newReservedBalance = Math.max(0, (studentProfile?.reservedBalance || 0) - reservedAmount);
+      const newReservedBalance = Math.max(
+        0,
+        (studentProfile?.reservedBalance || 0) - reservedAmount,
+      );
 
       await tx.studentProfile.update({
         where: { id: req.studentId },

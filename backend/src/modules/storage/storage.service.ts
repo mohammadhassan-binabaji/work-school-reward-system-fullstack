@@ -46,7 +46,8 @@ export class MinioS3StorageService implements StorageService {
     const port = this.configService.get<number>('app.minioPort') || 9000;
     const useSsl = this.configService.get<boolean>('app.minioUseSsl') || false;
     const accessKeyId = this.configService.get<string>('app.minioAccessKey') || 'minioadmin';
-    const secretAccessKey = this.configService.get<string>('app.minioSecretKey') || 'minioadminpassword';
+    const secretAccessKey =
+      this.configService.get<string>('app.minioSecretKey') || 'minioadminpassword';
     this.bucket = this.configService.get<string>('app.minioBucket') || 'student-rewards';
 
     const protocol = useSsl ? 'https' : 'http';

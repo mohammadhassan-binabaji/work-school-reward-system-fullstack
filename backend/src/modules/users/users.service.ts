@@ -5,7 +5,9 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { RedisService } from '../../common/redis/redis.service';
 import { PasswordService } from '../auth/password.service';
+import { AcademicService } from '../academic/academic.service';
 import { CreateUserDto, UpdateUserStateDto } from './dto/user.dto';
 import { Role, AccountState } from '@prisma/client';
 
@@ -13,7 +15,9 @@ import { Role, AccountState } from '@prisma/client';
 export class UsersService {
   constructor(
     private prisma: PrismaService,
+    private redisService: RedisService,
     private passwordService: PasswordService,
+    private academicService: AcademicService,
   ) {}
 
   async createUser(dto: CreateUserDto) {
@@ -177,7 +181,12 @@ export class UsersService {
     return user;
   }
 
-  async updateUserState(id: string, dto: UpdateUserStateDto) {
+  async updateUserState(
+    id: string,
+    dto: UpdateUserStateDto,
+    adminId?: string,
+    correlationId?: string,
+  ) {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) {
       throw new NotFoundException({
@@ -185,6 +194,18 @@ export class UsersService {
         errorCode: 'USER_NOT_FOUND',
         message: `User with ID ${id} not found`,
       });
+    }
+
+    if (dto.accountState === AccountState.DEPARTED) {
+      if (user.role === Role.STUDENT) {
+        await this.academicService.handleStudentDeparture(id, adminId, correlationId);
+      } else if (user.role === Role.TEACHER) {
+        await this.academicService.handleTeacherDeparture(id, adminId, correlationId);
+      }
+    }
+
+    if (dto.accountState !== AccountState.ACTIVE) {
+      await this.redisService.deleteSessionsForUser(id);
     }
 
     return this.prisma.user.update({

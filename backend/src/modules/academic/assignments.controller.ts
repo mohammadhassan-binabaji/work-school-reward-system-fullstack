@@ -15,6 +15,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiCookieAuth } from
 import { AcademicService } from './academic.service';
 import { CreateAssignmentDto } from './dto/academic.dto';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequestWithCorrelation } from '../../common/middleware/correlation.middleware';
 
 @ApiTags('academic')
@@ -44,18 +45,22 @@ export class AssignmentsController {
 
   @Roles('ADMIN')
   @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remove assignment (Admin only)' })
   async removeAssignment(@Param('id', ParseUUIDPipe) id: string) {
-    return this.academicService.removeAssignment(id);
+    await this.academicService.removeAssignment(id);
   }
 
   @Roles('ADMIN')
   @Post('teachers/:id/depart')
-  @ApiOperation({ summary: 'Mark teacher as departed and return unspent budget to pool (Admin only)' })
+  @ApiOperation({
+    summary: 'Mark teacher as departed and return unspent budget to pool (Admin only)',
+  })
   async departTeacher(
     @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser('id') adminId: string,
     @Req() req: RequestWithCorrelation,
   ) {
-    return this.academicService.handleTeacherDeparture(id, req.correlationId);
+    return this.academicService.handleTeacherDeparture(id, adminId, req.correlationId);
   }
 }

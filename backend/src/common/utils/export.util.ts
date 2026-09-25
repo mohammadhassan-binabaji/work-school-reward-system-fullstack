@@ -15,23 +15,18 @@ export interface AuditLogExportRow {
 
 export class ExportUtil {
   static async generateCsv(rows: AuditLogExportRow[]): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const formatted = rows.map((r) => ({
-        Timestamp: r.timestamp,
-        'Action Type': r.actionType,
-        Actor: r.actor,
-        Source: r.source,
-        Recipient: r.recipient,
-        Amount: r.amount,
-        'Reason / Task': r.reason,
-        'Correlation ID': r.correlationId,
-      }));
+    const formatted = rows.map((r) => ({
+      Timestamp: r.timestamp,
+      'Action Type': r.actionType,
+      Actor: r.actor,
+      Source: r.source,
+      Recipient: r.recipient,
+      Amount: r.amount,
+      'Reason / Task': r.reason,
+      'Correlation ID': r.correlationId,
+    }));
 
-      fastCsv.writeToString(formatted, { headers: true }, (err, data) => {
-        if (err) return reject(err);
-        resolve(data);
-      });
-    });
+    return fastCsv.writeToString(formatted, { headers: true });
   }
 
   static async generateXlsx(rows: AuditLogExportRow[]): Promise<Buffer> {
@@ -87,7 +82,12 @@ export class ExportUtil {
         fontSize: 8,
       },
       content: [
-        { text: 'Student Reward System - Point Flow Report', fontSize: 14, bold: true, margin: [0, 0, 0, 10] },
+        {
+          text: 'Student Reward System - Point Flow Report',
+          fontSize: 14,
+          bold: true,
+          margin: [0, 0, 0, 10],
+        },
         {
           table: {
             headerRows: 1,

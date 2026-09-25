@@ -44,17 +44,36 @@ export class PointsService {
     return pool;
   }
 
-  async setPoolBalance(dto: SetPoolBalanceDto) {
+  async setPoolBalance(dto: SetPoolBalanceDto, adminId?: string, correlationId?: string) {
     let pool = await this.prisma.systemPointPool.findFirst();
     if (!pool) {
-      return this.prisma.systemPointPool.create({
+      pool = await this.prisma.systemPointPool.create({
+        data: { balance: dto.balance },
+      });
+    } else {
+      pool = await this.prisma.systemPointPool.update({
+        where: { id: pool.id },
         data: { balance: dto.balance },
       });
     }
-    return this.prisma.systemPointPool.update({
-      where: { id: pool.id },
-      data: { balance: dto.balance },
-    });
+
+    if (correlationId) {
+      await this.auditLogService.log({
+        correlationId,
+        actorId: adminId || null,
+        actorRole: ActorRole.ADMIN,
+        sourceType: SourceType.SYSTEM_POOL,
+        sourceId: pool.id,
+        recipientType: RecipientType.SYSTEM_POOL,
+        recipientId: pool.id,
+        amount: dto.balance,
+        actionType: ActionType.POOL_FUND_TEACHER,
+        taskOrReason: `System pool balance set to ${dto.balance}`,
+        resultingRecipientBalance: pool.balance,
+      });
+    }
+
+    return pool;
   }
 
   // Fund Teacher Budget (FR-015, FR-016)
@@ -204,11 +223,7 @@ export class PointsService {
   }
 
   // Teacher Awards Points to Student (FR-018 - FR-022)
-  async teacherAwardPoints(
-    dto: TeacherAwardPointsDto,
-    teacherId: string,
-    correlationId: string,
-  ) {
+  async teacherAwardPoints(dto: TeacherAwardPointsDto, teacherId: string, correlationId: string) {
     // Verify teacher assignment to this class and subject
     const assignment = await this.prisma.teacherClassSubjectAssignment.findFirst({
       where: {
@@ -346,21 +361,21 @@ export class PointsService {
     adminId: string,
     correlationId: string,
   ) {
-    const student = await this.prisma.user.findUnique({
-      where: { id: dto.studentId },
-      include: { studentProfile: true },
-    });
-
-    if (!student || student.role !== Role.STUDENT || !student.studentProfile) {
-      throw new NotFoundException({
-        statusCode: 404,
-        errorCode: 'STUDENT_NOT_FOUND',
-        message: 'Student account not found',
-      });
-    }
-
     return this.prisma.$transaction(async (tx) => {
-      const currentBalance = student.studentProfile!.currentBalance;
+      const student = await tx.user.findUnique({
+        where: { id: dto.studentId },
+        include: { studentProfile: true },
+      });
+
+      if (!student || student.role !== Role.STUDENT || !student.studentProfile) {
+        throw new NotFoundException({
+          statusCode: 404,
+          errorCode: 'STUDENT_NOT_FOUND',
+          message: 'Student account not found',
+        });
+      }
+
+      const currentBalance = student.studentProfile.currentBalance;
       const newBalance = currentBalance + dto.amount;
 
       if (newBalance < 0) {
@@ -371,14 +386,15 @@ export class PointsService {
         });
       }
 
-      const newHighestBalance = Math.max(
-        student.studentProfile!.highestBalance,
-        newBalance,
-      );
+      const newHighestBalance = Math.max(student.studentProfile.highestBalance, newBalance);
 
       const matchingTier = await tx.tierConfiguration.findFirst({
         where: { minPointsThreshold: { lte: newBalance } },
         orderBy: { minPointsThreshold: 'desc' },
+      });
+
+      const lowestTier = await tx.tierConfiguration.findFirst({
+        where: { tierNumber: 1 },
       });
 
       const updatedStudent = await tx.studentProfile.update({
@@ -386,7 +402,7 @@ export class PointsService {
         data: {
           currentBalance: newBalance,
           highestBalance: newHighestBalance,
-          currentTierId: matchingTier?.id || student.studentProfile!.currentTierId,
+          currentTierId: matchingTier?.id || lowestTier?.id || student.studentProfile.currentTierId,
         },
       });
 
@@ -402,7 +418,8 @@ export class PointsService {
           amount: Math.abs(dto.amount),
           actionType: ActionType.ADMIN_ADJUST_STUDENT,
           taskOrReason: `Admin adjustment: ${dto.reason}`,
-          resultingRecipientBalance: updatedStudent.currentBalance,
+          resultingSourceBalance: dto.amount < 0 ? updatedStudent.currentBalance : null,
+          resultingRecipientBalance: dto.amount > 0 ? updatedStudent.currentBalance : updatedStudent.currentBalance,
         },
         tx,
       );

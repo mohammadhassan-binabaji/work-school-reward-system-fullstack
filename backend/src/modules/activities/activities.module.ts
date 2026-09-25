@@ -8,11 +8,7 @@ import { PointsModule } from '../points/points.module';
 @Module({
   imports: [PointsModule],
   providers: [ActivitiesService],
-  controllers: [
-    ActivitiesController,
-    VerificationsController,
-    StudentBanController,
-  ],
+  controllers: [ActivitiesController, VerificationsController, StudentBanController],
   exports: [ActivitiesService],
 })
 export class ActivitiesModule {}

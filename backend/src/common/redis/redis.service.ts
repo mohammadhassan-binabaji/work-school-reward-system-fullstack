@@ -41,6 +41,8 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
   async createSession(sessionId: string, data: SessionData, ttlSeconds = 86400): Promise<void> {
     await this.client.set(`session:${sessionId}`, JSON.stringify(data), 'EX', ttlSeconds);
+    await this.client.sadd(`user_sessions:${data.userId}`, sessionId);
+    await this.client.expire(`user_sessions:${data.userId}`, ttlSeconds);
   }
 
   async getSession(sessionId: string): Promise<SessionData | null> {
@@ -54,7 +56,25 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   }
 
   async deleteSession(sessionId: string): Promise<void> {
+    const raw = await this.client.get(`session:${sessionId}`);
+    if (raw) {
+      try {
+        const data = JSON.parse(raw) as SessionData;
+        await this.client.srem(`user_sessions:${data.userId}`, sessionId);
+      } catch {
+        // ignore parse error
+      }
+    }
     await this.client.del(`session:${sessionId}`);
+  }
+
+  async deleteSessionsForUser(userId: string): Promise<void> {
+    const sessionIds = await this.client.smembers(`user_sessions:${userId}`);
+    if (sessionIds && sessionIds.length > 0) {
+      const keys = sessionIds.map((id) => `session:${id}`);
+      await this.client.del(...keys);
+    }
+    await this.client.del(`user_sessions:${userId}`);
   }
 
   async extendSession(sessionId: string, ttlSeconds = 86400): Promise<void> {

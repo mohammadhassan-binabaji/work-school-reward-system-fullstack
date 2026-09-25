@@ -36,10 +36,7 @@ export class ProposalsController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Submit voluntary task proposal (Student only)' })
-  async createProposal(
-    @Body() dto: CreateProposalDto,
-    @CurrentUser('id') studentId: string,
-  ) {
+  async createProposal(@Body() dto: CreateProposalDto, @CurrentUser('id') studentId: string) {
     return this.proposalsService.createProposal(dto, studentId);
   }
 

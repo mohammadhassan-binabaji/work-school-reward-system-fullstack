@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 import { AppModule } from '../../src/app.module';
 
 describe('Academic Contract Tests (e2e)', () => {
@@ -12,7 +12,9 @@ describe('Academic Contract Tests (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
+    );
     await app.init();
   });
 
@@ -23,9 +25,7 @@ describe('Academic Contract Tests (e2e)', () => {
   });
 
   it('POST /api/v1/classes validation schema', async () => {
-    const res = await request(app.getHttpServer())
-      .post('/api/v1/classes')
-      .send({});
+    const res = await request(app.getHttpServer()).post('/api/v1/classes').send({});
     expect(res.status).toBe(401); // Requires auth
   });
 });

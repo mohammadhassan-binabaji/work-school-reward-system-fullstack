@@ -1,12 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import {
-  ActorRole,
-  SourceType,
-  RecipientType,
-  ActionType,
-  Prisma,
-} from '@prisma/client';
+import { ActorRole, SourceType, RecipientType, ActionType, Prisma } from '@prisma/client';
 
 export interface CreateAuditLogParams {
   correlationId: string;
@@ -63,30 +57,64 @@ export class AuditLogService {
     limit?: number;
     offset?: number;
   }) {
-    const where: any = {};
+    const andConditions: any[] = [];
 
     if (filter.startDate || filter.endDate) {
-      where.createdAt = {};
-      if (filter.startDate) where.createdAt.gte = filter.startDate;
-      if (filter.endDate) where.createdAt.lte = filter.endDate;
+      const dateFilter: any = {};
+      if (filter.startDate) dateFilter.gte = filter.startDate;
+      if (filter.endDate) dateFilter.lte = filter.endDate;
+      andConditions.push({ createdAt: dateFilter });
     }
 
     if (filter.actionType) {
-      where.actionType = filter.actionType;
+      andConditions.push({ actionType: filter.actionType });
+    }
+
+    if (filter.actorId) {
+      andConditions.push({ actorId: filter.actorId });
     }
 
     if (filter.studentId) {
-      where.OR = [
-        { recipientId: filter.studentId, recipientType: { in: [RecipientType.STUDENT_CURRENT, RecipientType.STUDENT_RESERVED] } },
-        { sourceId: filter.studentId, sourceType: { in: [SourceType.STUDENT_CURRENT, SourceType.STUDENT_RESERVED] } },
-      ];
-    } else if (filter.teacherId) {
-      where.OR = [
-        { recipientId: filter.teacherId, recipientType: RecipientType.TEACHER },
-        { sourceId: filter.teacherId, sourceType: SourceType.TEACHER },
-        { actorId: filter.teacherId },
-      ];
+      andConditions.push({
+        OR: [
+          {
+            recipientId: filter.studentId,
+            recipientType: { in: [RecipientType.STUDENT_CURRENT, RecipientType.STUDENT_RESERVED] },
+          },
+          {
+            sourceId: filter.studentId,
+            sourceType: { in: [SourceType.STUDENT_CURRENT, SourceType.STUDENT_RESERVED] },
+          },
+          { actorId: filter.studentId },
+        ],
+      });
     }
+
+    if (filter.teacherId) {
+      andConditions.push({
+        OR: [
+          { recipientId: filter.teacherId, recipientType: RecipientType.TEACHER },
+          { sourceId: filter.teacherId, sourceType: SourceType.TEACHER },
+          { actorId: filter.teacherId },
+        ],
+      });
+    }
+
+    if (filter.classId) {
+      const classStudents = await this.prisma.studentProfile.findMany({
+        where: { classId: filter.classId },
+        select: { id: true },
+      });
+      const studentIds = classStudents.map((s) => s.id);
+      andConditions.push({
+        OR: [
+          { recipientId: { in: studentIds } },
+          { sourceId: { in: studentIds } },
+        ],
+      });
+    }
+
+    const where = andConditions.length > 0 ? { AND: andConditions } : {};
 
     return this.prisma.pointAuditLog.findMany({
       where,

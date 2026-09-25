@@ -90,6 +90,18 @@ export class RejectVerificationDto {
   rejectionReason?: string;
 }
 
+export class ReviewVerificationDto {
+  @ApiProperty({ enum: ['ACCEPT', 'REJECT'], example: 'ACCEPT' })
+  @IsNotEmpty()
+  @IsEnum(['ACCEPT', 'REJECT'])
+  action: 'ACCEPT' | 'REJECT';
+
+  @ApiPropertyOptional({ example: 'The submitted photo was incomplete' })
+  @IsOptional()
+  @IsString()
+  rejectionReason?: string;
+}
+
 export class UnbanStudentDto {
   @ApiProperty({ format: 'uuid', description: 'Activity ID to unban student from' })
   @IsNotEmpty()

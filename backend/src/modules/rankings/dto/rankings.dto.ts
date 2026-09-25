@@ -35,7 +35,10 @@ export class TierItemDto {
 }
 
 export class UpdateTierConfigurationsDto {
-  @ApiProperty({ type: [TierItemDto], description: 'Must provide exactly 5 tiers (tierNumber 1 to 5)' })
+  @ApiProperty({
+    type: [TierItemDto],
+    description: 'Must provide exactly 5 tiers (tierNumber 1 to 5)',
+  })
   @IsArray()
   @ArrayMinSize(5)
   @ArrayMaxSize(5)
