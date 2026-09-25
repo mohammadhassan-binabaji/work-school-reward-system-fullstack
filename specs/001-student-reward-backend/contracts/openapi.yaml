@@ -1,0 +1,1298 @@
+openapi: 3.0.3
+info:
+  title: Student Reward System Backend API
+  version: 1.0.0
+  description: >
+    Complete RESTful backend specification for the Student Reward System.
+    Enforces Role-Based Access Control (RBAC: ADMIN, TEACHER, STUDENT) and Stateful Session Authentication.
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Local Development Server
+
+components:
+  securitySchemes:
+    SessionAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: Stateful Session ID formatted as `Bearer <session_id>` (or via `session_id` HTTP-only cookie).
+
+  headers:
+    X-Correlation-Id:
+      description: Unique request correlation identifier propagated through all logs and response headers.
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    ErrorResponse:
+      type: object
+      required:
+        - statusCode
+        - errorCode
+        - message
+        - correlationId
+        - timestamp
+      properties:
+        statusCode:
+          type: integer
+          example: 400
+        errorCode:
+          type: string
+          example: INSUFFICIENT_POINT_BALANCE
+        message:
+          type: string
+          example: Teacher point balance is insufficient to perform this award.
+        correlationId:
+          type: string
+          format: uuid
+          example: "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d"
+        timestamp:
+          type: string
+          format: date-time
+          example: "2026-09-24T10:00:00.000Z"
+
+    UserResponse:
+      type: object
+      required:
+        - id
+        - nationalId
+        - firstName
+        - lastName
+        - username
+        - role
+        - accountState
+      properties:
+        id:
+          type: string
+          format: uuid
+        nationalId:
+          type: string
+          example: "1234567890"
+        firstName:
+          type: string
+          example: "Jane"
+        lastName:
+          type: string
+          example: "Doe"
+        username:
+          type: string
+          example: "jane.doe"
+        role:
+          type: string
+          enum: [ADMIN, TEACHER, STUDENT]
+        accountState:
+          type: string
+          enum: [ACTIVE, INACTIVE, DEACTIVATED, DEPARTED]
+
+    LoginRequest:
+      type: object
+      required:
+        - nationalId
+        - password
+      properties:
+        nationalId:
+          type: string
+          pattern: '^[0-9]{10}$'
+          example: "1234567890"
+        password:
+          type: string
+          format: password
+          example: "SecureP@ssw0rd!"
+
+    LoginResponse:
+      type: object
+      required:
+        - sessionId
+        - user
+      properties:
+        sessionId:
+          type: string
+          example: "sess_a8f93e2b1c4d"
+        user:
+          $ref: '#/components/schemas/UserResponse'
+
+    PointTransferTaskDto:
+      type: object
+      required:
+        - id
+        - name
+        - isActive
+        - options
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: "Doing Homework"
+        description:
+          type: string
+          nullable: true
+          example: "Completing daily assignments on time"
+        isActive:
+          type: boolean
+          example: true
+        options:
+          type: array
+          items:
+            type: object
+            required:
+              - id
+              - points
+            properties:
+              id:
+                type: string
+                format: uuid
+              points:
+                type: integer
+                example: 10
+              label:
+                type: string
+                nullable: true
+                example: "Excellent Quality"
+
+    TeacherAwardRequest:
+      type: object
+      required:
+        - studentId
+        - classId
+        - subjectId
+        - taskId
+        - optionId
+      properties:
+        studentId:
+          type: string
+          format: uuid
+        classId:
+          type: string
+          format: uuid
+        subjectId:
+          type: string
+          format: uuid
+        taskId:
+          type: string
+          format: uuid
+        optionId:
+          type: string
+          format: uuid
+
+    RewardDto:
+      type: object
+      required:
+        - id
+        - name
+        - description
+        - pointPrice
+        - requiresApproval
+        - status
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: "School Notebook"
+        description:
+          type: string
+          example: "Custom engraved spiral notebook"
+        imageUrl:
+          type: string
+          nullable: true
+        pointPrice:
+          type: integer
+          example: 50
+        requiresApproval:
+          type: boolean
+          example: false
+        inventoryQuantity:
+          type: integer
+          nullable: true
+          example: 25
+        status:
+          type: string
+          enum: [ACTIVE, REMOVED]
+
+    RewardRequestDto:
+      type: object
+      required:
+        - id
+        - studentId
+        - rewardId
+        - priceAtRequest
+        - requiresApproval
+        - status
+        - reservedAmount
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        studentId:
+          type: string
+          format: uuid
+        rewardId:
+          type: string
+          format: uuid
+        priceAtRequest:
+          type: integer
+          example: 50
+        requiresApproval:
+          type: boolean
+          example: false
+        status:
+          type: string
+          enum: [PENDING_TO_APPROVE, PENDING_TO_RECEIVE, COMPLETED, DECLINED]
+        reservedAmount:
+          type: integer
+          example: 50
+        declineReason:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    ActivityDto:
+      type: object
+      required:
+        - id
+        - type
+        - title
+        - description
+        - pointValue
+        - completionLimit
+        - status
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [CHALLENGE, MISSION]
+        title:
+          type: string
+          example: "Math Olympiad Participation"
+        description:
+          type: string
+          example: "Solve 10 challenge problems and submit working notes."
+        pointValue:
+          type: integer
+          example: 100
+        completionLimit:
+          type: integer
+          example: 1
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE, REMOVED]
+
+    TaskProposalDto:
+      type: object
+      required:
+        - id
+        - studentId
+        - description
+        - status
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        studentId:
+          type: string
+          format: uuid
+        description:
+          type: string
+          example: "Organize the class library bookshelves"
+        status:
+          type: string
+          enum: [PENDING_TO_APPROVE, READY_TO_DO, COMPLETED, DECLINED, CANCELED]
+        assignedPointValue:
+          type: integer
+          nullable: true
+          example: 30
+        createdAt:
+          type: string
+          format: date-time
+
+    RankingResponseDto:
+      type: object
+      required:
+        - scope
+        - totalActiveStudents
+        - topStudents
+      properties:
+        scope:
+          type: string
+          enum: [CLASS, SCHOOL]
+        totalActiveStudents:
+          type: integer
+          example: 32
+        selfRank:
+          type: object
+          nullable: true
+          properties:
+            rank:
+              type: integer
+              example: 15
+            currentPoints:
+              type: integer
+              example: 140
+            studentName:
+              type: string
+              example: "Jane Doe"
+        topStudents:
+          type: array
+          items:
+            type: object
+            required:
+              - rank
+              - studentName
+              - currentPoints
+            properties:
+              rank:
+                type: integer
+                example: 1
+              studentName:
+                type: string
+                example: "Alice Smith"
+              currentPoints:
+                type: integer
+                example: 350
+
+paths:
+  # ==========================================
+  # AUTHENTICATION
+  # ==========================================
+  /auth/initial-admin:
+    post:
+      summary: Provision Initial School Administrator
+      description: Seeds the initial administrator account on a fresh installation (FR-001).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nationalId, firstName, lastName, username, password]
+              properties:
+                nationalId: { type: string, pattern: '^[0-9]{10}$' }
+                firstName: { type: string }
+                lastName: { type: string }
+                username: { type: string }
+                password: { type: string, format: password }
+      responses:
+        '201':
+          description: Admin provisioned successfully
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserResponse' }
+        '409':
+          description: Initial admin already provisioned
+
+  /auth/login:
+    post:
+      summary: User Login
+      description: Authenticates user by 10-digit national ID and password, establishing a stateful session in Redis (FR-003, FR-004).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200':
+          description: Authentication successful
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: "sessionId=sess_a8f93e2b1c4d; Path=/; HttpOnly; SameSite=Strict"
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LoginResponse' }
+        '401':
+          description: Invalid national ID or password
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  /auth/logout:
+    post:
+      summary: Logout
+      security:
+        - SessionAuth: []
+      responses:
+        '200':
+          description: Session invalidated
+
+  /auth/me:
+    get:
+      summary: Current Authenticated User Info
+      security:
+        - SessionAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserResponse' }
+
+  # ==========================================
+  # USERS & ACCOUNTS (ADMIN ONLY)
+  # ==========================================
+  /users:
+    post:
+      summary: Create User Account
+      description: Admin creates an admin, teacher, or student account (FR-002, FR-003).
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nationalId, firstName, lastName, username, password, role]
+              properties:
+                nationalId: { type: string, pattern: '^[0-9]{10}$' }
+                firstName: { type: string }
+                lastName: { type: string }
+                username: { type: string }
+                password: { type: string, format: password }
+                role: { type: string, enum: [ADMIN, TEACHER, STUDENT] }
+                classId: { type: string, format: uuid, description: "Required if role=STUDENT" }
+      responses:
+        '201':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserResponse' }
+
+  /users/{id}/status:
+    patch:
+      summary: Update User Account Lifecycle State
+      description: Deactivates, reactivates, or marks user as departed (FR-010, FR-012, FR-014).
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [accountState]
+              properties:
+                accountState: { type: string, enum: [ACTIVE, INACTIVE, DEACTIVATED, DEPARTED] }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserResponse' }
+
+  # ==========================================
+  # ACADEMIC STRUCTURE & ASSIGNMENTS
+  # ==========================================
+  /classes:
+    get:
+      summary: List Classes
+      security:
+        - SessionAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: string, format: uuid }
+                    name: { type: string }
+                    gradeLevel: { type: string }
+                    description: { type: string }
+                    isActive: { type: boolean }
+    post:
+      summary: Create Class (Admin)
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+                gradeLevel: { type: string }
+                description: { type: string }
+      responses:
+        '201':
+          description: Class created
+
+  /subjects:
+    get:
+      summary: List Subjects
+      security:
+        - SessionAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: string, format: uuid }
+                    name: { type: string }
+                    description: { type: string }
+    post:
+      summary: Create Subject (Admin)
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+                description: { type: string }
+      responses:
+        '201':
+          description: Subject created
+
+  /assignments:
+    post:
+      summary: Assign Teacher to Class and Subject (Admin)
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [teacherId, classId, subjectId]
+              properties:
+                teacherId: { type: string, format: uuid }
+                classId: { type: string, format: uuid }
+                subjectId: { type: string, format: uuid }
+      responses:
+        '201':
+          description: Assignment created (FR-011)
+
+  /assignments/{id}:
+    delete:
+      summary: Remove Teacher Class Assignment (Admin)
+      description: Removes class assignment while preserving teacher's point balance (FR-013).
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204':
+          description: Assignment removed
+
+  # ==========================================
+  # POINT ECONOMY & TRANSFERS
+  # ==========================================
+  /points/pool/fund-teacher:
+    post:
+      summary: Fund Teacher Award Budget from System Pool (Admin)
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [teacherId, amount]
+              properties:
+                teacherId: { type: string, format: uuid }
+                amount: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: Points successfully allocated (FR-016)
+
+  /points/tasks:
+    get:
+      summary: List Point Transfer Tasks
+      security:
+        - SessionAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/PointTransferTaskDto' }
+    post:
+      summary: Create Point Transfer Task (Admin)
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, options]
+              properties:
+                name: { type: string }
+                description: { type: string }
+                options:
+                  type: array
+                  items:
+                    type: object
+                    required: [points]
+                    properties:
+                      points: { type: integer, minimum: 1 }
+                      label: { type: string }
+      responses:
+        '201':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PointTransferTaskDto' }
+
+  /points/teacher-award:
+    post:
+      summary: Award Points from Teacher to Student
+      description: Teacher awards points to an enrolled student in assigned class using a predefined task and discrete option (FR-018, FR-020, FR-021).
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TeacherAwardRequest' }
+      responses:
+        '200':
+          description: Points awarded successfully
+
+  /points/admin-adjust:
+    post:
+      summary: Direct Administrator Point Adjustment
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [studentId, amount, reason]
+              properties:
+                studentId: { type: string, format: uuid }
+                amount: { type: integer, description: "Positive or negative integer adjustment" }
+                reason: { type: string }
+      responses:
+        '200':
+          description: Balance adjusted (FR-023)
+
+  # ==========================================
+  # REWARDS & REDEMPTION
+  # ==========================================
+  /rewards:
+    get:
+      summary: List Active Catalog Rewards
+      security:
+        - SessionAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/RewardDto' }
+    post:
+      summary: Create Reward (Admin)
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, description, pointPrice, requiresApproval]
+              properties:
+                name: { type: string }
+                description: { type: string }
+                imageUrl: { type: string }
+                pointPrice: { type: integer, minimum: 1 }
+                requiresApproval: { type: boolean }
+                inventoryQuantity: { type: integer, minimum: 0, nullable: true }
+      responses:
+        '201':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RewardDto' }
+
+  /rewards/{id}:
+    delete:
+      summary: Remove Reward from Catalog (Admin)
+      description: Closes active requests, returns reserved points, and records audit entries (FR-034).
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204':
+          description: Reward removed
+
+  /reward-requests:
+    get:
+      summary: List Reward Requests
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [PENDING_TO_APPROVE, PENDING_TO_RECEIVE, COMPLETED, DECLINED] }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/RewardRequestDto' }
+    post:
+      summary: Request Reward (Student)
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [rewardId]
+              properties:
+                rewardId: { type: string, format: uuid }
+      responses:
+        '201':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RewardRequestDto' }
+
+  /reward-requests/{id}/approve:
+    post:
+      summary: Approve Reward Request (Admin)
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Request approved; transitioned to PENDING_TO_RECEIVE (FR-032)
+
+  /reward-requests/{id}/decline:
+    post:
+      summary: Decline Reward Request (Admin)
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason: { type: string }
+      responses:
+        '200':
+          description: Request declined; points returned to student balance (FR-032)
+
+  /reward-requests/{id}/receive:
+    post:
+      summary: Mark Reward Request as Received / Delivered (Admin)
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Request completed (FR-033)
+
+  # ==========================================
+  # CHALLENGES, MISSIONS & VERIFICATION
+  # ==========================================
+  /activities:
+    get:
+      summary: List Activities (Challenges & Missions)
+      security:
+        - SessionAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ActivityDto' }
+    post:
+      summary: Create Activity (Admin)
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type, title, description, pointValue, completionLimit]
+              properties:
+                type: { type: string, enum: [CHALLENGE, MISSION] }
+                title: { type: string }
+                description: { type: string }
+                pointValue: { type: integer, minimum: 1 }
+                completionLimit: { type: integer, minimum: 1 }
+      responses:
+        '201':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ActivityDto' }
+
+  /activities/{id}/submissions:
+    post:
+      summary: Submit Verification Request (Student)
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [textDescription]
+              properties:
+                textDescription: { type: string }
+                fileAttachmentUrl: { type: string }
+      responses:
+        '201':
+          description: Verification submitted (FR-037, FR-088)
+
+  /verifications/{id}/review:
+    post:
+      summary: Review Verification Request (Admin)
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action]
+              properties:
+                action: { type: string, enum: [ACCEPT, REJECT] }
+                rejectionReason: { type: string }
+      responses:
+        '200':
+          description: Verification reviewed (FR-038, FR-041, FR-042)
+
+  /students/{id}/unban:
+    post:
+      summary: Clear Student Submission Ban for Activity (Admin)
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [activityId]
+              properties:
+                activityId: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Submission ban cleared (FR-043)
+
+  # ==========================================
+  # STUDENT TASK PROPOSALS & MESSAGING
+  # ==========================================
+  /proposals:
+    get:
+      summary: List Task Proposals
+      description: Students retrieve only their own proposals (FR-050, FR-051). Admins filter school-wide (FR-052). Teachers forbidden (FR-053).
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [PENDING_TO_APPROVE, READY_TO_DO, COMPLETED, DECLINED, CANCELED] }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/TaskProposalDto' }
+    post:
+      summary: Submit Voluntary Task Proposal (Student)
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [description]
+              properties:
+                description: { type: string }
+      responses:
+        '201':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TaskProposalDto' }
+
+  /proposals/{id}/approve:
+    post:
+      summary: Approve Proposal and Assign Points (Admin)
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [assignedPointValue]
+              properties:
+                assignedPointValue: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: Proposal approved to READY_TO_DO (FR-045)
+
+  /proposals/{id}/points:
+    patch:
+      summary: Update Assigned Point Value in Ready to Do (Admin)
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [assignedPointValue]
+              properties:
+                assignedPointValue: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: Points updated (FR-046)
+
+  /proposals/{id}/cancel:
+    post:
+      summary: Cancel Proposal (Student, only while in READY_TO_DO)
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Proposal canceled (FR-047, FR-048)
+
+  /proposals/{id}/complete:
+    post:
+      summary: Verify and Complete Task Proposal (Admin)
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Proposal completed and points awarded (FR-048)
+
+  /proposals/{id}/messages:
+    get:
+      summary: Get Message Thread for Proposal
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: string, format: uuid }
+                    senderId: { type: string, format: uuid }
+                    senderRole: { type: string, enum: [STUDENT, ADMIN] }
+                    message: { type: string }
+                    createdAt: { type: string, format: date-time }
+    post:
+      summary: Post Message to Proposal (Student or Admin)
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message]
+              properties:
+                message: { type: string }
+      responses:
+        '201':
+          description: Message posted (FR-049)
+
+  # ==========================================
+  # RANKINGS, TIERS & ANALYTICS
+  # ==========================================
+  /rankings/class/{classId}:
+    get:
+      summary: Get Class Rankings
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: classId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RankingResponseDto' }
+
+  /rankings/school:
+    get:
+      summary: Get School-Wide Rankings
+      security:
+        - SessionAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RankingResponseDto' }
+
+  /tiers:
+    get:
+      summary: List Tier Configurations
+      security:
+        - SessionAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: string, format: uuid }
+                    tierNumber: { type: integer, example: 1 }
+                    name: { type: string, example: "Bronze" }
+                    minPointsThreshold: { type: integer, example: 0 }
+    put:
+      summary: Update Tier Configurations (Admin only, exactly 5 tiers)
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                required: [tierNumber, name, minPointsThreshold]
+                properties:
+                  tierNumber: { type: integer, minimum: 1, maximum: 5 }
+                  name: { type: string }
+                  minPointsThreshold: { type: integer, minimum: 0 }
+      responses:
+        '200':
+          description: Tiers updated (FR-060)
+
+  # ==========================================
+  # GUIDANCE CARDS
+  # ==========================================
+  /guidance-cards:
+    get:
+      summary: List Guidance Cards
+      security:
+        - SessionAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: string, format: uuid }
+                    title: { type: string }
+                    description: { type: string }
+                    logoKey: { type: string }
+                    pointRangeLabel: { type: string }
+    post:
+      summary: Create Guidance Card (Admin)
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, description, logoKey, pointRangeLabel]
+              properties:
+                title: { type: string }
+                description: { type: string }
+                logoKey: { type: string }
+                pointRangeLabel: { type: string }
+      responses:
+        '201':
+          description: Guidance card created (FR-064)
+
+  # ==========================================
+  # REPORTS & EXPORTS
+  # ==========================================
+  /reports/point-flow:
+    get:
+      summary: Query Filtered Point Flow Report
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: startDate
+          in: query
+          schema: { type: string, format: date }
+        - name: endDate
+          in: query
+          schema: { type: string, format: date }
+        - name: studentId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: teacherId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: classId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: actionType
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Filtered audit logs returned (FR-069, FR-070)
+
+  /reports/point-flow/export:
+    get:
+      summary: Export Point Flow Report
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: format
+          in: query
+          required: true
+          schema: { type: string, enum: [csv, xlsx, pdf] }
+      responses:
+        '200':
+          description: Binary file stream (FR-071)
+          headers:
+            Content-Disposition:
+              schema: { type: string, example: 'attachment; filename="point-flow-report.csv"' }
+          content:
+            text/csv: { schema: { type: string, format: binary } }
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet: { schema: { type: string, format: binary } }
+            application/pdf: { schema: { type: string, format: binary } }
+
+  # ==========================================
+  # FILE STORAGE
+  # ==========================================
+  /files/upload:
+    post:
+      summary: Upload Media File / Submission Attachment
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url: { type: string, example: "/uploads/evidence/2026/09/uuid.jpg" }

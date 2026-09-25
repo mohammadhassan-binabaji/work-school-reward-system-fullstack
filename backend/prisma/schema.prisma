@@ -1,0 +1,408 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  ADMIN
+  TEACHER
+  STUDENT
+}
+
+enum AccountState {
+  ACTIVE
+  INACTIVE
+  DEACTIVATED
+  DEPARTED
+}
+
+enum AssignmentStatus {
+  ACTIVE
+  REMOVED
+}
+
+enum ActorRole {
+  ADMIN
+  TEACHER
+  STUDENT
+  SYSTEM
+}
+
+enum SourceType {
+  SYSTEM_POOL
+  TEACHER
+  STUDENT_CURRENT
+  STUDENT_RESERVED
+}
+
+enum RecipientType {
+  TEACHER
+  STUDENT_CURRENT
+  STUDENT_RESERVED
+  SYSTEM_POOL
+  NONE
+}
+
+enum ActionType {
+  POOL_FUND_TEACHER
+  TEACHER_AWARD_STUDENT
+  ADMIN_ADJUST_STUDENT
+  REWARD_RESERVE_POINTS
+  REWARD_DECLINE_RETURN
+  REWARD_REMOVE_RETURN
+  REWARD_RECEIVE_COMPLETE
+  CHALLENGE_AWARD_STUDENT
+  PROPOSAL_AWARD_STUDENT
+  STUDENT_DEPARTURE_DEDUCT
+}
+
+enum RewardStatus {
+  ACTIVE
+  REMOVED
+}
+
+enum RewardRequestStatus {
+  PENDING_TO_APPROVE
+  PENDING_TO_RECEIVE
+  COMPLETED
+  DECLINED
+}
+
+enum ActivityType {
+  CHALLENGE
+  MISSION
+}
+
+enum ActivityStatus {
+  ACTIVE
+  INACTIVE
+  REMOVED
+}
+
+enum VerificationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum ProposalStatus {
+  PENDING_TO_APPROVE
+  READY_TO_DO
+  COMPLETED
+  DECLINED
+  CANCELED
+}
+
+enum GuidanceCardStatus {
+  ACTIVE
+  REMOVED
+}
+
+model User {
+  id           String       @id @default(uuid()) @db.Uuid
+  nationalId   String       @unique @map("national_id") @db.VarChar(10)
+  firstName    String       @map("first_name") @db.VarChar(100)
+  lastName     String       @map("last_name") @db.VarChar(100)
+  username     String       @unique @db.VarChar(50)
+  passwordHash String       @map("password_hash") @db.VarChar(255)
+  role         Role
+  accountState AccountState @default(ACTIVE) @map("account_state")
+  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  teacherProfile             TeacherProfile?
+  studentProfile             StudentProfile?
+  teacherAssignments         TeacherClassSubjectAssignment[]
+  auditLogs                  PointAuditLog[]                 @relation("ActorAuditLogs")
+  studentRewardRequests      RewardRequest[]                 @relation("StudentRewardRequests")
+  reviewedRewardRequests     RewardRequest[]                 @relation("AdminRewardReviews")
+  studentVerifications       VerificationRequest[]           @relation("StudentVerifications")
+  reviewedVerifications      VerificationRequest[]           @relation("AdminVerificationReviews")
+  studentActivityProgress    StudentActivityProgress[]
+  studentProposals           StudentTaskProposal[]           @relation("StudentProposals")
+  reviewedProposals          StudentTaskProposal[]           @relation("AdminProposalReviews")
+  proposalMessages           TaskProposalMessage[]
+  dailySnapshots             DailyStudentBalanceSnapshot[]
+
+  @@map("users")
+}
+
+model TeacherProfile {
+  id           String @id @db.Uuid
+  user         User   @relation(fields: [id], references: [id], onDelete: Cascade)
+  pointBalance Int    @default(0) @map("point_balance")
+
+  @@map("teacher_profiles")
+}
+
+model StudentProfile {
+  id              String             @id @db.Uuid
+  user            User               @relation(fields: [id], references: [id], onDelete: Cascade)
+  classId         String?            @map("class_id") @db.Uuid
+  class           Class?             @relation(fields: [classId], references: [id], onDelete: SetNull)
+  currentBalance  Int                @default(0) @map("current_balance")
+  reservedBalance Int                @default(0) @map("reserved_balance")
+  highestBalance  Int                @default(0) @map("highest_balance")
+  currentTierId   String?            @map("current_tier_id") @db.Uuid
+  currentTier     TierConfiguration? @relation(fields: [currentTierId], references: [id], onDelete: SetNull)
+
+  @@map("student_profiles")
+}
+
+model Class {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique @db.VarChar(100)
+  gradeLevel  String?  @map("grade_level") @db.VarChar(50)
+  description String?  @db.Text
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  students           StudentProfile[]
+  teacherAssignments TeacherClassSubjectAssignment[]
+
+  @@map("classes")
+}
+
+model Subject {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique @db.VarChar(100)
+  description String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  teacherAssignments TeacherClassSubjectAssignment[]
+
+  @@map("subjects")
+}
+
+model TeacherClassSubjectAssignment {
+  id        String           @id @default(uuid()) @db.Uuid
+  teacherId String           @map("teacher_id") @db.Uuid
+  teacher   User             @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  classId   String           @map("class_id") @db.Uuid
+  class     Class            @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subjectId String           @map("subject_id") @db.Uuid
+  subject   Subject          @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  status    AssignmentStatus @default(ACTIVE)
+  createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@unique([teacherId, classId, subjectId])
+  @@map("teacher_class_subject_assignments")
+}
+
+model SystemPointPool {
+  id        String   @id @default(uuid()) @db.Uuid
+  balance   Int      @default(0)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("system_point_pools")
+}
+
+model PointTransferTask {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique @db.VarChar(150)
+  description String?  @db.Text
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  options PointTaskOption[]
+
+  @@map("point_transfer_tasks")
+}
+
+model PointTaskOption {
+  id      String            @id @default(uuid()) @db.Uuid
+  taskId  String            @map("task_id") @db.Uuid
+  task    PointTransferTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  points  Int
+  label   String?           @db.VarChar(100)
+
+  @@map("point_task_options")
+}
+
+model PointAuditLog {
+  id                       String        @id @default(uuid()) @db.Uuid
+  correlationId            String        @map("correlation_id") @db.VarChar(64)
+  actorId                  String?       @map("actor_id") @db.Uuid
+  actor                    User?         @relation("ActorAuditLogs", fields: [actorId], references: [id], onDelete: SetNull)
+  actorRole                ActorRole     @map("actor_role")
+  sourceType               SourceType    @map("source_type")
+  sourceId                 String?       @map("source_id") @db.Uuid
+  recipientType            RecipientType @map("recipient_type")
+  recipientId              String?       @map("recipient_id") @db.Uuid
+  amount                   Int
+  actionType               ActionType    @map("action_type")
+  taskOrReason             String        @map("task_or_reason") @db.Text
+  relatedEntityType        String?       @map("related_entity_type") @db.VarChar(50)
+  relatedEntityId          String?       @map("related_entity_id") @db.Uuid
+  resultingSourceBalance    Int?          @map("resulting_source_balance")
+  resultingRecipientBalance Int?          @map("resulting_recipient_balance")
+  createdAt                DateTime      @default(now()) @map("created_at") @db.Timestamptz
+
+  @@map("point_audit_logs")
+}
+
+model Reward {
+  id                String       @id @default(uuid()) @db.Uuid
+  name              String       @db.VarChar(150)
+  description       String       @db.Text
+  imageUrl          String?      @map("image_url") @db.VarChar(500)
+  pointPrice        Int          @map("point_price")
+  requiresApproval  Boolean      @map("requires_approval")
+  inventoryQuantity Int?         @map("inventory_quantity")
+  status            RewardStatus @default(ACTIVE)
+  createdAt         DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  requests RewardRequest[]
+
+  @@map("rewards")
+}
+
+model RewardRequest {
+  id                String              @id @default(uuid()) @db.Uuid
+  studentId         String              @map("student_id") @db.Uuid
+  student           User                @relation("StudentRewardRequests", fields: [studentId], references: [id], onDelete: Cascade)
+  rewardId          String              @map("reward_id") @db.Uuid
+  reward            Reward              @relation(fields: [rewardId], references: [id], onDelete: Restrict)
+  priceAtRequest    Int                 @map("price_at_request")
+  requiresApproval  Boolean             @map("requires_approval")
+  status            RewardRequestStatus
+  reservedAmount    Int                 @default(0) @map("reserved_amount")
+  declineReason     String?             @map("decline_reason") @db.Text
+  reviewedByAdminId String?             @map("reviewed_by_admin_id") @db.Uuid
+  reviewedByAdmin   User?               @relation("AdminRewardReviews", fields: [reviewedByAdminId], references: [id], onDelete: SetNull)
+  reviewedAt        DateTime?           @map("reviewed_at") @db.Timestamptz
+  completedAt       DateTime?           @map("completed_at") @db.Timestamptz
+  createdAt         DateTime            @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("reward_requests")
+}
+
+model Activity {
+  id              String         @id @default(uuid()) @db.Uuid
+  type            ActivityType
+  title           String         @db.VarChar(150)
+  description     String         @db.Text
+  pointValue      Int            @map("point_value")
+  completionLimit Int            @map("completion_limit")
+  status          ActivityStatus @default(ACTIVE)
+  createdAt       DateTime       @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  verifications   VerificationRequest[]
+  studentProgress StudentActivityProgress[]
+
+  @@map("activities")
+}
+
+model VerificationRequest {
+  id                 String             @id @default(uuid()) @db.Uuid
+  studentId          String             @map("student_id") @db.Uuid
+  student            User               @relation("StudentVerifications", fields: [studentId], references: [id], onDelete: Cascade)
+  activityId         String             @map("activity_id") @db.Uuid
+  activity           Activity           @relation(fields: [activityId], references: [id], onDelete: Restrict)
+  textDescription    String             @map("text_description") @db.Text
+  fileAttachmentUrl  String?            @map("file_attachment_url") @db.VarChar(500)
+  status             VerificationStatus @default(PENDING)
+  rejectionReason    String?            @map("rejection_reason") @db.Text
+  reviewedByAdminId  String?            @map("reviewed_by_admin_id") @db.Uuid
+  reviewedByAdmin    User?              @relation("AdminVerificationReviews", fields: [reviewedByAdminId], references: [id], onDelete: SetNull)
+  reviewedAt         DateTime?          @map("reviewed_at") @db.Timestamptz
+  createdAt          DateTime           @default(now()) @map("created_at") @db.Timestamptz
+
+  @@map("verification_requests")
+}
+
+model StudentActivityProgress {
+  id              String    @id @default(uuid()) @db.Uuid
+  studentId       String    @map("student_id") @db.Uuid
+  student         User      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  activityId      String    @map("activity_id") @db.Uuid
+  activity        Activity  @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  completionCount Int       @default(0) @map("completion_count")
+  rejectionCount  Int       @default(0) @map("rejection_count")
+  bannedUntil     DateTime? @map("banned_until") @db.Timestamptz
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@unique([studentId, activityId])
+  @@map("student_activity_progress")
+}
+
+model StudentTaskProposal {
+  id                 String              @id @default(uuid()) @db.Uuid
+  studentId          String              @map("student_id") @db.Uuid
+  student            User                @relation("StudentProposals", fields: [studentId], references: [id], onDelete: Cascade)
+  description        String              @db.Text
+  status             ProposalStatus      @default(PENDING_TO_APPROVE)
+  assignedPointValue Int?                @map("assigned_point_value")
+  reviewedByAdminId  String?             @map("reviewed_by_admin_id") @db.Uuid
+  reviewedByAdmin    User?               @relation("AdminProposalReviews", fields: [reviewedByAdminId], references: [id], onDelete: SetNull)
+  approvedAt         DateTime?           @map("approved_at") @db.Timestamptz
+  completedAt        DateTime?           @map("completed_at") @db.Timestamptz
+  createdAt          DateTime            @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  messages TaskProposalMessage[]
+
+  @@map("student_task_proposals")
+}
+
+model TaskProposalMessage {
+  id         String              @id @default(uuid()) @db.Uuid
+  proposalId String              @map("proposal_id") @db.Uuid
+  proposal   StudentTaskProposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  senderId   String?             @map("sender_id") @db.Uuid
+  sender     User?               @relation(fields: [senderId], references: [id], onDelete: SetNull)
+  senderRole Role                @map("sender_role")
+  message    String              @db.Text
+  createdAt  DateTime            @default(now()) @map("created_at") @db.Timestamptz
+
+  @@map("task_proposal_messages")
+}
+
+model TierConfiguration {
+  id                 String   @id @default(uuid()) @db.Uuid
+  tierNumber         Int      @unique @map("tier_number")
+  name               String   @db.VarChar(100)
+  minPointsThreshold Int      @map("min_points_threshold")
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  studentProfiles StudentProfile[]
+
+  @@map("tier_configurations")
+}
+
+model DailyStudentBalanceSnapshot {
+  id           String   @id @default(uuid()) @db.Uuid
+  studentId    String   @map("student_id") @db.Uuid
+  student      User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  balance      Int
+  snapshotDate DateTime @map("snapshot_date") @db.Date
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@unique([studentId, snapshotDate])
+  @@map("daily_student_balance_snapshots")
+}
+
+model GuidanceCard {
+  id              String             @id @default(uuid()) @db.Uuid
+  title           String             @db.VarChar(150)
+  description     String             @db.Text
+  logoKey         String             @map("logo_key") @db.VarChar(100)
+  pointRangeLabel String             @map("point_range_label") @db.VarChar(100)
+  status          GuidanceCardStatus @default(ACTIVE)
+  createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("guidance_cards")
+}
