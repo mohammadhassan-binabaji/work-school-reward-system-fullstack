@@ -21,7 +21,7 @@ export class LocalStorageService implements StorageService {
     }
   }
 
-  async uploadFile(fileBuffer: Buffer, fileName: string): Promise<string> {
+  async uploadFile(fileBuffer: Buffer, fileName: string, _mimeType?: string): Promise<string> {
     const safeName = `${Date.now()}-${fileName.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
     const filePath = path.join(this.uploadDir, safeName);
     await fs.promises.writeFile(filePath, fileBuffer);

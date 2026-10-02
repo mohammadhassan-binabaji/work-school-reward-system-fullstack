@@ -1,9 +1,11 @@
 import { Global, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { LocalStorageService, MinioS3StorageService } from './storage.service';
+import { FilesController } from './files.controller';
 
 @Global()
 @Module({
+  controllers: [FilesController],
   providers: [
     LocalStorageService,
     MinioS3StorageService,
