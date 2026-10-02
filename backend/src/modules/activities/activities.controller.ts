@@ -36,14 +36,14 @@ export class ActivitiesController {
     return this.activitiesService.createActivity(dto);
   }
 
-  @Roles('ADMIN', 'TEACHER', 'STUDENT')
+  @Roles('ADMIN', 'STUDENT')
   @Get()
   @ApiOperation({ summary: 'List challenges and missions' })
   async findAllActivities(@CurrentUser('role') role?: Role) {
     return this.activitiesService.findAllActivities(role);
   }
 
-  @Roles('ADMIN', 'TEACHER', 'STUDENT')
+  @Roles('ADMIN', 'STUDENT')
   @Get(':id')
   @ApiOperation({ summary: 'Get challenge or mission by ID' })
   async findActivityById(@Param('id', ParseUUIDPipe) id: string) {

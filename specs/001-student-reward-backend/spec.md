@@ -265,7 +265,7 @@ As a school administrator, teacher, and student, I need the system to permanentl
 - **FR-036**: The system MUST allow administrators to edit the title, description, and completion limit of an existing challenge or mission, while enforcing that the fixed point value remains strictly immutable once created (changing a point value requires removing and recreating the activity).
 - **FR-037**: The system MUST allow students to submit verification requests for active challenges and missions until the student's completion count reaches the configured limit.
 - **FR-038**: When an administrator accepts a challenge or mission verification request, the system MUST award the configured fixed points to the student, increment the student's completion count for that activity, and mark the request accepted.
-- **FR-039**: The system MUST allow teachers and administrators to award points directly for challenge and mission completion within the configured completion limits.
+- **FR-039**: The system MUST allow and administrators to award points directly for challenge and mission completion within the configured completion limits.
 - **FR-040**: When a student reaches the configured completion limit for a challenge or mission, the system MUST mark the activity done for that student and reject further verification submissions.
 - **FR-041**: The system MUST retain rejected verification requests and maintain a count of rejections per student and activity.
 - **FR-042**: When a student accumulates 3 rejected verification requests for the same challenge or mission, the system MUST apply a temporary submission ban on that student for that specific activity, using a configurable duration that defaults to 30 calendar days (`ACTIVITY_BAN_DURATION_DAYS`).
