@@ -84,6 +84,40 @@ components:
         accountState:
           type: string
           enum: [ACTIVE, INACTIVE, DEACTIVATED, DEPARTED]
+        teacherProfile:
+          type: object
+          nullable: true
+          properties:
+            pointBalance:
+              type: integer
+              example: 500
+        studentProfile:
+          type: object
+          nullable: true
+          properties:
+            classId:
+              type: string
+              format: uuid
+              nullable: true
+            currentBalance:
+              type: integer
+              example: 150
+            reservedBalance:
+              type: integer
+              example: 50
+            highestBalance:
+              type: integer
+              example: 200
+            currentTierId:
+              type: string
+              format: uuid
+              nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
 
     LoginRequest:
       type: object
@@ -109,6 +143,9 @@ components:
         sessionId:
           type: string
           example: "sess_a8f93e2b1c4d"
+        role:
+          type: string
+          enum: [ADMIN, TEACHER, STUDENT]
         user:
           $ref: '#/components/schemas/UserResponse'
 
@@ -360,6 +397,235 @@ components:
                 type: integer
                 example: 350
 
+
+    UpdateClassDto:
+      type: object
+      properties:
+        name:
+          type: string
+        gradeLevel:
+          type: string
+        description:
+          type: string
+        isActive:
+          type: boolean
+
+    AssignStudentClassDto:
+      type: object
+      required:
+        - studentId
+        - classId
+      properties:
+        studentId:
+          type: string
+          format: uuid
+        classId:
+          type: string
+          format: uuid
+
+    UpdateSubjectDto:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+
+    SetPoolBalanceDto:
+      type: object
+      required:
+        - balance
+      properties:
+        balance:
+          type: integer
+          minimum: 0
+
+    UpdatePointTaskDto:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        isActive:
+          type: boolean
+
+    UpdateRewardMetadataDto:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        imageUrl:
+          type: string
+        inventoryQuantity:
+          type: integer
+          minimum: 0
+
+    UpdateActivityMetadataDto:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        completionLimit:
+          type: integer
+          minimum: 1
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE, REMOVED]
+
+    SubmitVerificationDto:
+      type: object
+      required:
+        - textDescription
+      properties:
+        textDescription:
+          type: string
+        fileAttachmentUrl:
+          type: string
+
+    RejectVerificationDto:
+      type: object
+      properties:
+        rejectionReason:
+          type: string
+
+    DeclineProposalDto:
+      type: object
+      properties:
+        declineReason:
+          type: string
+
+    UpdateGuidanceCardDto:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        logoKey:
+          type: string
+        pointRangeLabel:
+          type: string
+        status:
+          type: string
+          enum: [ACTIVE, REMOVED]
+
+    VerificationRequestDto:
+      type: object
+      required:
+        - id
+        - studentId
+        - activityId
+        - textDescription
+        - status
+      properties:
+        id:
+          type: string
+          format: uuid
+        studentId:
+          type: string
+          format: uuid
+        activityId:
+          type: string
+          format: uuid
+        textDescription:
+          type: string
+        fileAttachmentUrl:
+          type: string
+        status:
+          type: string
+          enum: [PENDING, ACCEPTED, REJECTED]
+        rejectionReason:
+          type: string
+        reviewedByAdminId:
+          type: string
+          format: uuid
+
+    StudentActivityProgressDto:
+      type: object
+      required:
+        - studentId
+        - activityId
+        - completionCount
+        - rejectionCount
+      properties:
+        studentId:
+          type: string
+          format: uuid
+        activityId:
+          type: string
+          format: uuid
+        completionCount:
+          type: integer
+        rejectionCount:
+          type: integer
+        bannedUntil:
+          type: string
+          format: date-time
+
+    UpdateTierConfigurationsDto:
+      type: object
+      required:
+        - tiers
+      properties:
+        tiers:
+          type: array
+          items:
+            type: object
+            required:
+              - tierNumber
+              - name
+              - minPointsThreshold
+            properties:
+              tierNumber:
+                type: integer
+                minimum: 1
+                maximum: 5
+              name:
+                type: string
+              minPointsThreshold:
+                type: integer
+                minimum: 0
+
+    DailyBalanceSnapshotDto:
+      type: object
+      required:
+        - studentId
+        - balance
+        - snapshotDate
+      properties:
+        studentId:
+          type: string
+          format: uuid
+        balance:
+          type: integer
+        snapshotDate:
+          type: string
+          format: date-time
+
+    PaginatedPointFlowResponse:
+      type: object
+      required:
+        - total
+        - limit
+        - offset
+        - data
+      properties:
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+        data:
+          type: array
+          items:
+            type: object
+
 paths:
   # ==========================================
   # AUTHENTICATION
@@ -368,6 +634,7 @@ paths:
     post:
       summary: Provision Initial School Administrator
       description: Seeds the initial administrator account on a fresh installation (FR-001).
+      security: []
       requestBody:
         required: true
         content:
@@ -394,6 +661,7 @@ paths:
     post:
       summary: User Login
       description: Authenticates user by 10-digit national ID and password, establishing a stateful session in Redis (FR-003, FR-004).
+      security: []
       requestBody:
         required: true
         content:
@@ -432,6 +700,7 @@ paths:
         - SessionAuth: []
       responses:
         '200':
+          description: OK
           content:
             application/json:
               schema: { $ref: '#/components/schemas/UserResponse' }
@@ -440,6 +709,33 @@ paths:
   # USERS & ACCOUNTS (ADMIN ONLY)
   # ==========================================
   /users:
+    get:
+      summary: List Users (Admin only)
+      description: List all users with optional role and accountState filters.
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: role
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [ADMIN, TEACHER, STUDENT]
+        - name: accountState
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [ACTIVE, INACTIVE, DEACTIVATED, DEPARTED]
+      responses:
+        '200':
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserResponse'
     post:
       summary: Create User Account
       description: Admin creates an admin, teacher, or student account (FR-002, FR-003).
@@ -462,6 +758,24 @@ paths:
                 classId: { type: string, format: uuid, description: "Required if role=STUDENT" }
       responses:
         '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserResponse' }
+
+  /users/{id}:
+    get:
+      summary: Get Single User by ID (Admin only)
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: User details
           content:
             application/json:
               schema: { $ref: '#/components/schemas/UserResponse' }
@@ -488,6 +802,34 @@ paths:
                 accountState: { type: string, enum: [ACTIVE, INACTIVE, DEACTIVATED, DEPARTED] }
       responses:
         '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserResponse' }
+
+  /users/{id}/state:
+    patch:
+      summary: Update User Account State (Backend route equivalent to /status)
+      description: Deactivates, reactivates, or marks user as departed.
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [accountState]
+              properties:
+                accountState: { type: string, enum: [ACTIVE, INACTIVE, DEACTIVATED, DEPARTED] }
+      responses:
+        '200':
+          description: OK
           content:
             application/json:
               schema: { $ref: '#/components/schemas/UserResponse' }
@@ -500,8 +842,16 @@ paths:
       summary: List Classes
       security:
         - SessionAuth: []
+      parameters:
+        - name: isActive
+          in: query
+          required: false
+          schema:
+            type: boolean
+            description: Filter classes by active status
       responses:
         '200':
+          description: OK
           content:
             application/json:
               schema:
@@ -533,6 +883,77 @@ paths:
         '201':
           description: Class created
 
+  /classes/{id}:
+    get:
+      summary: Get Class Details by ID
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: OK
+    patch:
+      summary: Update Class (Admin)
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateClassDto' }
+      responses:
+        '200':
+          description: Class updated
+    delete:
+      summary: Delete Class (Admin)
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Class deleted
+
+  /classes/assign-student:
+    post:
+      summary: Assign or Reassign Student to Class (Admin)
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AssignStudentClassDto' }
+      responses:
+        '200':
+          description: Student assigned to class
+
+  /classes/students/{id}/depart:
+    post:
+      summary: Mark Student as Departed and Clean Up Balances (Admin)
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Student marked as departed and points refunded
+
   /subjects:
     get:
       summary: List Subjects
@@ -540,6 +961,7 @@ paths:
         - SessionAuth: []
       responses:
         '200':
+          description: OK
           content:
             application/json:
               schema:
@@ -568,7 +990,66 @@ paths:
         '201':
           description: Subject created
 
+  /subjects/{id}:
+    get:
+      summary: Get Subject Details by ID
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: OK
+    patch:
+      summary: Update Subject (Admin)
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateSubjectDto' }
+      responses:
+        '200':
+          description: Subject updated
+    delete:
+      summary: Delete Subject (Admin)
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Subject deleted
+
   /assignments:
+    get:
+      summary: List Active Teacher-Class-Subject Assignments
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: teacherId
+          in: query
+          required: false
+          schema: { type: string, format: uuid }
+        - name: classId
+          in: query
+          required: false
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: OK
     post:
       summary: Assign Teacher to Class and Subject (Admin)
       security:
@@ -603,9 +1084,46 @@ paths:
         '204':
           description: Assignment removed
 
+  /assignments/teachers/{id}/depart:
+    post:
+      summary: Mark Teacher as Departed and Return Unspent Budget to Pool (Admin)
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Teacher marked as departed and remaining budget returned to pool
+
   # ==========================================
   # POINT ECONOMY & TRANSFERS
   # ==========================================
+  /points/pool:
+    get:
+      summary: Get Current System Point Pool Status (Admin only)
+      security:
+        - SessionAuth: []
+      responses:
+        '200':
+          description: OK
+
+  /points/pool/balance:
+    post:
+      summary: Set System Point Pool Balance (Admin only)
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SetPoolBalanceDto' }
+      responses:
+        '200':
+          description: Pool balance updated
+
   /points/pool/fund-teacher:
     post:
       summary: Fund Teacher Award Budget from System Pool (Admin)
@@ -630,8 +1148,16 @@ paths:
       summary: List Point Transfer Tasks
       security:
         - SessionAuth: []
+      parameters:
+        - name: isActive
+          in: query
+          required: false
+          schema:
+            type: boolean
+            description: Filter point tasks by active status
       responses:
         '200':
+          description: OK
           content:
             application/json:
               schema:
@@ -661,9 +1187,59 @@ paths:
                       label: { type: string }
       responses:
         '201':
+          description: Created
           content:
             application/json:
               schema: { $ref: '#/components/schemas/PointTransferTaskDto' }
+
+  /points/tasks/{id}:
+    get:
+      summary: Get Point Task by ID
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PointTransferTaskDto' }
+    patch:
+      summary: Update Point Task Definition (Admin only)
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdatePointTaskDto' }
+      responses:
+        '200':
+          description: Point task updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PointTransferTaskDto' }
+    delete:
+      summary: Delete Point Task (Admin only)
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Point task deleted
 
   /points/teacher-award:
     post:
@@ -708,8 +1284,16 @@ paths:
       summary: List Active Catalog Rewards
       security:
         - SessionAuth: []
+      parameters:
+        - name: includeInactive
+          in: query
+          required: false
+          schema:
+            type: boolean
+            description: Include inactive/removed rewards (Admin/Teacher)
       responses:
         '200':
+          description: OK
           content:
             application/json:
               schema:
@@ -735,11 +1319,47 @@ paths:
                 inventoryQuantity: { type: integer, minimum: 0, nullable: true }
       responses:
         '201':
+          description: Created
           content:
             application/json:
               schema: { $ref: '#/components/schemas/RewardDto' }
 
   /rewards/{id}:
+    get:
+      summary: Get Reward Details by ID
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RewardDto' }
+    patch:
+      summary: Update Reward Metadata (price is immutable) (Admin only)
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateRewardMetadataDto' }
+      responses:
+        '200':
+          description: Reward updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RewardDto' }
     delete:
       summary: Remove Reward from Catalog (Admin)
       description: Closes active requests, returns reserved points, and records audit entries (FR-034).
@@ -751,8 +1371,11 @@ paths:
           required: true
           schema: { type: string, format: uuid }
       responses:
-        '204':
-          description: Reward removed
+        '200':
+          description: Reward removed successfully
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RewardDto' }
 
   /reward-requests:
     get:
@@ -760,11 +1383,16 @@ paths:
       security:
         - SessionAuth: []
       parameters:
+        - name: studentId
+          in: query
+          required: false
+          schema: { type: string, format: uuid }
         - name: status
           in: query
           schema: { type: string, enum: [PENDING_TO_APPROVE, PENDING_TO_RECEIVE, COMPLETED, DECLINED] }
       responses:
         '200':
+          description: OK
           content:
             application/json:
               schema:
@@ -785,6 +1413,24 @@ paths:
                 rewardId: { type: string, format: uuid }
       responses:
         '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RewardRequestDto' }
+
+  /reward-requests/{id}:
+    get:
+      summary: Get Reward Request by ID
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: OK
           content:
             application/json:
               schema: { $ref: '#/components/schemas/RewardRequestDto' }
@@ -819,7 +1465,9 @@ paths:
             schema:
               type: object
               properties:
-                reason: { type: string }
+                declineReason:
+                  type: string
+                  example: "Item out of stock from supplier"
       responses:
         '200':
           description: Request declined; points returned to student balance (FR-032)
@@ -848,6 +1496,7 @@ paths:
         - SessionAuth: []
       responses:
         '200':
+          description: OK
           content:
             application/json:
               schema:
@@ -872,9 +1521,59 @@ paths:
                 completionLimit: { type: integer, minimum: 1 }
       responses:
         '201':
+          description: Created
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ActivityDto' }
+
+  /activities/{id}:
+    get:
+      summary: Get Challenge or Mission by ID
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ActivityDto' }
+    patch:
+      summary: Update Activity Metadata (point value is immutable) (Admin only)
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateActivityMetadataDto' }
+      responses:
+        '200':
+          description: Activity updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ActivityDto' }
+    delete:
+      summary: Remove Activity (Admin only)
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Activity removed
 
   /activities/{id}/submissions:
     post:
@@ -900,6 +1599,52 @@ paths:
         '201':
           description: Verification submitted (FR-037, FR-088)
 
+  /verifications:
+    get:
+      summary: List Verification Submissions
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: activityId
+          in: query
+          required: false
+          schema: { type: string, format: uuid }
+        - name: studentId
+          in: query
+          required: false
+          schema: { type: string, format: uuid }
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [PENDING, ACCEPTED, REJECTED]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/VerificationRequestDto' }
+
+  /verifications/{id}:
+    get:
+      summary: Get Verification Submission by ID
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/VerificationRequestDto' }
+
   /verifications/{id}/review:
     post:
       summary: Review Verification Request (Admin)
@@ -923,6 +1668,39 @@ paths:
       responses:
         '200':
           description: Verification reviewed (FR-038, FR-041, FR-042)
+
+  /verifications/{id}/accept:
+    post:
+      summary: Admin Accepts Verification and Awards Points (Admin only)
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Verification accepted and points awarded
+
+  /verifications/{id}/reject:
+    post:
+      summary: Admin Rejects Verification and Tracks Ban Counters (Admin only)
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RejectVerificationDto' }
+      responses:
+        '200':
+          description: Verification rejected
 
   /students/{id}/unban:
     post:
@@ -957,11 +1735,16 @@ paths:
       security:
         - SessionAuth: []
       parameters:
+        - name: studentId
+          in: query
+          required: false
+          schema: { type: string, format: uuid }
         - name: status
           in: query
           schema: { type: string, enum: [PENDING_TO_APPROVE, READY_TO_DO, COMPLETED, DECLINED, CANCELED] }
       responses:
         '200':
+          description: OK
           content:
             application/json:
               schema:
@@ -982,6 +1765,24 @@ paths:
                 description: { type: string }
       responses:
         '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TaskProposalDto' }
+
+  /proposals/{id}:
+    get:
+      summary: Get Task Proposal by ID
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: OK
           content:
             application/json:
               schema: { $ref: '#/components/schemas/TaskProposalDto' }
@@ -1032,6 +1833,25 @@ paths:
         '200':
           description: Points updated (FR-046)
 
+  /proposals/{id}/decline:
+    post:
+      summary: Decline Proposal (Admin)
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DeclineProposalDto' }
+      responses:
+        '200':
+          description: Proposal declined
+
   /proposals/{id}/cancel:
     post:
       summary: Cancel Proposal (Student, only while in READY_TO_DO)
@@ -1072,6 +1892,7 @@ paths:
           schema: { type: string, format: uuid }
       responses:
         '200':
+          description: OK
           content:
             application/json:
               schema:
@@ -1109,18 +1930,20 @@ paths:
   # ==========================================
   # RANKINGS, TIERS & ANALYTICS
   # ==========================================
-  /rankings/class/{classId}:
+  /rankings/class/{id}:
     get:
       summary: Get Class Rankings
       security:
         - SessionAuth: []
       parameters:
-        - name: classId
+        - name: id
           in: path
           required: true
+          description: Class ID (also accessible as classId)
           schema: { type: string, format: uuid }
       responses:
         '200':
+          description: OK
           content:
             application/json:
               schema: { $ref: '#/components/schemas/RankingResponseDto' }
@@ -1132,9 +1955,46 @@ paths:
         - SessionAuth: []
       responses:
         '200':
+          description: OK
           content:
             application/json:
               schema: { $ref: '#/components/schemas/RankingResponseDto' }
+
+  /rankings/students/{id}/balance-history:
+    get:
+      summary: Get Student Balance Snapshot History
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Student ID
+          schema: { type: string, format: uuid }
+        - name: days
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 7
+            description: Number of days of snapshot history to retrieve
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/DailyBalanceSnapshotDto' }
+
+  /rankings/snapshots/trigger:
+    post:
+      summary: Manually Trigger Daily Balance Snapshot Job (Admin only)
+      security:
+        - SessionAuth: []
+      responses:
+        '200':
+          description: Daily balance snapshot completed successfully
 
   /tiers:
     get:
@@ -1143,6 +2003,7 @@ paths:
         - SessionAuth: []
       responses:
         '200':
+          description: OK
           content:
             application/json:
               schema:
@@ -1162,15 +2023,7 @@ paths:
         required: true
         content:
           application/json:
-            schema:
-              type: array
-              items:
-                type: object
-                required: [tierNumber, name, minPointsThreshold]
-                properties:
-                  tierNumber: { type: integer, minimum: 1, maximum: 5 }
-                  name: { type: string }
-                  minPointsThreshold: { type: integer, minimum: 0 }
+            schema: { $ref: '#/components/schemas/UpdateTierConfigurationsDto' }
       responses:
         '200':
           description: Tiers updated (FR-060)
@@ -1185,6 +2038,7 @@ paths:
         - SessionAuth: []
       responses:
         '200':
+          description: OK
           content:
             application/json:
               schema:
@@ -1217,6 +2071,59 @@ paths:
         '201':
           description: Guidance card created (FR-064)
 
+  /guidance-cards/{id}:
+    get:
+      summary: Get Guidance Card by ID
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string, format: uuid }
+                  title: { type: string }
+                  description: { type: string }
+                  logoKey: { type: string }
+                  pointRangeLabel: { type: string }
+    patch:
+      summary: Update Guidance Card (Admin only)
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateGuidanceCardDto' }
+      responses:
+        '200':
+          description: Guidance card updated
+    delete:
+      summary: Remove Guidance Card (Admin only)
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Guidance card removed
+
   # ==========================================
   # REPORTS & EXPORTS
   # ==========================================
@@ -1228,25 +2135,46 @@ paths:
       parameters:
         - name: startDate
           in: query
+          required: false
           schema: { type: string, format: date }
         - name: endDate
           in: query
+          required: false
           schema: { type: string, format: date }
         - name: studentId
           in: query
+          required: false
           schema: { type: string, format: uuid }
         - name: teacherId
           in: query
+          required: false
           schema: { type: string, format: uuid }
         - name: classId
           in: query
+          required: false
+          schema: { type: string, format: uuid }
+        - name: subjectId
+          in: query
+          required: false
           schema: { type: string, format: uuid }
         - name: actionType
           in: query
+          required: false
           schema: { type: string }
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 100 }
+        - name: offset
+          in: query
+          required: false
+          schema: { type: integer, minimum: 0 }
       responses:
         '200':
           description: Filtered audit logs returned (FR-069, FR-070)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PaginatedPointFlowResponse' }
 
   /reports/point-flow/export:
     get:
@@ -1258,6 +2186,34 @@ paths:
           in: query
           required: true
           schema: { type: string, enum: [csv, xlsx, pdf] }
+        - name: startDate
+          in: query
+          required: false
+          schema: { type: string, format: date }
+        - name: endDate
+          in: query
+          required: false
+          schema: { type: string, format: date }
+        - name: studentId
+          in: query
+          required: false
+          schema: { type: string, format: uuid }
+        - name: teacherId
+          in: query
+          required: false
+          schema: { type: string, format: uuid }
+        - name: classId
+          in: query
+          required: false
+          schema: { type: string, format: uuid }
+        - name: subjectId
+          in: query
+          required: false
+          schema: { type: string, format: uuid }
+        - name: actionType
+          in: query
+          required: false
+          schema: { type: string }
       responses:
         '200':
           description: Binary file stream (FR-071)
@@ -1290,6 +2246,7 @@ paths:
                   format: binary
       responses:
         '201':
+          description: Created
           content:
             application/json:
               schema:
