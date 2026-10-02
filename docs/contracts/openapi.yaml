@@ -937,7 +937,7 @@ paths:
           application/json:
             schema: { $ref: '#/components/schemas/AssignStudentClassDto' }
       responses:
-        '200':
+        '201':
           description: Student assigned to class
 
   /classes/students/{id}/depart:
@@ -951,7 +951,7 @@ paths:
           required: true
           schema: { type: string, format: uuid }
       responses:
-        '200':
+        '201':
           description: Student marked as departed and points refunded
 
   /subjects:
@@ -1095,7 +1095,7 @@ paths:
           required: true
           schema: { type: string, format: uuid }
       responses:
-        '200':
+        '201':
           description: Teacher marked as departed and remaining budget returned to pool
 
   # ==========================================
@@ -1121,7 +1121,7 @@ paths:
           application/json:
             schema: { $ref: '#/components/schemas/SetPoolBalanceDto' }
       responses:
-        '200':
+        '201':
           description: Pool balance updated
 
   /points/pool/fund-teacher:
