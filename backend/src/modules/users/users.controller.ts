@@ -60,16 +60,4 @@ export class UsersController {
   ) {
     return this.usersService.updateUserState(id, dto, adminId, req.correlationId);
   }
-
-  @Patch(':id/status')
-  @ApiOperation({ summary: 'Update user account status (OpenAPI alias)' })
-  @ApiResponse({ status: 200, description: 'Account status updated' })
-  async updateStatus(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: UpdateUserStateDto,
-    @CurrentUser('id') adminId: string,
-    @Req() req: RequestWithCorrelation,
-  ) {
-    return this.usersService.updateUserState(id, dto, adminId, req.correlationId);
-  }
 }

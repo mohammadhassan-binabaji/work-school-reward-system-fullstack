@@ -780,37 +780,10 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/UserResponse' }
 
-  /users/{id}/status:
+  /users/{id}/state:
     patch:
       summary: Update User Account Lifecycle State
       description: Deactivates, reactivates, or marks user as departed (FR-010, FR-012, FR-014).
-      security:
-        - SessionAuth: []
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [accountState]
-              properties:
-                accountState: { type: string, enum: [ACTIVE, INACTIVE, DEACTIVATED, DEPARTED] }
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/UserResponse' }
-
-  /users/{id}/state:
-    patch:
-      summary: Update User Account State (Backend route equivalent to /status)
-      description: Deactivates, reactivates, or marks user as departed.
       security:
         - SessionAuth: []
       parameters:
