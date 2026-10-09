@@ -56,12 +56,12 @@ This document analyzes the visual design and user experience intent of the provi
 * Student Tier: Indicated in the header (سطح ۵ - Level 5).
 * Ranking Context: "از ۱۴۲ دانش آموز" (out of 142 students).
 * Rank Trend Indicator: Green upward arrow.
-* Weekly Rank History Graph.
+* Weekly Balance History Graph.
 
 
 * **Supporting Information:**
 * Motivational messages ("You're fantastic! Keep going...").
-* Graph axis labels (Dates and Rank Ranges).
+* Graph axis labels (Dates and Balance Values).
 * Subtitles for quick action buttons.
 
 
@@ -73,7 +73,7 @@ This document analyzes the visual design and user experience intent of the provi
 * Circular gauge for tier progress.
 
 
-* **Charts:** Line graph for weekly rank history.
+* **Charts:** Line graph for weekly balance history.
 * **Buttons:** Standard action buttons with icons, main labels, and brief descriptions.
 * **Mascot Illustrations:** Recurring bird character used for engagement and visual context.
 * **Typography:** Clear Persian (Farsi) typeface, utilizing scale to create a strong hierarchy (large numbers for points/rank).
@@ -143,5 +143,5 @@ This document analyzes the visual design and user experience intent of the provi
 * **Dashboard Enhancements:**
 * Consider adding a brief feed of **recent activity** (e.g., "امروز: +10 نوین برای تکلیف ریاضی").
 * Add a visual target for the **next tier goal** (e.g., display "۷۰ نوین دیگر تا سطح ۶").
-* Can the weekly rank history graph be **tapped** to see specific data points for a single day?
+* Can the weekly balance history graph be **tapped** to see specific data points for a single day?
 * Make the rank card linkable to view the **full leaderboard** (class/school).
