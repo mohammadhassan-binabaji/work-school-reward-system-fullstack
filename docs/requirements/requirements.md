@@ -159,3 +159,26 @@ The system enables teachers to award points to students for actions such as comp
 - Each guidance card shall have a title, a description, a logo selected from a set of predefined logos, and a suggested point value or point range (such as 10 to 20 points).
 - Guidance cards shall be display-only for students; students shall not be able to click on or take any action on a card.
 - The guidance page shall be visible to students.
+
+### In-app notifications
+
+- The system shall provide an in-app notification inbox for students, teachers, and administrators.
+- The system shall automatically generate and store an unread in-app notification for the affected student upon the following events:
+  - Reward request status transitions (`Pending to Receive`, `Completed`, or `Declined`).
+  - Task proposal status transitions (`Ready to Do`, `Completed`, or `Declined`) and incoming messages from an administrator.
+  - Points awarded by a teacher or balance adjustments made by an administrator.
+  - Challenge or mission verification request reviews (approval, rejection, or submission ban/unblock).
+- The system shall automatically generate and store an unread in-app notification for school administrators upon the following events:
+  - Submission of a reward request that requires administrator approval.
+  - Submission of a new student task proposal.
+  - Submission of a new message from a student within a task proposal.
+  - Submission of a student challenge or mission verification request.
+- The system shall automatically generate and store an unread in-app notification for a teacher when an administrator transfers points to that teacher's point balance.
+- Each notification shall contain a subject (title), message content (text), creation date and time, read status (`Unread` or `Read`), read date and time when applicable, and an originating event reference consisting of entity type and entity identifier to enable client navigation.
+- Users shall be able to view their notifications.
+- Users shall be able to filter notifications by status (`All`, `Unread`, `Read`).
+- The system shall provide an unread notification count indicator for each user.
+- Opening an unread notification shall mark it as read.
+- Users shall be able to mark all their unread notifications as read through a single action.
+- Notifications shall not be deleted by users and shall remain in the inbox with their read status.
+- Notification retrieval and status updates shall be provided through in-app REST endpoints.

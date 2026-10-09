@@ -70,3 +70,12 @@
 - Task proposals use status labels `Pending to Approve`, `Ready to Do`, `Completed`, `Declined`, and `Canceled`.
 - Point earning guidance cards are managed exclusively by administrators.
 - Guidance cards are informational and display-only; students cannot interact with them beyond viewing.
+- Every user (student, teacher, and school administrator) possesses an individual in-app notification inbox.
+- System events create notification records in `Unread` state immediately upon occurrence for the affected recipient.
+- Student notifications are generated for: reward request status transitions (`Pending to Receive`, `Completed`, `Declined`), task proposal status transitions and administrator messages, teacher point awards, administrator point adjustments, and challenge/mission verification reviews (including rejection ban or manual unblock).
+- Administrator notifications are generated for: submitted reward requests requiring approval, submitted student task proposals, incoming student messages on proposals, and submitted challenge/mission verification requests.
+- Teacher notifications are generated when an administrator allocates points from the system point pool to the teacher's point budget.
+- Opening an unread notification immediately sets its status to `Read` and records the read timestamp.
+- A user can mark all of their unread notifications as read at once.
+- In-app notifications cannot be deleted by users and are retained permanently in the inbox with their read or unread state preserved.
+- Every notification stores an entity type and entity identifier representing the originating event to support client deep linking.

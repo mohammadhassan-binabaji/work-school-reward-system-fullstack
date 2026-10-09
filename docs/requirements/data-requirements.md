@@ -290,6 +290,22 @@ A point-flow report must support:
 
 Teachers may report only on students in their assigned classes. Students may view their own point activity.
 
+## Notification
+
+Each notification record must store:
+
+- Notification identifier
+- Recipient user
+- Subject (title)
+- Message body (text)
+- Read status (`Unread` or `Read`)
+- Creation date and time
+- Read date and time, when marked as read
+- Originating entity type (such as reward request, task proposal, challenge verification, or point transfer)
+- Originating entity identifier, enabling client applications to deep-link to the target item
+
+Notifications are preserved permanently with their read status and cannot be deleted by users. The system must also provide an aggregate unread count for each user.
+
 ## Data Details To Clarify Before Design
 
 These details are not yet specified as business requirements and should be confirmed before solution design:
