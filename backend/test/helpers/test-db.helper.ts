@@ -9,7 +9,7 @@ export async function cleanDatabase(prisma: PrismaService): Promise<void> {
     'student_activity_progress',
     'task_proposal_messages',
     'student_task_proposals',
-    'daily_student_balance_snapshots',
+    'daily_student_snapshots',
     'teacher_class_subject_assignments',
     'student_profiles',
     'teacher_profiles',
@@ -37,7 +37,7 @@ export async function cleanDatabase(prisma: PrismaService): Promise<void> {
     await prisma.studentActivityProgress.deleteMany();
     await prisma.taskProposalMessage.deleteMany();
     await prisma.studentTaskProposal.deleteMany();
-    await prisma.dailyStudentBalanceSnapshot.deleteMany();
+    await prisma.dailyStudentSnapshot.deleteMany();
     await prisma.teacherClassSubjectAssignment.deleteMany();
     await prisma.studentProfile.deleteMany();
     await prisma.teacherProfile.deleteMany();

@@ -43,20 +43,20 @@ export class RankingsController {
   }
 
   @Roles('ADMIN', 'TEACHER', 'STUDENT')
-  @Get('students/:id/balance-history')
-  @ApiOperation({ summary: 'Get student balance snapshot history for charts' })
-  async getStudentBalanceHistory(
+  @Get('students/:id/snapshot-history')
+  @ApiOperation({ summary: 'Get student daily snapshot history (balance + school/class ranks) for charts' })
+  async getStudentSnapshotHistory(
     @Param('id', ParseUUIDPipe) studentId: string,
     @Query('days') days?: number,
     @CurrentUser() user?: { id: string; role: Role },
   ) {
-    return this.rankingsService.getStudentBalanceHistory(studentId, user!, days ? Number(days) : 7);
+    return this.rankingsService.getStudentSnapshotHistory(studentId, user!, days ? Number(days) : 7);
   }
 
   @Roles('ADMIN')
   @Post('snapshots/trigger')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Manually trigger daily balance snapshot job (Admin only)' })
+  @ApiOperation({ summary: 'Manually trigger daily snapshot job — records balance + school/class ranks (Admin only)' })
   async triggerDailySnapshot() {
     return this.snapshotService.takeDailySnapshot();
   }

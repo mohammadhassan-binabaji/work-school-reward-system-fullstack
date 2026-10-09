@@ -247,7 +247,7 @@ describe('Rankings & Tiers Integration Tests', () => {
     expect(profile?.currentTier?.name).toBe('Adept');
   });
 
-  it('triggers midnight snapshot and queries balance history (FR-062)', async () => {
+  it('triggers midnight snapshot and queries snapshot history with ranks (FR-062)', async () => {
     const student = await request(app.getHttpServer())
       .post('/api/v1/users')
       .set('Cookie', adminCookie)
@@ -276,14 +276,19 @@ describe('Rankings & Tiers Integration Tests', () => {
 
     expect(triggerRes.body.studentCount).toBeGreaterThanOrEqual(1);
 
-    // Query balance history
+    // Query snapshot history
     const histRes = await request(app.getHttpServer())
-      .get(`/api/v1/rankings/students/${studentId}/balance-history`)
+      .get(`/api/v1/rankings/students/${studentId}/snapshot-history`)
       .set('Cookie', adminCookie)
       .expect(200);
 
     expect(histRes.body.length).toBeGreaterThanOrEqual(1);
-    expect(histRes.body[0].balance).toBe(75);
+    const snapshot = histRes.body[0];
+    expect(snapshot.balance).toBe(75);
+    // schoolRank is a positive integer (>= 1)
+    expect(snapshot.schoolRank).toBeGreaterThanOrEqual(1);
+    // classRank is null for a student with no class, or a positive integer if assigned
+    expect(snapshot.classRank === null || snapshot.classRank >= 1).toBe(true);
   });
 });
 

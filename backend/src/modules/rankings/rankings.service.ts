@@ -177,8 +177,8 @@ export class RankingsService {
     });
   }
 
-  // Student Balance History (FR-063, FR-078)
-  async getStudentBalanceHistory(
+  // Student Snapshot History (FR-063, FR-078)
+  async getStudentSnapshotHistory(
     studentId: string,
     currentUser: { id: string; role: Role },
     days = 7,
@@ -187,7 +187,7 @@ export class RankingsService {
       throw new ForbiddenException({
         statusCode: 403,
         errorCode: 'FORBIDDEN',
-        message: 'Cannot view balance history of other students',
+        message: 'Cannot view snapshot history of other students',
       });
     }
 
@@ -212,7 +212,7 @@ export class RankingsService {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
-    return this.prisma.dailyStudentBalanceSnapshot.findMany({
+    return this.prisma.dailyStudentSnapshot.findMany({
       where: {
         studentId,
         snapshotDate: { gte: startDate },

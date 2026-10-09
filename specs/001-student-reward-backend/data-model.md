@@ -36,7 +36,7 @@ erDiagram
     Student ||--o{ StudentTaskProposal : "proposes"
     StudentTaskProposal ||--o{ TaskProposalMessage : "contains messages"
     
-    Student ||--o{ DailyStudentBalanceSnapshot : "daily snapshot"
+    Student ||--o{ DailyStudentSnapshot : "daily snapshot"
     TierConfiguration ||--o{ Student : "evaluates tier for"
     GuidanceCard
 ```
@@ -305,14 +305,16 @@ Exactly 5 administrator-managed student tier levels.
 | `created_at` | TIMESTAMPTZ | NOT NULL, default: `now()` | Creation timestamp |
 | `updated_at` | TIMESTAMPTZ | NOT NULL, default: `now()` | Update timestamp |
 
-#### `DailyStudentBalanceSnapshot`
-Midnight point balance snapshot for weekly charting.
+#### `DailyStudentSnapshot`
+Midnight snapshot capturing point balance, school-wide rank, and class rank for weekly charting and rank trend analysis.
 
 | Field | Type | Modifiers / Constraints | Description |
 | :--- | :--- | :--- | :--- |
 | `id` | UUID | PK, default: `gen_random_uuid()` | Snapshot record ID |
 | `student_id` | UUID | FK $\rightarrow$ `User.id` ON DELETE CASCADE, NOT NULL | Student ID |
-| `balance` | INTEGER | NOT NULL, `CHECK (balance >= 0)` | Recorded current balance |
+| `balance` | INTEGER | NOT NULL | Recorded current balance |
+| `school_rank` | INTEGER | NOT NULL | School-wide standard competition rank at snapshot time |
+| `class_rank` | INTEGER | NULLABLE | Class-level standard competition rank at snapshot time (null if student has no class) |
 | `snapshot_date` | DATE | NOT NULL | Date of snapshot (YYYY-MM-DD) |
 | `created_at` | TIMESTAMPTZ | NOT NULL, default: `now()` | Snapshot creation timestamp |
 | *Constraint* | UNIQUE (`student_id`, `snapshot_date`) | Exactly one snapshot per student per day |

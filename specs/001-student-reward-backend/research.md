@@ -111,7 +111,7 @@
 - **Decision**:
   - **Rankings**: Computed on-demand using PostgreSQL window function `RANK() OVER (PARTITION BY class_id ORDER BY current_points DESC)` and `RANK() OVER (ORDER BY current_points DESC)` excluding inactive/deactivated/departed students.
   - **Tiers**: Exactly 5 tiers configured in `TierConfiguration` table. Student entity updates `current_tier_id` dynamically upon balance change.
-  - **Daily Snapshots**: `@nestjs/schedule` cron job scheduled at `00:00:00` daily to insert records into `DailyStudentBalanceSnapshot` table for active students.
+  - **Daily Snapshots**: `@nestjs/schedule` cron job scheduled at `00:00:00` daily to insert records into `DailyStudentSnapshot` table for active students, storing balance, school-wide rank, and class rank per record.
 - **Rationale**:
   - `RANK()` implements Standard Competition Ranking (1, 2, 2, 4) as required by FR-055.
   - Daily snapshots provide historical data for weekly timeline charts (FR-062).

@@ -11,7 +11,7 @@ import {
   ArrayMaxSize,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class TierItemDto {
   @ApiProperty({ example: 1, minimum: 1, maximum: 5 })
@@ -45,4 +45,28 @@ export class UpdateTierConfigurationsDto {
   @ValidateNested({ each: true })
   @Type(() => TierItemDto)
   tiers: TierItemDto[];
+}
+
+export class DailyStudentSnapshotDto {
+  @ApiProperty({ description: 'Student profile ID', format: 'uuid' })
+  studentId: string;
+
+  @ApiProperty({ description: 'Point balance at snapshot time', example: 250 })
+  balance: number;
+
+  @ApiProperty({ description: 'School-wide rank at snapshot time (standard competition ranking)', example: 3 })
+  schoolRank: number;
+
+  @ApiPropertyOptional({
+    description: 'Rank within the student\'s class at snapshot time. Null if student has no class assigned.',
+    example: 1,
+    nullable: true,
+  })
+  classRank: number | null;
+
+  @ApiProperty({ description: 'Date of the snapshot (UTC midnight)', format: 'date' })
+  snapshotDate: Date;
+
+  @ApiProperty({ description: 'Record creation timestamp', format: 'date-time' })
+  createdAt: Date;
 }

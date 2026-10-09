@@ -75,9 +75,9 @@ describe('Rankings & Tiers Contract Tests (e2e)', () => {
       .expect(400);
   });
 
-  it('GET /api/v1/rankings/students/:id/balance-history validates UUID format', async () => {
+  it('GET /api/v1/rankings/students/:id/snapshot-history validates UUID format', async () => {
     await request(app.getHttpServer())
-      .get('/api/v1/rankings/students/not-a-uuid/balance-history')
+      .get('/api/v1/rankings/students/not-a-uuid/snapshot-history')
       .set('Cookie', adminCookie)
       .expect(400);
   });

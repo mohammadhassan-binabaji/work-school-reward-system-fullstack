@@ -595,11 +595,12 @@ components:
                 type: integer
                 minimum: 0
 
-    DailyBalanceSnapshotDto:
+    DailyStudentSnapshotDto:
       type: object
       required:
         - studentId
         - balance
+        - schoolRank
         - snapshotDate
       properties:
         studentId:
@@ -607,7 +608,19 @@ components:
           format: uuid
         balance:
           type: integer
+        schoolRank:
+          type: integer
+          description: School-wide rank at snapshot time (standard competition ranking)
+          example: 3
+        classRank:
+          type: integer
+          nullable: true
+          description: Rank within the student's class at snapshot time. Null if student has no class.
+          example: 1
         snapshotDate:
+          type: string
+          format: date-time
+        createdAt:
           type: string
           format: date-time
 
@@ -1947,9 +1960,9 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/RankingResponseDto' }
 
-  /rankings/students/{id}/balance-history:
+  /rankings/students/{id}/snapshot-history:
     get:
-      summary: Get Student Balance Snapshot History
+      summary: Get Student Daily Snapshot History (balance + school/class ranks)
       security:
         - SessionAuth: []
       parameters:
@@ -1972,11 +1985,11 @@ paths:
             application/json:
               schema:
                 type: array
-                items: { $ref: '#/components/schemas/DailyBalanceSnapshotDto' }
+                items: { $ref: '#/components/schemas/DailyStudentSnapshotDto' }
 
   /rankings/snapshots/trigger:
     post:
-      summary: Manually Trigger Daily Balance Snapshot Job (Admin only)
+      summary: Manually Trigger Daily Snapshot Job — records balance + school/class ranks (Admin only)
       security:
         - SessionAuth: []
       responses:

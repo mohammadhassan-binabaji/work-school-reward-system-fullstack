@@ -126,7 +126,7 @@ model User {
   studentProposals           StudentTaskProposal[]           @relation("StudentProposals")
   reviewedProposals          StudentTaskProposal[]           @relation("AdminProposalReviews")
   proposalMessages           TaskProposalMessage[]
-  dailySnapshots             DailyStudentBalanceSnapshot[]
+  dailySnapshots             DailyStudentSnapshot[]
 
   @@map("users")
 }
@@ -383,16 +383,18 @@ model TierConfiguration {
   @@map("tier_configurations")
 }
 
-model DailyStudentBalanceSnapshot {
+model DailyStudentSnapshot {
   id           String   @id @default(uuid()) @db.Uuid
   studentId    String   @map("student_id") @db.Uuid
   student      User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
   balance      Int
+  schoolRank   Int      @map("school_rank")
+  classRank    Int?     @map("class_rank")
   snapshotDate DateTime @map("snapshot_date") @db.Date
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
 
   @@unique([studentId, snapshotDate])
-  @@map("daily_student_balance_snapshots")
+  @@map("daily_student_snapshots")
 }
 
 model GuidanceCard {
