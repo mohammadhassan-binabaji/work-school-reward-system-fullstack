@@ -1904,6 +1904,8 @@ paths:
       responses:
         '201':
           description: Message posted (FR-049)
+        '400':
+          description: Invalid request or proposal status does not permit student messaging (COMPLETED, DECLINED, CANCELED)
 
   # ==========================================
   # RANKINGS, TIERS & ANALYTICS

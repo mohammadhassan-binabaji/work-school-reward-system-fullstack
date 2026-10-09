@@ -216,5 +216,121 @@ describe('Proposals & Messaging Integration Tests', () => {
 
     expect(bobList.body.some((p: any) => p.id === proposalId)).toBe(false);
   });
+
+  it('restricts student messaging based on proposal status (COMPLETED, DECLINED, CANCELED)', async () => {
+    // Setup Student
+    await request(app.getHttpServer())
+      .post('/api/v1/users')
+      .set('Cookie', adminCookie)
+      .send({
+        nationalId: '5555555555',
+        firstName: 'Charlie',
+        lastName: 'Student',
+        username: 'charlie',
+        password: 'Password123!',
+        role: 'STUDENT',
+      })
+      .expect(201);
+    const charlieAuth = await loginUser(app, '5555555555', 'Password123!');
+
+    // 1. Submit proposal 1 -> PENDING_TO_APPROVE
+    const p1 = await request(app.getHttpServer())
+      .post('/api/v1/proposals')
+      .set('Cookie', charlieAuth.cookie)
+      .send({ description: 'Proposal 1 - For completion test' })
+      .expect(201);
+    const p1Id = p1.body.id;
+
+    // Student CAN send message when PENDING_TO_APPROVE
+    await request(app.getHttpServer())
+      .post(`/api/v1/proposals/${p1Id}/messages`)
+      .set('Cookie', charlieAuth.cookie)
+      .send({ message: 'Message while pending' })
+      .expect(201);
+
+    // Admin approves proposal 1 -> READY_TO_DO
+    await request(app.getHttpServer())
+      .post(`/api/v1/proposals/${p1Id}/approve`)
+      .set('Cookie', adminCookie)
+      .send({ assignedPointValue: 20 })
+      .expect(200);
+
+    // Student CAN send message when READY_TO_DO
+    await request(app.getHttpServer())
+      .post(`/api/v1/proposals/${p1Id}/messages`)
+      .set('Cookie', charlieAuth.cookie)
+      .send({ message: 'Message while ready to do' })
+      .expect(201);
+
+    // Admin marks proposal 1 COMPLETED
+    await request(app.getHttpServer())
+      .post(`/api/v1/proposals/${p1Id}/complete`)
+      .set('Cookie', adminCookie)
+      .expect(200);
+
+    // Student CANNOT send message when COMPLETED (400 INVALID_PROPOSAL_STATE)
+    const completedMsgRes = await request(app.getHttpServer())
+      .post(`/api/v1/proposals/${p1Id}/messages`)
+      .set('Cookie', charlieAuth.cookie)
+      .send({ message: 'Message after completion should fail' })
+      .expect(400);
+    expect(completedMsgRes.body.errorCode).toBe('INVALID_PROPOSAL_STATE');
+
+    // Admin CAN still post message on completed proposal
+    await request(app.getHttpServer())
+      .post(`/api/v1/proposals/${p1Id}/messages`)
+      .set('Cookie', adminCookie)
+      .send({ message: 'Admin note on completed proposal' })
+      .expect(201);
+
+    // 2. Submit proposal 2 -> Admin DECLINES
+    const p2 = await request(app.getHttpServer())
+      .post('/api/v1/proposals')
+      .set('Cookie', charlieAuth.cookie)
+      .send({ description: 'Proposal 2 - For decline test' })
+      .expect(201);
+    const p2Id = p2.body.id;
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/proposals/${p2Id}/decline`)
+      .set('Cookie', adminCookie)
+      .send({ declineReason: 'Not suitable' })
+      .expect(200);
+
+    // Student CANNOT send message when DECLINED (400 INVALID_PROPOSAL_STATE)
+    const declinedMsgRes = await request(app.getHttpServer())
+      .post(`/api/v1/proposals/${p2Id}/messages`)
+      .set('Cookie', charlieAuth.cookie)
+      .send({ message: 'Message after decline should fail' })
+      .expect(400);
+    expect(declinedMsgRes.body.errorCode).toBe('INVALID_PROPOSAL_STATE');
+
+    // 3. Submit proposal 3 -> Admin APPROVES -> Student CANCELS
+    const p3 = await request(app.getHttpServer())
+      .post('/api/v1/proposals')
+      .set('Cookie', charlieAuth.cookie)
+      .send({ description: 'Proposal 3 - For cancel test' })
+      .expect(201);
+    const p3Id = p3.body.id;
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/proposals/${p3Id}/approve`)
+      .set('Cookie', adminCookie)
+      .send({ assignedPointValue: 10 })
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/proposals/${p3Id}/cancel`)
+      .set('Cookie', charlieAuth.cookie)
+      .expect(200);
+
+    // Student CANNOT send message when CANCELED (400 INVALID_PROPOSAL_STATE)
+    const canceledMsgRes = await request(app.getHttpServer())
+      .post(`/api/v1/proposals/${p3Id}/messages`)
+      .set('Cookie', charlieAuth.cookie)
+      .send({ message: 'Message after cancel should fail' })
+      .expect(400);
+    expect(canceledMsgRes.body.errorCode).toBe('INVALID_PROPOSAL_STATE');
+  });
 });
 

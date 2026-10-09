@@ -391,6 +391,19 @@ export class ProposalsService {
       });
     }
 
+    const restrictedStatuses: ProposalStatus[] = [
+      ProposalStatus.COMPLETED,
+      ProposalStatus.DECLINED,
+      ProposalStatus.CANCELED,
+    ];
+    if (sender.role === Role.STUDENT && restrictedStatuses.includes(proposal.status)) {
+      throw new BadRequestException({
+        statusCode: 400,
+        errorCode: 'INVALID_PROPOSAL_STATE',
+        message: `Students cannot send messages when proposal status is ${proposal.status}`,
+      });
+    }
+
     return this.prisma.taskProposalMessage.create({
       data: {
         proposalId,
