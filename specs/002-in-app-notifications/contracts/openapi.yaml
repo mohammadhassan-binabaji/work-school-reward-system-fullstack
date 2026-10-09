@@ -1,0 +1,284 @@
+openapi: 3.0.3
+info:
+  title: Student Reward System - In-App Notification API
+  version: 1.0.0
+  description: OpenAPI 3.0 specification for the In-App Notification subsystem (Feature 002).
+servers:
+  - url: /api/v1
+    description: Base API path
+
+paths:
+  /notifications:
+    get:
+      summary: Retrieve authenticated user's notification inbox
+      description: |
+        Returns a paginated list of in-app notifications addressed to the current authenticated user.
+        Supports filtering by read status (ALL, UNREAD, READ).
+        Results are ordered deterministically by creation date descending with ID descending as tie-breaker (`createdAt DESC, id DESC`).
+      operationId: getNotifications
+      tags:
+        - Notifications
+      parameters:
+        - name: page
+          in: query
+          description: Page number (1-based index)
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page (default 20, max 50)
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+        - name: status
+          in: query
+          description: Filter notifications by read status
+          required: false
+          schema:
+            type: string
+            enum: [ALL, UNREAD, READ]
+            default: ALL
+      responses:
+        '200':
+          description: Paginated notification list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedNotificationsResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /notifications/unread-count:
+    get:
+      summary: Retrieve authenticated user's unread notification count
+      description: Returns the total number of notifications in UNREAD status addressed to the authenticated user.
+      operationId: getUnreadNotificationCount
+      tags:
+        - Notifications
+      responses:
+        '200':
+          description: Unread notification count
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnreadCountResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /notifications/{id}/read:
+    patch:
+      summary: Mark an individual notification as read
+      description: |
+        Transitions the specified notification's status to READ and sets `readAt` to current timestamp.
+        Idempotent: if already READ, returns the notification with original `readAt` intact.
+        Returns 404 if the notification does not exist or does not belong to the authenticated user.
+      operationId: markNotificationAsRead
+      tags:
+        - Notifications
+      parameters:
+        - name: id
+          in: path
+          description: Unique UUID of the notification
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Notification successfully marked as read
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /notifications/read-all:
+    patch:
+      summary: Mark all unread notifications as read
+      description: |
+        Bulk operation transitioning all UNREAD notifications addressed to the authenticated user to READ status.
+        Sets `readAt` to current timestamp for all updated records.
+      operationId: markAllNotificationsAsRead
+      tags:
+        - Notifications
+      responses:
+        '200':
+          description: Bulk mark-as-read outcome
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BulkReadResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+components:
+  schemas:
+    NotificationReadStatus:
+      type: string
+      enum:
+        - UNREAD
+        - READ
+
+    OriginatingEntityType:
+      type: string
+      enum:
+        - REWARD_REQUEST
+        - TASK_PROPOSAL
+        - PROPOSAL_MESSAGE
+        - CHALLENGE_VERIFICATION
+        - POINT_ALLOCATION
+        - POINT_AWARD
+        - POINT_ADJUSTMENT
+        - ACTIVITY_BAN
+        - ACTIVITY_UNBLOCK
+
+    NotificationResponse:
+      type: object
+      required:
+        - id
+        - recipientId
+        - subject
+        - body
+        - readStatus
+        - readAt
+        - originatingEntityType
+        - originatingEntityId
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "a8098c1a-f86e-11da-bd1a-00112444be1e"
+        recipientId:
+          type: string
+          format: uuid
+          example: "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
+        subject:
+          type: string
+          maxLength: 200
+          example: "Points Awarded"
+        body:
+          type: string
+          example: "Teacher Sarah Jenkins awarded you 25 points for task 'Math Quiz Excellence'."
+        readStatus:
+          $ref: '#/components/schemas/NotificationReadStatus'
+          example: "UNREAD"
+        readAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: null
+        originatingEntityType:
+          $ref: '#/components/schemas/OriginatingEntityType'
+          example: "POINT_AWARD"
+        originatingEntityId:
+          type: string
+          format: uuid
+          example: "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-10-09T14:30:00.000Z"
+
+    PaginationMeta:
+      type: object
+      required:
+        - totalItems
+        - itemCount
+        - itemsPerPage
+        - totalPages
+        - currentPage
+      properties:
+        totalItems:
+          type: integer
+          example: 45
+        itemCount:
+          type: integer
+          example: 20
+        itemsPerPage:
+          type: integer
+          example: 20
+        totalPages:
+          type: integer
+          example: 3
+        currentPage:
+          type: integer
+          example: 1
+
+    PaginatedNotificationsResponse:
+      type: object
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationResponse'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    UnreadCountResponse:
+      type: object
+      required:
+        - unreadCount
+      properties:
+        unreadCount:
+          type: integer
+          minimum: 0
+          example: 4
+
+    BulkReadResponse:
+      type: object
+      required:
+        - updatedCount
+      properties:
+        updatedCount:
+          type: integer
+          minimum: 0
+          example: 7
+
+    ErrorResponse:
+      type: object
+      required:
+        - statusCode
+        - message
+        - timestamp
+        - correlationId
+      properties:
+        statusCode:
+          type: integer
+          example: 404
+        message:
+          type: string
+          example: "Notification not found"
+        timestamp:
+          type: string
+          format: date-time
+          example: "2026-10-09T14:35:00.000Z"
+        correlationId:
+          type: string
+          example: "c290255c-54ee-4385-a4cc-1321c536f1fc"
+
+  responses:
+    UnauthorizedError:
+      description: Unauthorized - Authentication required or session expired
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFoundError:
+      description: Resource not found or inaccessible to the caller
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
