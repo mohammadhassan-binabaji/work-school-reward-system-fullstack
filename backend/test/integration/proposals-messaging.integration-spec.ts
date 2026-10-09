@@ -291,11 +291,20 @@ describe('Proposals & Messaging Integration Tests', () => {
       .expect(201);
     const p2Id = p2.body.id;
 
-    await request(app.getHttpServer())
+    const declineRes = await request(app.getHttpServer())
       .post(`/api/v1/proposals/${p2Id}/decline`)
       .set('Cookie', adminCookie)
       .send({ declineReason: 'Not suitable' })
       .expect(200);
+    expect(declineRes.body.status).toBe('DECLINED');
+    expect(declineRes.body.declineReason).toBe('Not suitable');
+
+    // Verify GET /api/v1/proposals/:id includes declineReason
+    const getDeclinedRes = await request(app.getHttpServer())
+      .get(`/api/v1/proposals/${p2Id}`)
+      .set('Cookie', adminCookie)
+      .expect(200);
+    expect(getDeclinedRes.body.declineReason).toBe('Not suitable');
 
     // Student CANNOT send message when DECLINED (400 INVALID_PROPOSAL_STATE)
     const declinedMsgRes = await request(app.getHttpServer())

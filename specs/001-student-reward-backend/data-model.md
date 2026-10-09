@@ -270,6 +270,7 @@ Tracks completion counts, rejection counts, and temporary submission bans per st
 | `description` | TEXT | NOT NULL | Proposed task description |
 | `status` | ENUM | NOT NULL, default: `PENDING_TO_APPROVE`: `PENDING_TO_APPROVE`, `READY_TO_DO`, `COMPLETED`, `DECLINED`, `CANCELED` | Proposal lifecycle state |
 | `assigned_point_value` | INTEGER | NULLABLE, `CHECK (assigned_point_value > 0)` | Set on approval; editable while `READY_TO_DO` |
+| `decline_reason` | TEXT | NULLABLE | Reason provided by administrator upon declining |
 | `reviewed_by_admin_id`| UUID | FK $\rightarrow$ `User.id` ON DELETE SET NULL, NULLABLE | Reviewing administrator |
 | `approved_at` | TIMESTAMPTZ | NULLABLE | Approval timestamp |
 | `completed_at` | TIMESTAMPTZ | NULLABLE | Completion timestamp |

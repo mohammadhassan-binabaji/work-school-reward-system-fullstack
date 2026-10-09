@@ -236,6 +236,7 @@ export class ProposalsService {
       data: {
         status: ProposalStatus.DECLINED,
         reviewedByAdminId: adminId,
+        declineReason: dto.declineReason ?? null,
       },
     });
   }

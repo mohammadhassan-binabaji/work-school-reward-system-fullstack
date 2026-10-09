@@ -85,5 +85,31 @@ describe('Proposals Contract Tests (e2e)', () => {
       .send({})
       .expect(400);
   });
+
+  it('POST /api/v1/proposals/:id/decline persists and returns declineReason, visible in GET', async () => {
+    const proposalRes = await request(app.getHttpServer())
+      .post('/api/v1/proposals')
+      .set('Cookie', studentCookie)
+      .send({ description: 'Contract proposal decline test' })
+      .expect(201);
+    const proposalId = proposalRes.body.id;
+
+    const declineRes = await request(app.getHttpServer())
+      .post(`/api/v1/proposals/${proposalId}/decline`)
+      .set('Cookie', adminCookie)
+      .send({ declineReason: 'Budget constraints for voluntary activity' })
+      .expect(200);
+
+    expect(declineRes.body.status).toBe('DECLINED');
+    expect(declineRes.body.declineReason).toBe('Budget constraints for voluntary activity');
+
+    const getRes = await request(app.getHttpServer())
+      .get(`/api/v1/proposals/${proposalId}`)
+      .set('Cookie', adminCookie)
+      .expect(200);
+
+    expect(getRes.body.status).toBe('DECLINED');
+    expect(getRes.body.declineReason).toBe('Budget constraints for voluntary activity');
+  });
 });
 

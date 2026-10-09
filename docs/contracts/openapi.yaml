@@ -348,6 +348,10 @@ components:
           type: integer
           nullable: true
           example: 30
+        declineReason:
+          type: string
+          nullable: true
+          example: "Task not aligned with current school projects"
         createdAt:
           type: string
           format: date-time
@@ -1829,6 +1833,9 @@ paths:
       responses:
         '200':
           description: Proposal declined
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TaskProposalDto' }
 
   /proposals/{id}/cancel:
     post:

@@ -344,6 +344,7 @@ model StudentTaskProposal {
   description        String              @db.Text
   status             ProposalStatus      @default(PENDING_TO_APPROVE)
   assignedPointValue Int?                @map("assigned_point_value")
+  declineReason      String?             @map("decline_reason") @db.Text
   reviewedByAdminId  String?             @map("reviewed_by_admin_id") @db.Uuid
   reviewedByAdmin    User?               @relation("AdminProposalReviews", fields: [reviewedByAdminId], references: [id], onDelete: SetNull)
   approvedAt         DateTime?           @map("approved_at") @db.Timestamptz

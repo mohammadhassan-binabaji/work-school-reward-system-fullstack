@@ -246,6 +246,7 @@ CREATE TABLE "student_task_proposals" (
     "description" TEXT NOT NULL,
     "status" "ProposalStatus" NOT NULL DEFAULT 'PENDING_TO_APPROVE',
     "assigned_point_value" INTEGER,
+    "decline_reason" TEXT,
     "reviewed_by_admin_id" UUID,
     "approved_at" TIMESTAMPTZ,
     "completed_at" TIMESTAMPTZ,
