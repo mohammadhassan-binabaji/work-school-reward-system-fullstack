@@ -50,7 +50,12 @@ This document analyzes the visual design and user experience intent of the provi
 ## 7. Components & Content Patterns
 
 * **Challenge Cards:** Rectangular containers with soft rounded corners utilizing glowing neon borders instead of solid fill colors. Each card contains an illustrative 3D mascot/icon, a title, a description, and a fixed point badge.
-* **Submission Interface:** A modal or dedicated screen triggered upon clicking submit, containing an image upload component and a text area for descriptions.
+* **Submission Interface:** A modal or dedicated bottom sheet triggered upon tapping submit, containing a challenge recap badge, the file/evidence upload component, a multi-line text area for descriptions, and a primary submission button.
+* **File Upload Component (Evidence Attachment):**
+  * *Default / Dropzone State:* A rectangular container with dashed glowing neon borders, an upload/camera icon, and Persian helper copy (e.g., «بارگذاری تصویر یا مدرک فعالیت» with allowed formats and file size limits).
+  * *Progress / In-Flight State:* A circular neon spinner or horizontal progress bar displaying live upload progress («در حال بارگذاری...») while disabling the submit action.
+  * *Preview / Attached State:* An inline card displaying a thumbnail preview (for images) or document badge, filename, file size formatted with Persian numerals (e.g., «۲.۴ مگابایت»), and a distinct remove/replace action («حذف مدرک»).
+  * *Error State:* Inline alert banner with a glowing neon red border and text indicating the failure reason (e.g., exceeding size limit or invalid format) with a retry tap-target («تلاش مجدد»).
 * **Bottom Navigation Bar:** A five-item icon-and-text tab bar set against a dark background, structurally separated from the content.
 * **Status Indicators:** Visual cues to show if a challenge is "Pending Review" or "Completed".
 
@@ -58,8 +63,13 @@ This document analyzes the visual design and user experience intent of the provi
 
 * **Visible Interactions:** Vertical scrolling through the list of cards. Tapping bottom navigation icons to switch contexts.
 * **Inferred/Required Interactions:**
-  * Tapping a challenge card's submit action opens the submission interface.
-  * Uploading an image and typing a text description within the submission interface.
+  * Tapping a challenge card's submit action opens the submission modal/bottom sheet.
+  * **File Upload Interaction Pattern:**
+    1. *Tap Target Activation:* Student taps the upload area, opening the native mobile device picker (Camera capture, Photo Gallery, or File Browser).
+    2. *Immediate Progress Feedback:* Upon file selection, asynchronous upload begins automatically; the dropzone shifts to a loading state with a glowing neon progress indicator, and the primary submission button remains disabled to prevent submitting incomplete uploads.
+    3. *Thumbnail & Attachment Confirmation:* Once uploaded, a thumbnail preview is generated alongside the file name and size. The student can visually verify the attachment or tap "حذف" (remove) to cancel and select a different file.
+    4. *Error Handling & Recovery:* If the upload fails (e.g., network failure, file size exceeded, invalid format), an inline neon red warning message appears with a "تلاش مجدد" (retry) button without clearing any already-entered description text.
+  * Typing a text description in the RTL Persian text area.
   * Submitting the final verification request for manual review.
   * Disabled interaction states for challenges where the student has reached their completion limit or received a temporary ban.
 
@@ -82,13 +92,14 @@ This document analyzes the visual design and user experience intent of the provi
 * **Clarity of Reward:** The point value ("نوین") is highly visible on every actionable item to motivate the student.
 * **High Contrast & Readability:** The dark background paired with neon text and borders creates a high-contrast environment, ensuring low cognitive load and making the 3D elements pop.
 * **State Visibility:** Ensuring banned challenges remain visible (but grayed out) prevents confusion about missing items and clearly communicates system status.
+* **Immediate Attachment Feedback:** Providing visual thumbnail confirmation and live upload progress reduces uncertainty, assuring students that their evidence has been captured before final submission.
 
 ## 12. Explicit Design Intent
 
 * **Language Constraint:** Every single word and number in the UI must be in Persian (فارسی).
 * **Currency Naming:** The term for points must universally be "نوین".
 * **Fixed Values:** The Challenges page must display fixed point values as defined by administrators.
-* **Submission Workflow:** Clicking to submit a challenge must allow the student to upload an image and provide a text description.
+* **Submission Workflow & File Upload:** Clicking to submit a challenge must allow the student to attach evidence (via mobile camera or storage picker) with live upload progress, preview or remove the attached file, provide a text description, and submit for verification. The submission button must remain disabled during file upload.
 * **Feedback Mechanism:** Updates on submission status (approved/rejected) are communicated exclusively via notifications.
 * **Ban Enforcement:** When a student receives three rejections for a single challenge, the challenge must remain visible in their feed but become completely grayed out and disabled for interaction.
 
