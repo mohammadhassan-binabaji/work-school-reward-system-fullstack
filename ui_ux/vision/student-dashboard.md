@@ -69,6 +69,8 @@ This document analyzes the visual design and user experience intent of the provi
 ## 7. Components & Content Patterns
 
 * **Cards:** Rounded rectangles with distinct glowing borders to group related information.
+* **Interactive Rank Card:** Ranking card equipped with tap affordances (neon chevron icon `‹` in RTL and helper text `«مشاهده رتبه‌بندی کامل»`) to signal detailed view access.
+* **Leaderboard Bottom Sheet Modal:** A touch-optimized mobile bottom sheet displaying full class and school leaderboards, including a drag handle, scope tabs, top 3 podium, and scrollable list.
 * **Progress Indicators:**
 * Circular gauge for tier progress.
 
@@ -83,6 +85,7 @@ This document analyzes the visual design and user experience intent of the provi
 
 * **Tap/Click:**
 * Menu and notification icons in the header.
+* **Rank & Total Students Card:** Tapping the card opens the **Class & School Full Leaderboard Bottom Sheet Modal** (detailed in Section 16).
 * Individual cards might link to more detailed views.
 * Quick action buttons ("More Points", "Missions").
 * Bottom navigation items to switch pages.
@@ -144,4 +147,85 @@ This document analyzes the visual design and user experience intent of the provi
 * Consider adding a brief feed of **recent activity** (e.g., "امروز: +10 نوین برای تکلیف ریاضی").
 * Add a visual target for the **next tier goal** (e.g., display "۷۰ نوین دیگر تا سطح ۶").
 * Can the weekly balance history graph be **tapped** to see specific data points for a single day?
-* Make the rank card linkable to view the **full leaderboard** (class/school).
+* Make the rank card linkable to view the **full leaderboard** (class/school). *(Resolved: Fully specified in Section 16 below as an interactive bottom sheet modal with class/school toggles).*
+
+## 16. Full Leaderboard View (Class & School Bottom Sheet Modal UX Specification)
+
+To provide students with transparent visibility into peer standings and foster healthy gamification, the rank card on the dashboard directly triggers a comprehensive leaderboard modal.
+
+### 16.1 Trigger & Entry Affordance
+* **Touch Target:** The entire **Rank & Total Students Card** (کارت رتبه‌بندی و جایگاه) functions as an interactive tap target.
+* **Visual Affordance:**
+  * Hover / active press state features a soft neon green border highlight.
+  * An inline indicator with a Persian directional chevron (`‹` for RTL) and subtle helper microcopy: `«مشاهده رتبه‌بندی کامل»`.
+
+### 16.2 Container & Presentation (Touch-First Bottom Sheet)
+* **Form Factor:** Mobile bottom sheet sliding up from the bottom of the viewport with smooth spring physics (`slide-up`).
+* **Viewport Coverage:** Occupies 85%–90% of screen height to maximize list visibility while maintaining background context.
+* **Backdrop:** Semi-transparent dark overlay (`rgba(10, 14, 26, 0.75)`) with native `backdrop-blur-md`.
+* **Dismiss Interactions:**
+  * Top centered drag pill handle (`دستگیره کشیدن`) supporting drag/swipe down to close.
+  * Dedicated top-left close icon button (`✕`).
+  * Tap outside on backdrop closes the sheet.
+
+### 16.3 Scope Selector (Segmented Tabs: Class vs. School)
+* **Pinned Segmented Control:** Positioned at the top of the modal beneath the title header:
+  1. **«کلاس من» (My Class):** Displays class-specific roster and standings (e.g., `«۳۲ دانش‌آموز»`).
+  2. **«کل مدرسه» (Whole School):** Displays school-wide ranking (e.g., `«۱۴۲ دانش‌آموز»`).
+* **Active State:** Vibrant glowing neon border and neon green accent text.
+* **Transition:** Instant, animated list update between scopes without page reload.
+
+### 16.4 Pinned Self-Standing Banner (Sticky User Status)
+* **Persistent Bar:** A sticky card pinned immediately above the scrollable list (or anchored at the bottom edge) showing the current student's status at all times:
+  * **Rank Badge:** e.g., `«رتبه شما: ۱۲ از ۱۴۲»` (در مدرسه) or `«رتبه شما: ۴ از ۳۲»` (در کلاس).
+  * **Points Balance:** Explicitly formatted with Persian terminology: `«۴۳۰ نوین»`.
+  * **Trend Indicator:** Upward/downward green arrow with delta (e.g., `«↗ ۲ پله صعود»`).
+  * **Quick Navigation:** Tapping this sticky bar auto-scrolls the leaderboard list directly to the student's row.
+
+### 16.5 Leaderboard Layout Hierarchy
+
+```
+┌───────────────────────────────────────────────┐
+│                   [  —  ]                     │ <- Drag Handle
+│  ✕               جدول رتبه‌بندی               │ <- Header Title & Close
+│ ┌──────────────────────┬────────────────────┐ │
+│ │   [✓] کلاس من (۳۲)   │   کل مدرسه (۱۴۲)   │ │ <- Segmented Scope Tabs
+│ └──────────────────────┴────────────────────┘ │
+│ ┌───────────────────────────────────────────┐ │
+│ │ ★ رتبه شما: ۴ از ۳۲      ۴۳۰ نوین    ↗ +۲ │ │ <- Pinned Self Status
+│ └───────────────────────────────────────────┘ │
+│                                               │
+│             [ سکوی ۳ نفر برتر ]              │
+│       🥈 ۲                🥇 ۱          🥉 ۳  │ <- Podium (Gold/Silver/Bronze)
+│     سارا ر.              علی م.        رضا ک. │
+│     ۴۸۰ نوین            ۵۲۰ نوین      ۴۶۰ نوین│
+│                                               │
+│ ───────────────────────────────────────────── │
+│  ۴.  [👤] نرگس حسینی       ۴۴۰ نوین   سطح ۵   │
+│ ┌───────────────────────────────────────────┐ │
+│ │۵.  [👤] شما (محمد)        ۴۳۰ نوین   سطح ۵│ │ <- Highlighted User Row
+│ └───────────────────────────────────────────┘ │
+│  ۶.  [👤] امیر قاسمی       ۴۱۰ نوین   سطح ۴   │
+│  ...                                          │
+└───────────────────────────────────────────────┘
+```
+
+#### A. Top 3 Podium (سکوی ۳ نفر برتر)
+* Prominently featured above the main list for top ranks (۱، ۲، ۳):
+  * **رتبه ۱ (طلا):** Center elevated position, gold neon border glow, golden crown/trophy mascot, student name, and points badge (`۵۲۰ نوین`).
+  * **رتبه ۲ (نقره):** Flanking right/left position, silver neon accent, silver medal mascot, student name, and points badge.
+  * **رتبه ۳ (برنز):** Flanking position, bronze neon accent, bronze badge mascot, student name, and points badge.
+
+#### B. Scrollable Ranked List (رتبه‌های ۴ به بعد)
+* Vertically scrolling list of discrete card rows styled with dark translucent backgrounds and rounded corners:
+  * **Right (RTL Start):** Distinct rank number pill in Persian numerals (`۴`, `۵`, `۶`, ...).
+  * **Center:** Student avatar / tiered mascot + Student full name.
+  * **Left (RTL End):** Current points balance with `«نوین»` (e.g., `«۴۱۰ نوین»`) alongside Tier indicator chip (e.g., `«سطح ۵»`).
+* **Current Student Row Highlighting:**
+  * When the current student appears in the list, their row features a radiant cyan/green glowing neon border and a small `«شما»` (You) badge for immediate recognition.
+
+### 16.6 Business Rules & System Consistency
+* **Active Enrolled Students Only:** Deactivated, departed, and inactive students are strictly filtered out from both class and school scopes.
+* **Current Points Basis:** Ordering is computed based on active current balance (`current points`), matching backend ranking logic.
+* **Tied Rank Handling:** Students with identical points share the same rank number (e.g., two students tied at rank ۵ both show `۵`, and the following student is assigned rank `۷`).
+* **Number & Currency Formatting:** Strict adherence to Persian numerals (`۰, ۱, ۲, ...`) and the required currency term `«نوین»`.
