@@ -25,7 +25,8 @@ This document analyzes the visual design and user experience intent of the provi
 
 * **Vertical Scrolling:** The primary layout is a single column of stacked cards, indicating a scrolling behavior on mobile.
 * **Header:** Fixed top header area with profile photo, notifications, and menu.
-* **Stacked Cards:** Information is clearly segmented into distinct, rounded rectangular containers (cards) with colored borders (red for points, green for ranking, blue for graph) to differentiate sections.
+* **Stacked Cards:** Information is clearly segmented into distinct, rounded rectangular containers (cards) with colored borders (red for points, green for ranking, blue for graph, blue for activity history) to differentiate sections.
+* **Latest Activities Card:** Positioned at the bottom of the scrollable content area, just above the fixed bottom navigation bar.
 * **Bottom Navigation:** A fixed navigation bar at the bottom for main application sections.
 
 ## 5. Navigation
@@ -71,6 +72,8 @@ This document analyzes the visual design and user experience intent of the provi
 * **Cards:** Rounded rectangles with distinct glowing borders to group related information.
 * **Interactive Rank Card:** Ranking card equipped with tap affordances (neon chevron icon `‹` in RTL and helper text `«مشاهده رتبه‌بندی کامل»`) to signal detailed view access.
 * **Leaderboard Bottom Sheet Modal:** A touch-optimized mobile bottom sheet displaying full class and school leaderboards, including a drag handle, scope tabs, top 3 podium, and scrollable list.
+* **Latest Activities Card:** A blue-bordered card at the bottom of the page showing the 3 most recent point transactions with a `«بیشتر»` button to open the full history.
+* **Activity History Bottom Sheet Modal:** A full-screen bottom sheet with date-grouped, filterable activity history in Persian.
 * **Progress Indicators:**
 * Circular gauge for tier progress.
 
@@ -85,7 +88,8 @@ This document analyzes the visual design and user experience intent of the provi
 
 * **Tap/Click:**
 * Menu and notification icons in the header.
-* **Rank & Total Students Card:** Tapping the card opens the **Class & School Full Leaderboard Bottom Sheet Modal** (detailed in Section 16).
+* **Rank & Total Students Card:** Tapping the card opens the **Class & School Full Leaderboard Bottom Sheet Modal** (detailed in Section 17).
+* **Latest Activities Card:** Tapping `«بیشتر»` opens the **Full Activity History Bottom Sheet Modal** (detailed in Section 16.0.3).
 * Individual cards might link to more detailed views.
 * Quick action buttons ("More Points", "Missions").
 * Bottom navigation items to switch pages.
@@ -149,7 +153,100 @@ This document analyzes the visual design and user experience intent of the provi
 * Can the weekly balance history graph be **tapped** to see specific data points for a single day?
 * Make the rank card linkable to view the **full leaderboard** (class/school). *(Resolved: Fully specified in Section 16 below as an interactive bottom sheet modal with class/school toggles).*
 
-## 16. Full Leaderboard View (Class & School Bottom Sheet Modal UX Specification)
+## 16. Latest Activities Section (آخرین فعالیت‌ها)
+
+### 16.0 Overview
+
+At the bottom of the profile/dashboard page — above the fixed bottom navigation bar — a **Latest Activities card** displays the student's three most recent point-earning or point-deducting events. This section provides a quick glance at recent history and offers a clear path to the full activity log via a "بیشتر" (More) button.
+
+### 16.0.1 Card Structure & Visual Style
+
+* **Card Type:** Dark translucent card with a **blue neon glowing border**, consistent with the weekly graph card style.
+* **Card Title (Right-aligned, RTL):** `«آخرین فعالیت‌ها»` — displayed in white/light text at the top of the card.
+* **Activity Count:** Shows exactly the **last 3 activities**, ordered from most recent to oldest (top to bottom).
+* **"بیشتر" Button:** A subtle text button or outlined pill button aligned to the left (RTL end) of the card title row, labeled `«بیشتر ›»`. Tapping it opens the Full Activity History Bottom Sheet (Section 16.0.3).
+
+### 16.0.2 Activity Row Layout
+
+Each of the 3 rows follows a consistent compact layout:
+
+```
+┌──────────────────────────────────────────────────┐
+│  [آیکون]   عنوان فعالیت              +۱۵ نوین   │
+│            ۱۴۰۳/۰۷/۱۸  ساعت ۱۴:۳۰              │
+└──────────────────────────────────────────────────┘
+```
+
+* **Right (RTL Start):** A small circular colored icon indicating activity type:
+  * 🟢 Green `+` icon for point gains (e.g., homework, attendance, challenge completion).
+  * 🔴 Red `−` icon for point deductions (e.g., rule violations, penalties).
+* **Center:** Activity title in Persian (e.g., `«انجام تکلیف ریاضی»`), with the Persian date and time below in smaller muted text (e.g., `«۱۴۰۳/۰۷/۱۸ — ساعت ۱۴:۳۰»`).
+* **Left (RTL End):** Point delta displayed prominently:
+  * Gains: bright green text, e.g., `«‎+۱۵ نوین»`.
+  * Deductions: red text, e.g., `«‎−۵ نوین»`.
+* **Row Separator:** A thin subtle divider line between rows.
+
+### 16.0.3 Full Activity History — Bottom Sheet Modal
+
+#### Trigger & Entry
+* Tapping `«بیشتر»` on the Latest Activities card slides up a bottom sheet with the full chronological activity history.
+
+#### Container & Presentation
+* **Form Factor:** Mobile bottom sheet sliding up from the bottom with smooth spring physics.
+* **Viewport Coverage:** 85%–90% of screen height.
+* **Backdrop:** Semi-transparent dark overlay (`rgba(10, 14, 26, 0.75)`) with `backdrop-blur-md`.
+* **Dismiss Interactions:**
+  * Top centered drag pill handle (`دستگیره کشیدن`) supporting drag/swipe down to close.
+  * Dedicated top-left close icon button (`✕`).
+  * Tap outside on backdrop closes the sheet.
+
+#### Modal Header
+* **Title (centered):** `«تاریخچه فعالیت‌ها»`
+* **Close button (top-left):** `✕`
+
+#### Filter & Sort Controls (Pinned below header)
+* A horizontal scrollable chip row for quick filtering:
+  * `«همه»` (All) — default selected, glowing neon border when active.
+  * `«کسب نوین»` (Points Earned)
+  * `«کسر نوین»` (Points Deducted)
+* Sort order is chronological (newest first) by default.
+
+#### Scrollable Activity List
+
+```
+┌───────────────────────────────────────────────────────┐
+│                 [  —  ]                               │ <- Drag Handle
+│  ✕           تاریخچه فعالیت‌ها                        │ <- Header
+│ ┌─────────┬───────────────┬───────────────────────┐  │
+│ │  همه ✓  │  کسب نوین     │  کسر نوین             │  │ <- Filter Chips
+│ └─────────┴───────────────┴───────────────────────┘  │
+│                                                       │
+│  ─── ۱۴۰۳/۰۷/۱۸ ──────────────────────────────────  │ <- Date Group Header
+│  🟢  انجام تکلیف ریاضی              ‎+۱۵ نوین  ۱۴:۳۰ │
+│  🟢  حضور منظم در کلاس              ‎+۵ نوین   ۰۸:۰۰  │
+│  ─── ۱۴۰۳/۰۷/۱۷ ──────────────────────────────────  │
+│  🔴  تأخیر در تحویل پروژه           ‎−۱۰ نوین ۱۶:۰۰  │
+│  🟢  شرکت در چالش هفتگی            ‎+۲۰ نوین  ۱۰:۳۰  │
+│  ...                                                  │
+└───────────────────────────────────────────────────────┘
+```
+
+* **Date Group Headers:** Activities are grouped by Persian calendar date (e.g., `«۱۴۰۳/۰۷/۱۸»`) displayed as sticky section separators in muted text.
+* **Activity Rows:** Identical layout to the dashboard preview rows (icon + title + date/time + delta).
+* **Empty State:** If no activities exist yet, display a centered illustration with `«هنوز فعالیتی ثبت نشده است.»`.
+* **Infinite Scroll / Pagination:** Older activities load automatically as the student scrolls down (or via a `«بارگذاری بیشتر»` button).
+
+### 16.0.4 Business Rules & System Consistency
+* **Data Source:** Activity log is pulled from the backend point transaction history per student.
+* **Display Limit (Dashboard Preview):** Strictly the **3 most recent** entries, regardless of date.
+* **Ordering:** Always newest-first in both the preview and the modal.
+* **Terminology:** Point values are always suffixed with `«نوین»`.
+* **Persian Numbers:** All numbers, dates, and times must be rendered in Persian numerals (`۰–۹`).
+* **Visibility:** A student can only see their **own** activity history — no cross-student visibility.
+
+---
+
+## 17. Full Leaderboard View (Class & School Bottom Sheet Modal UX Specification)
 
 To provide students with transparent visibility into peer standings and foster healthy gamification, the rank card on the dashboard directly triggers a comprehensive leaderboard modal.
 
