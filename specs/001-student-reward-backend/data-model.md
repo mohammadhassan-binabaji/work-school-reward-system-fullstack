@@ -210,6 +210,8 @@ Append-only immutable audit trail for every point event in the system.
 | `created_at` | TIMESTAMPTZ | NOT NULL, default: `now()` | Request creation timestamp |
 | `updated_at` | TIMESTAMPTZ | NOT NULL, default: `now()` | Request update timestamp |
 
+**Business constraint (FR-096):** A student may have at most one reward request in a pending status (`PENDING_TO_APPROVE` or `PENDING_TO_RECEIVE`) per reward. This is enforced at the application layer before request creation.
+
 ---
 
 ### 2.5 Challenges, Missions & Verification

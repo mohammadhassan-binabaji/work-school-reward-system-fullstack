@@ -61,6 +61,7 @@ The system enables teachers to award points to students for actions such as comp
 - Students shall be able to request rewards when they have sufficient points.
 - A student request shall reserve and immediately deduct the required points.
 - Students shall not be able to cancel reward requests at any stage.
+- The system shall prevent a student from creating a new reward request for a reward when the student already has a pending request (`Pending to Approve` or `Pending to Receive`) for that same reward.
 
 ### Reward redemption
 

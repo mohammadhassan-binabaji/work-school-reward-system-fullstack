@@ -19,6 +19,7 @@
 - Teacher points are an award budget and are not the same as student reward points.
 - Student reward requests reserve points at request time.
 - Students cannot cancel reward requests at any stage.
+- A student cannot create a new reward request for a reward when the student already has a pending request (`Pending to Approve` or `Pending to Receive`) for that same reward.
 - Rewards may optionally require administrator approval; this is configured per reward.
 - Rewards requiring approval have no inventory limit; rewards not requiring approval have finite inventory.
 - New requests are blocked while a non-approval reward's inventory is zero.

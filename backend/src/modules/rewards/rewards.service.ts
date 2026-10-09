@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
   ForbiddenException,
+  ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuditLogService } from '../points/audit-log.service';
@@ -197,6 +198,29 @@ export class RewardsService {
         statusCode: 400,
         errorCode: 'REWARD_NOT_AVAILABLE',
         message: 'Reward is not available for redemption',
+      });
+    }
+
+    // FR-096: Prevent duplicate pending requests for the same reward by the same student
+    const existingPendingRequest = await this.prisma.rewardRequest.findFirst({
+      where: {
+        studentId,
+        rewardId: dto.rewardId,
+        status: {
+          in: [
+            RewardRequestStatus.PENDING_TO_APPROVE,
+            RewardRequestStatus.PENDING_TO_RECEIVE,
+          ],
+        },
+      },
+    });
+
+    if (existingPendingRequest) {
+      throw new ConflictException({
+        statusCode: 409,
+        errorCode: 'DUPLICATE_PENDING_REQUEST',
+        message:
+          'You already have a pending request for this reward. Please wait until it is completed or declined before requesting again.',
       });
     }
 

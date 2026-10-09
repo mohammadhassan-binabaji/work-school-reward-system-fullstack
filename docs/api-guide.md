@@ -39,7 +39,7 @@ This guide describes the core API endpoints and verification flows for the Stude
 
 ### 5. Reward Catalog & Redemption (`/api/v1/rewards`, `/api/v1/reward-requests`)
 - `POST/GET/PATCH/DELETE /api/v1/rewards` - Manage reward catalog (price is immutable).
-- `POST /api/v1/reward-requests` - Student redeems reward (immediate balance reservation).
+- `POST /api/v1/reward-requests` - Student redeems reward (immediate balance reservation). Returns `409` if the student already has a pending request for the same reward.
 - `POST /api/v1/reward-requests/:id/approve` - Admin approves request.
 - `POST /api/v1/reward-requests/:id/decline` - Admin declines request (refunds reserved points to student).
 - `POST /api/v1/reward-requests/:id/receive` - Admin confirms physical handover (completes redemption).

@@ -97,6 +97,7 @@ As a student and school administrator, I need students to request catalog reward
 9. **Given** a reward request in `Pending to Receive` status, **When** an administrator marks the reward as received after physical handover, **Then** the request status transitions to `Completed` (status color: green), the reserved points are finalized/cleared, and the request closes.
 10. **Given** active reward requests in `Pending to Approve` or `Pending to Receive` for a reward, **When** an administrator removes that reward from the catalog, **Then** all active requests for that reward are closed, their reserved points are returned to the respective students' balances, and audit records are created.
 11. **Given** an active reward request at any stage, **When** a student attempts to cancel the request, **Then** the backend rejects the cancellation request.
+12. **Given** a student who already has a reward request in `Pending to Approve` or `Pending to Receive` status for a specific reward, **When** the student attempts to request the same reward again, **Then** the backend rejects the request with a `409 Conflict` error and error code `DUPLICATE_PENDING_REQUEST`, and no points are deducted.
 
 ---
 
@@ -252,6 +253,7 @@ As a school administrator, teacher, and student, I need the system to permanentl
 - **FR-027**: When a student requests a reward with sufficient points, the system MUST reserve and immediately deduct the required points from the student's available balance.
 - **FR-028**: The system MUST prevent students from requesting rewards with insufficient points or rewards with zero inventory.
 - **FR-029**: The system MUST prevent students from canceling reward requests at any lifecycle stage.
+- **FR-096**: The system MUST prevent a student from creating a new reward request for a reward when the student already has a pending request (`Pending to Approve` or `Pending to Receive`) for that same reward. The system MUST return a `409 Conflict` error with error code `DUPLICATE_PENDING_REQUEST`.
 - **FR-030**: For rewards not requiring approval, the system MUST immediately transition the request to `Pending to Receive` status (color: blue) and decrement the available inventory by 1.
 - **FR-031**: For rewards requiring approval, the system MUST set the request status to `Pending to Approve` (color: blue).
 - **FR-032**: The system MUST allow administrators to review `Pending to Approve` requests:

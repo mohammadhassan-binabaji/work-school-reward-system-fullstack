@@ -1417,6 +1417,11 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/RewardRequestDto' }
+        '409':
+          description: Student already has a pending request for this reward (FR-096)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
 
   /reward-requests/{id}:
     get:
