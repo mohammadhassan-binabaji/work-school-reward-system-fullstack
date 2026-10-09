@@ -8,6 +8,16 @@
 
 **Input**: User description: "for the existing nestjs backend i want to create a new feature : in-app notification system. base on requirements documentation in docs/requirements/ about notification mechanism. Use the following documents as the source of truth: docs/requirements/requirements.md, docs/requirements/user-stories.md, docs/requirements/business-rules.md, docs/requirements/data-requirements.md, docs/requirements/open-questions.md. The goal is to create a complete behavioral specification for the in-app notification mechanism scope of the existing system and backend. Do not implement anything. Do not make technology or framework decisions. Do not create an implementation plan. Preserve the business intent and requirements from the existing documentation while making the expected system behavior precise, testable, and unambiguous. The should specification should fit and follow the current nestjs backend."
 
+## Clarifications
+
+### Session 2026-10-09
+
+- Q: What default page size and maximum page limit should the notification inbox pagination enforce? (FR-004) → A: Default 20 items per page, maximum 50 items per page.
+- Q: Should the bulk mark-all-as-read operation apply globally to all unread notifications for the user, or support filtering by notification type? (FR-007) → A: Global operation marking all unread notifications for the user as read.
+- Q: Should notification subject and body text be stored as static text generated at creation time, or dynamically constructed on query? (FR-002) → A: Persist pre-rendered static subject and body text at creation time.
+- Q: What secondary sort order should the system apply to guarantee deterministic pagination when multiple notifications share the same creation timestamp? (FR-004) → A: Secondary sort by unique identifier descending (`id DESC`).
+- Q: Should originating entity types be constrained to a strict closed enumeration matching the 9 defined event triggers? (FR-021) → A: Closed enumeration of the 9 defined entity types.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Notification Inbox Retrieval & Unread Counter (Priority: P1)
@@ -20,7 +30,7 @@ As an authenticated user (student, teacher, or school administrator), I need to 
 
 **Acceptance Scenarios**:
 
-1. **Given** an authenticated user with both read and unread notifications, **When** the user requests their notification inbox with no status filter (or `All`), **Then** the system returns a paginated list of all notifications addressed to that user, ordered by creation timestamp descending (newest first).
+1. **Given** an authenticated user with both read and unread notifications, **When** the user requests their notification inbox with no status filter (or `All`), **Then** the system returns a paginated list of all notifications addressed to that user (defaulting to 20 items per page, with a maximum allowable page limit of 50 items), ordered by creation timestamp descending with unique identifier descending as tie-breaker (`createdAt DESC, id DESC`).
 2. **Given** an authenticated user with both read and unread notifications, **When** the user requests notifications filtered by `Unread`, **Then** the system returns only notifications in `Unread` status addressed to that user.
 3. **Given** an authenticated user with both read and unread notifications, **When** the user requests notifications filtered by `Read`, **Then** the system returns only notifications in `Read` status addressed to that user.
 4. **Given** an authenticated user with 4 unread and 6 read notifications, **When** the user requests their unread notification count, **Then** the system returns an aggregate count of exactly 4.
@@ -41,7 +51,7 @@ As an authenticated user, I need to mark an individual notification as read when
 
 1. **Given** an authenticated user with an unread notification in their inbox, **When** the user marks that notification as read (or opens it), **Then** the system updates that notification's status from `Unread` to `Read`, records the current read timestamp, and decrements the user's unread notification count by 1.
 2. **Given** an authenticated user with a notification already marked as `Read`, **When** the user attempts to mark that notification as read again, **Then** the operation succeeds idempotently without modifying the original read timestamp or altering the unread count.
-3. **Given** an authenticated user with multiple unread notifications, **When** the user triggers the mark-all-as-read action, **Then** the system updates all unread notifications addressed to that user to `Read` status, sets their read timestamp to the current time, and resets the user's unread notification count to 0.
+3. **Given** an authenticated user with multiple unread notifications, **When** the user triggers the mark-all-as-read action, **Then** the system updates all unread notifications addressed to that user across their entire inbox to `Read` status, sets their read timestamp to the current time, and resets the user's unread notification count to 0.
 4. **Given** an authenticated user with zero unread notifications, **When** the user triggers the mark-all-as-read action, **Then** the system completes successfully with no state change and an unread count of 0.
 5. **Given** User A and User B, **When** User A attempts to mark User B's notification as read by identifier, **Then** the system rejects the operation with an authorization/access denial error and does not modify User B's notification.
 
@@ -107,7 +117,7 @@ As a teacher, I need to receive an in-app notification whenever an administrator
 - **Multiple School Administrators**: When a student action triggers an administrative review alert, the notification is generated for all active school administrators so that any authorized administrator can act on it. When one administrator reviews the item, the notification in other administrators' inboxes remains in their personal inbox as an immutable record of the event.
 - **Self-Triggered Actions**: When an administrator sends a message on a proposal, only the student receives a notification (the sending administrator does not receive a self-notification). Similarly, when a student sends a message, only administrators receive a notification.
 - **Consecutive Duplicate Events**: If multiple rapid events occur (such as several consecutive messages on a task proposal or multiple point awards from different teachers), each event generates an independent, distinct notification record with its own unique identifier and timestamp.
-- **Target Entity Deletion or Removal**: If a catalog reward is subsequently removed by an administrator after a reward request notification was generated, the notification text and entity reference remain intact and permanently viewable, reflecting the historical event.
+- **Target Entity Deletion or Removal**: If a catalog reward, task proposal, or referenced entity is subsequently modified, renamed, or removed after a notification is generated, the notification text and entity reference remain intact and permanently viewable, reflecting the exact historical state at event time.
 - **Immutable Inbox Preservation**: Users cannot delete individual or bulk notifications. Any attempt by a client to request notification deletion is rejected by the system.
 - **Zero Unread Inboxes**: Requesting unread notifications when none exist returns an empty result set and count of 0 without error.
 - **Cross-User Tampering**: Attempting to query, inspect, or mark as read another user's notification by guessing or supplying their notification identifier is strictly rejected with an authorization failure.
@@ -117,12 +127,12 @@ As a teacher, I need to receive an in-app notification whenever an administrator
 ### Functional Requirements
 
 - **FR-001**: The system MUST maintain a private in-app notification inbox for every registered user account (administrators, teachers, and students).
-- **FR-002**: The system MUST store for each notification: a unique identifier, recipient user reference, subject title, message body, read status (`Unread` or `Read`), creation timestamp, read timestamp (populated upon read, null when unread), originating entity type, and originating entity identifier.
+- **FR-002**: The system MUST store for each notification: a unique identifier, recipient user reference, static pre-rendered subject title, static pre-rendered message body (persisted at event creation time to preserve immutable historical accuracy), read status (`Unread` or `Read`), creation timestamp, read timestamp (populated upon read, null when unread), originating entity type, and originating entity identifier.
 - **FR-003**: The system MUST prevent users from deleting notifications; notification records MUST be permanently retained in the recipient's inbox.
-- **FR-004**: The system MUST provide an endpoint/capability for authenticated users to retrieve their own notifications, with support for filtering by read status (`All`, `Unread`, `Read`), sorting in descending order of creation time (newest first), and pagination.
+- **FR-004**: The system MUST provide an endpoint/capability for authenticated users to retrieve their own notifications, with support for filtering by read status (`All`, `Unread`, `Read`), sorting in descending order of creation time with a deterministic secondary sort by unique identifier descending (`createdAt DESC, id DESC`), and pagination (defaulting to 20 items per page, with a maximum allowable limit of 50 items per page).
 - **FR-005**: The system MUST provide an endpoint/capability for authenticated users to retrieve their current total count of unread notifications.
 - **FR-006**: The system MUST provide an endpoint/capability for authenticated users to mark a specific notification addressed to them as `Read`, recording the read timestamp.
-- **FR-007**: The system MUST provide an endpoint/capability for authenticated users to mark all of their unread notifications as `Read` in a single operation, setting the read timestamp to the current time for all affected records.
+- **FR-007**: The system MUST provide an endpoint/capability for authenticated users to mark all of their unread notifications as `Read` in a single global operation across their entire inbox, setting the read timestamp to the current time for all affected records.
 - **FR-008**: The system MUST enforce strict user data isolation: a user MUST NOT be able to view, list, count, or modify notifications belonging to any other user.
 - **FR-009**: The system MUST generate an unread in-app notification for a student whenever the student's reward request transitions to `Pending to Receive`, `Completed`, or `Declined`.
 - **FR-010**: The system MUST generate an unread in-app notification for a student whenever the student's task proposal transitions to `Ready to Do` (with assigned points), has its assigned points modified, transitions to `Completed`, or transitions to `Declined`.
@@ -136,7 +146,7 @@ As a teacher, I need to receive an in-app notification whenever an administrator
 - **FR-018**: The system MUST generate an unread in-app notification for active school administrators whenever a student sends a message within a task proposal.
 - **FR-019**: The system MUST generate an unread in-app notification for active school administrators whenever a student submits a challenge or mission verification request.
 - **FR-020**: The system MUST generate an unread in-app notification for a teacher whenever an administrator allocates points from the system point pool to that teacher's point balance, specifying the allocated point amount and resulting balance.
-- **FR-021**: The system MUST preserve originating entity type and entity identifier on every generated notification to support client application deep linking to the related subject item.
+- **FR-021**: The system MUST preserve originating entity type and entity identifier on every generated notification to support client application deep linking to the related subject item, with originating entity type strictly constrained to the closed enumeration: `REWARD_REQUEST`, `TASK_PROPOSAL`, `PROPOSAL_MESSAGE`, `CHALLENGE_VERIFICATION`, `POINT_ALLOCATION`, `POINT_AWARD`, `POINT_ADJUSTMENT`, `ACTIVITY_BAN`, `ACTIVITY_UNBLOCK`.
 - **FR-022**: The system MUST NOT deliver external notifications (such as SMS, email, or third-party push) as part of this in-app notification feature.
 
 ### Key Entities
@@ -146,12 +156,12 @@ As a teacher, I need to receive an in-app notification whenever an administrator
   - Attributes:
     - Unique identifier
     - Recipient user (reference to the recipient user account)
-    - Subject (concise summary title, e.g., "Points Awarded", "Reward Approved", "New Proposal Message")
-    - Message body (human-readable descriptive text of the event)
+    - Subject (concise static summary title rendered at creation time, e.g., "Points Awarded", "Reward Approved", "New Proposal Message")
+    - Message body (static human-readable descriptive text of the event rendered at creation time)
     - Read status (`Unread` or `Read`)
     - Creation date and time
     - Read date and time (null when unread, populated when marked read)
-    - Originating entity type (e.g., `REWARD_REQUEST`, `TASK_PROPOSAL`, `PROPOSAL_MESSAGE`, `CHALLENGE_VERIFICATION`, `POINT_ALLOCATION`, `POINT_AWARD`, `POINT_ADJUSTMENT`, `ACTIVITY_BAN`, `ACTIVITY_UNBLOCK`)
+    - Originating entity type (strict closed enumeration: `REWARD_REQUEST`, `TASK_PROPOSAL`, `PROPOSAL_MESSAGE`, `CHALLENGE_VERIFICATION`, `POINT_ALLOCATION`, `POINT_AWARD`, `POINT_ADJUSTMENT`, `ACTIVITY_BAN`, `ACTIVITY_UNBLOCK`)
     - Originating entity identifier (unique identifier of the referenced business entity)
   - Relationships:
     - Belongs to exactly one Recipient User.
@@ -173,5 +183,5 @@ As a teacher, I need to receive an in-app notification whenever an administrator
 - **Delivery Mechanism**: Notifications are strictly in-app and persisted in the application database; external communication channels (SMS, email, webhooks, mobile OS push services) are explicitly excluded as confirmed in `docs/requirements/requirements.md`.
 - **Real-Time Transport**: In-app notifications are stored persistently in the recipient's inbox and accessible via API query endpoints (with badge unread counts); any real-time client transport (e.g., WebSocket/SSE push) can layer atop this persistent storage contract without altering business semantics.
 - **Recipient Scope for Administrator Alerts**: Student actions requiring review are broadcast to all active school administrators, allowing any available administrator to view the alert and act upon the submission.
-- **Ordering & Pagination**: Inbox retrieval defaults to reverse chronological order (newest notification first), supporting standard pagination to maintain responsiveness for long-term user inboxes.
+- **Ordering & Pagination**: Inbox retrieval defaults to reverse chronological order with unique identifier tie-breaker (`createdAt DESC, id DESC`), supporting standard pagination defaulting to 20 items per page up to a maximum limit of 50 items per page to maintain responsiveness for long-term user inboxes.
 - **Permanence**: In alignment with the system's strict audit and compliance design principles, notifications are non-deletable by users and are retained permanently for display and history.
