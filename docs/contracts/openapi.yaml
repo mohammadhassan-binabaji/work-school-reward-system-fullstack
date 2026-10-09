@@ -322,6 +322,24 @@ components:
         status:
           type: string
           enum: [ACTIVE, INACTIVE, REMOVED]
+        completionCount:
+          type: integer
+          description: Populated for student requests. Number of approved completions by the requester.
+          example: 0
+        isBanned:
+          type: boolean
+          description: Populated for student requests. Indicates if requester is currently banned from this activity.
+          example: false
+        isDone:
+          type: boolean
+          description: Populated for student requests. Indicates if requester has reached completionLimit.
+          example: false
+        verificationStatus:
+          type: string
+          nullable: true
+          enum: [PENDING, ACCEPTED, REJECTED]
+          description: Populated for student requests. Latest verification request status by the requester for this activity (null if never submitted).
+          example: PENDING
 
     TaskProposalDto:
       type: object
@@ -1487,6 +1505,7 @@ paths:
   /activities:
     get:
       summary: List Activities (Challenges & Missions)
+      description: Returns all activities (or active only for students). When requested by a student, includes per-student progress fields (completionCount, isBanned, isDone, verificationStatus).
       security:
         - SessionAuth: []
       responses:
@@ -1524,6 +1543,7 @@ paths:
   /activities/{id}:
     get:
       summary: Get Challenge or Mission by ID
+      description: Returns activity by ID. When requested by a student, includes per-student progress fields (completionCount, isBanned, isDone, verificationStatus).
       security:
         - SessionAuth: []
       parameters:

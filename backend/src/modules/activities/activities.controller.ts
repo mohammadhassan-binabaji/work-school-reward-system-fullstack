@@ -10,12 +10,13 @@ import {
   HttpStatus,
   ParseUUIDPipe,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiCookieAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiCookieAuth } from '@nestjs/swagger';
 import { ActivitiesService } from './activities.service';
 import {
   CreateActivityDto,
   UpdateActivityMetadataDto,
   SubmitVerificationDto,
+  ActivityResponseDto,
 } from './dto/activities.dto';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -39,15 +40,20 @@ export class ActivitiesController {
   @Roles('ADMIN', 'STUDENT')
   @Get()
   @ApiOperation({ summary: 'List challenges and missions' })
-  async findAllActivities(@CurrentUser('role') role?: Role) {
-    return this.activitiesService.findAllActivities(role);
+  @ApiResponse({ status: 200, type: [ActivityResponseDto] })
+  async findAllActivities(@CurrentUser() user?: { id: string; role: Role }) {
+    return this.activitiesService.findAllActivities(user);
   }
 
   @Roles('ADMIN', 'STUDENT')
   @Get(':id')
   @ApiOperation({ summary: 'Get challenge or mission by ID' })
-  async findActivityById(@Param('id', ParseUUIDPipe) id: string) {
-    return this.activitiesService.findActivityById(id);
+  @ApiResponse({ status: 200, type: ActivityResponseDto })
+  async findActivityById(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user?: { id: string; role: Role },
+  ) {
+    return this.activitiesService.findActivityById(id, user);
   }
 
   @Roles('ADMIN')

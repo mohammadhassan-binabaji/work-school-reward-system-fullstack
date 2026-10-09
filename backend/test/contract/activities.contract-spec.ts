@@ -105,5 +105,127 @@ describe('Activities Contract Tests (e2e)', () => {
       .send({ activityId: 'not-a-uuid' })
       .expect(400);
   });
+
+  it('GET /api/v1/activities includes per-student progress and verificationStatus for students', async () => {
+    // 1. Admin creates an activity
+    const activityRes = await request(app.getHttpServer())
+      .post('/api/v1/activities')
+      .set('Cookie', adminCookie)
+      .send({
+        type: 'CHALLENGE',
+        title: 'Math Marathon',
+        description: 'Solve 10 math puzzles',
+        pointValue: 50,
+        completionLimit: 1,
+      })
+      .expect(201);
+    const activityId = activityRes.body.id;
+
+    // 2. Student lists activities: initial state
+    const listRes1 = await request(app.getHttpServer())
+      .get('/api/v1/activities')
+      .set('Cookie', studentCookie)
+      .expect(200);
+
+    expect(Array.isArray(listRes1.body)).toBe(true);
+    const item1 = listRes1.body.find((a: any) => a.id === activityId);
+    expect(item1).toBeDefined();
+    expect(item1.completionCount).toBe(0);
+    expect(item1.isBanned).toBe(false);
+    expect(item1.isDone).toBe(false);
+    expect(item1.verificationStatus).toBeNull();
+
+    // Also verify GET /api/v1/activities/:id
+    const detailRes1 = await request(app.getHttpServer())
+      .get(`/api/v1/activities/${activityId}`)
+      .set('Cookie', studentCookie)
+      .expect(200);
+    expect(detailRes1.body.completionCount).toBe(0);
+    expect(detailRes1.body.isBanned).toBe(false);
+    expect(detailRes1.body.isDone).toBe(false);
+    expect(detailRes1.body.verificationStatus).toBeNull();
+
+    // 3. Student submits verification: status becomes PENDING
+    const subRes = await request(app.getHttpServer())
+      .post(`/api/v1/activities/${activityId}/submissions`)
+      .set('Cookie', studentCookie)
+      .send({ textDescription: 'Here are my solutions' })
+      .expect(201);
+
+    const listRes2 = await request(app.getHttpServer())
+      .get('/api/v1/activities')
+      .set('Cookie', studentCookie)
+      .expect(200);
+    const item2 = listRes2.body.find((a: any) => a.id === activityId);
+    expect(item2.verificationStatus).toBe('PENDING');
+    expect(item2.completionCount).toBe(0);
+    expect(item2.isDone).toBe(false);
+
+    // 4. Admin accepts verification: completionCount = 1, isDone = true, verificationStatus = ACCEPTED
+    await request(app.getHttpServer())
+      .post(`/api/v1/verifications/${subRes.body.id}/accept`)
+      .set('Cookie', adminCookie)
+      .expect(200);
+
+    const listRes3 = await request(app.getHttpServer())
+      .get('/api/v1/activities')
+      .set('Cookie', studentCookie)
+      .expect(200);
+    const item3 = listRes3.body.find((a: any) => a.id === activityId);
+    expect(item3.completionCount).toBe(1);
+    expect(item3.isDone).toBe(true);
+    expect(item3.isBanned).toBe(false);
+    expect(item3.verificationStatus).toBe('ACCEPTED');
+
+    // 5. Admin listing does not break
+    const adminListRes = await request(app.getHttpServer())
+      .get('/api/v1/activities')
+      .set('Cookie', adminCookie)
+      .expect(200);
+    expect(Array.isArray(adminListRes.body)).toBe(true);
+    const adminItem = adminListRes.body.find((a: any) => a.id === activityId);
+    expect(adminItem).toBeDefined();
+    expect(adminItem.title).toBe('Math Marathon');
+  });
+
+  it('GET /api/v1/activities reflects isBanned: true when student is banned', async () => {
+    // Admin creates an activity
+    const activityRes = await request(app.getHttpServer())
+      .post('/api/v1/activities')
+      .set('Cookie', adminCookie)
+      .send({
+        type: 'CHALLENGE',
+        title: 'Science Quiz',
+        description: 'Take the weekly science quiz',
+        pointValue: 30,
+        completionLimit: 2,
+      })
+      .expect(201);
+    const activityId = activityRes.body.id;
+
+    // 3 submissions and rejections
+    for (let i = 1; i <= 3; i++) {
+      const sub = await request(app.getHttpServer())
+        .post(`/api/v1/activities/${activityId}/submissions`)
+        .set('Cookie', studentCookie)
+        .send({ textDescription: `Attempt #${i}` })
+        .expect(201);
+
+      await request(app.getHttpServer())
+        .post(`/api/v1/verifications/${sub.body.id}/reject`)
+        .set('Cookie', adminCookie)
+        .send({ rejectionReason: `Failed #${i}` })
+        .expect(200);
+    }
+
+    // Check activity listing for student: isBanned should now be true
+    const listRes = await request(app.getHttpServer())
+      .get('/api/v1/activities')
+      .set('Cookie', studentCookie)
+      .expect(200);
+    const item = listRes.body.find((a: any) => a.id === activityId);
+    expect(item.isBanned).toBe(true);
+    expect(item.verificationStatus).toBe('REJECTED');
+  });
 });
 

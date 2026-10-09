@@ -9,7 +9,52 @@ import {
   IsUUID,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { ActivityType, ActivityStatus } from '@prisma/client';
+import { ActivityType, ActivityStatus, VerificationStatus } from '@prisma/client';
+
+export class ActivityResponseDto {
+  @ApiProperty({ format: 'uuid' })
+  id: string;
+
+  @ApiProperty({ enum: ActivityType })
+  type: ActivityType;
+
+  @ApiProperty()
+  title: string;
+
+  @ApiProperty()
+  description: string;
+
+  @ApiProperty()
+  pointValue: number;
+
+  @ApiProperty()
+  completionLimit: number;
+
+  @ApiProperty({ enum: ActivityStatus })
+  status: ActivityStatus;
+
+  @ApiProperty()
+  createdAt: Date;
+
+  @ApiProperty()
+  updatedAt: Date;
+
+  @ApiPropertyOptional({ description: 'Number of approved completions for the student' })
+  completionCount?: number;
+
+  @ApiPropertyOptional({ description: 'Whether the student is banned from this activity' })
+  isBanned?: boolean;
+
+  @ApiPropertyOptional({ description: 'Whether the student has reached the completion limit' })
+  isDone?: boolean;
+
+  @ApiPropertyOptional({
+    enum: VerificationStatus,
+    nullable: true,
+    description: 'Latest verification status for this student on this activity',
+  })
+  verificationStatus?: VerificationStatus | null;
+}
 
 export class CreateActivityDto {
   @ApiProperty({ enum: ActivityType, example: ActivityType.CHALLENGE })

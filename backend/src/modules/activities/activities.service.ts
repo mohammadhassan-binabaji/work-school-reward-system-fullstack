@@ -46,15 +46,72 @@ export class ActivitiesService {
     });
   }
 
-  async findAllActivities(currentUserRole?: Role) {
-    const where = currentUserRole === Role.STUDENT ? { status: ActivityStatus.ACTIVE } : {};
+  async findAllActivities(currentUser?: { id: string; role: Role } | Role) {
+    const role = typeof currentUser === 'string' ? currentUser : currentUser?.role;
+    const studentId = typeof currentUser === 'object' && currentUser ? currentUser.id : undefined;
+
+    if (role === Role.STUDENT && studentId) {
+      const activities = await this.prisma.activity.findMany({
+        where: { status: ActivityStatus.ACTIVE },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      if (activities.length === 0) {
+        return [];
+      }
+
+      const activityIds = activities.map((a) => a.id);
+
+      const [progressList, verifications] = await Promise.all([
+        this.prisma.studentActivityProgress.findMany({
+          where: {
+            studentId,
+            activityId: { in: activityIds },
+          },
+        }),
+        this.prisma.verificationRequest.findMany({
+          where: {
+            studentId,
+            activityId: { in: activityIds },
+          },
+          orderBy: { createdAt: 'desc' },
+        }),
+      ]);
+
+      const progressMap = new Map(progressList.map((p) => [p.activityId, p]));
+      const latestVerificationMap = new Map<string, VerificationStatus>();
+      for (const v of verifications) {
+        if (!latestVerificationMap.has(v.activityId)) {
+          latestVerificationMap.set(v.activityId, v.status);
+        }
+      }
+
+      const now = new Date();
+      return activities.map((activity) => {
+        const progress = progressMap.get(activity.id);
+        const completionCount = progress?.completionCount ?? 0;
+        const isBanned = Boolean(progress?.bannedUntil && progress.bannedUntil > now);
+        const isDone = completionCount >= activity.completionLimit;
+        const verificationStatus = latestVerificationMap.get(activity.id) ?? null;
+
+        return {
+          ...activity,
+          completionCount,
+          isBanned,
+          isDone,
+          verificationStatus,
+        };
+      });
+    }
+
+    const where = role === Role.STUDENT ? { status: ActivityStatus.ACTIVE } : {};
     return this.prisma.activity.findMany({
       where,
       orderBy: { createdAt: 'desc' },
     });
   }
 
-  async findActivityById(id: string) {
+  async findActivityById(id: string, currentUser?: { id: string; role: Role } | Role) {
     const activity = await this.prisma.activity.findUnique({ where: { id } });
     if (!activity) {
       throw new NotFoundException({
@@ -63,6 +120,44 @@ export class ActivitiesService {
         message: `Activity with ID ${id} not found`,
       });
     }
+
+    const role = typeof currentUser === 'string' ? currentUser : currentUser?.role;
+    const studentId = typeof currentUser === 'object' && currentUser ? currentUser.id : undefined;
+
+    if (role === Role.STUDENT && studentId) {
+      const [progress, latestVerification] = await Promise.all([
+        this.prisma.studentActivityProgress.findUnique({
+          where: {
+            studentId_activityId: {
+              studentId,
+              activityId: id,
+            },
+          },
+        }),
+        this.prisma.verificationRequest.findFirst({
+          where: {
+            studentId,
+            activityId: id,
+          },
+          orderBy: { createdAt: 'desc' },
+        }),
+      ]);
+
+      const now = new Date();
+      const completionCount = progress?.completionCount ?? 0;
+      const isBanned = Boolean(progress?.bannedUntil && progress.bannedUntil > now);
+      const isDone = completionCount >= activity.completionLimit;
+      const verificationStatus = latestVerification?.status ?? null;
+
+      return {
+        ...activity,
+        completionCount,
+        isBanned,
+        isDone,
+        verificationStatus,
+      };
+    }
+
     return activity;
   }
 
