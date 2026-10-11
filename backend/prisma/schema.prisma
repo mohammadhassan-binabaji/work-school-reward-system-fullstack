@@ -102,6 +102,23 @@ enum GuidanceCardStatus {
   REMOVED
 }
 
+enum NotificationReadStatus {
+  UNREAD
+  READ
+}
+
+enum OriginatingEntityType {
+  REWARD_REQUEST
+  TASK_PROPOSAL
+  PROPOSAL_MESSAGE
+  CHALLENGE_VERIFICATION
+  POINT_ALLOCATION
+  POINT_AWARD
+  POINT_ADJUSTMENT
+  ACTIVITY_BAN
+  ACTIVITY_UNBLOCK
+}
+
 model User {
   id           String       @id @default(uuid()) @db.Uuid
   nationalId   String       @unique @map("national_id") @db.VarChar(10)
@@ -127,6 +144,7 @@ model User {
   reviewedProposals          StudentTaskProposal[]           @relation("AdminProposalReviews")
   proposalMessages           TaskProposalMessage[]
   dailySnapshots             DailyStudentSnapshot[]
+  notifications              Notification[]                  @relation("UserNotifications")
 
   @@map("users")
 }
@@ -409,3 +427,21 @@ model GuidanceCard {
 
   @@map("guidance_cards")
 }
+
+model Notification {
+  id                    String                 @id @default(uuid()) @db.Uuid
+  recipientId           String                 @map("recipient_id") @db.Uuid
+  recipient             User                   @relation("UserNotifications", fields: [recipientId], references: [id], onDelete: Cascade)
+  subject               String                 @db.VarChar(200)
+  body                  String                 @db.Text
+  readStatus            NotificationReadStatus @default(UNREAD) @map("read_status")
+  readAt                DateTime?              @map("read_at") @db.Timestamptz
+  originatingEntityType OriginatingEntityType  @map("originating_entity_type")
+  originatingEntityId   String                 @map("originating_entity_id") @db.Uuid
+  createdAt             DateTime               @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([recipientId, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([recipientId, readStatus])
+  @@map("notifications")
+}
+

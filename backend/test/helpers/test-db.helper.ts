@@ -3,6 +3,7 @@ import { RedisService } from '../../src/common/redis/redis.service';
 
 export async function cleanDatabase(prisma: PrismaService): Promise<void> {
   const tableNames = [
+    'notifications',
     'point_audit_logs',
     'reward_requests',
     'verification_requests',
@@ -31,6 +32,7 @@ export async function cleanDatabase(prisma: PrismaService): Promise<void> {
     }
   } catch (error) {
     // Fallback deletion if TRUNCATE CASCADE hits permission issues
+    await prisma.notification.deleteMany();
     await prisma.pointAuditLog.deleteMany();
     await prisma.rewardRequest.deleteMany();
     await prisma.verificationRequest.deleteMany();

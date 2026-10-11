@@ -5,6 +5,7 @@ import {
   ConflictException,
   ForbiddenException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuditLogService } from './audit-log.service';
 import {
@@ -25,12 +26,18 @@ import {
   ActionType,
   Prisma,
 } from '@prisma/client';
+import {
+  PointAwardedEvent,
+  PointAdjustedEvent,
+  PointAllocatedEvent,
+} from '../notifications/events/point-events';
 
 @Injectable()
 export class PointsService {
   constructor(
     private prisma: PrismaService,
     private auditLogService: AuditLogService,
+    private eventEmitter: EventEmitter2,
   ) {}
 
   // System Point Pool
@@ -99,7 +106,7 @@ export class PointsService {
       });
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       let pool = await tx.systemPointPool.findFirst();
       if (!pool) {
         pool = await tx.systemPointPool.create({ data: { balance: 0 } });
@@ -123,7 +130,7 @@ export class PointsService {
         data: { pointBalance: { increment: dto.amount } },
       });
 
-      await this.auditLogService.log(
+      const auditLog = await this.auditLogService.log(
         {
           correlationId,
           actorId: adminId,
@@ -142,6 +149,7 @@ export class PointsService {
       );
 
       return {
+        auditLogId: auditLog.id,
         success: true,
         teacherId: dto.teacherId,
         awardedBudget: dto.amount,
@@ -149,6 +157,19 @@ export class PointsService {
         poolRemainingBalance: updatedPool.balance,
       };
     });
+
+    await this.eventEmitter.emitAsync(
+      'point.allocated',
+      new PointAllocatedEvent(
+        result.auditLogId,
+        result.teacherId,
+        result.awardedBudget,
+        result.teacherNewBalance,
+      ),
+    );
+
+    const { auditLogId, ...response } = result;
+    return response;
   }
 
   // Predefined Point Transfer Tasks (FR-017)
@@ -279,7 +300,14 @@ export class PointsService {
 
     const awardPoints = option.points;
 
-    return this.prisma.$transaction(async (tx) => {
+    const teacherUser = await this.prisma.user.findUnique({
+      where: { id: teacherId },
+    });
+    const teacherName = teacherUser
+      ? `${teacherUser.firstName} ${teacherUser.lastName}`
+      : 'Teacher';
+
+    const result = await this.prisma.$transaction(async (tx) => {
       const teacherProfile = await tx.teacherProfile.findUnique({
         where: { id: teacherId },
       });
@@ -324,7 +352,7 @@ export class PointsService {
       });
 
       // Write immutable audit log
-      await this.auditLogService.log(
+      const auditLog = await this.auditLogService.log(
         {
           correlationId,
           actorId: teacherId,
@@ -345,6 +373,7 @@ export class PointsService {
       );
 
       return {
+        auditLogId: auditLog.id,
         success: true,
         awardedPoints: awardPoints,
         studentId: dto.studentId,
@@ -353,6 +382,20 @@ export class PointsService {
         teacherRemainingBudget: updatedTeacher.pointBalance,
       };
     });
+
+    await this.eventEmitter.emitAsync(
+      'point.awarded',
+      new PointAwardedEvent(
+        result.auditLogId,
+        result.studentId,
+        teacherName,
+        result.awardedPoints,
+        option.task.name,
+      ),
+    );
+
+    const { auditLogId, ...response } = result;
+    return response;
   }
 
   // Admin Direct Balance Adjustment (FR-023)
@@ -361,7 +404,7 @@ export class PointsService {
     adminId: string,
     correlationId: string,
   ) {
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const student = await tx.user.findUnique({
         where: { id: dto.studentId },
         include: { studentProfile: true },
@@ -406,7 +449,7 @@ export class PointsService {
         },
       });
 
-      await this.auditLogService.log(
+      const auditLog = await this.auditLogService.log(
         {
           correlationId,
           actorId: adminId,
@@ -425,6 +468,7 @@ export class PointsService {
       );
 
       return {
+        auditLogId: auditLog.id,
         success: true,
         studentId: dto.studentId,
         adjustmentAmount: dto.amount,
@@ -432,5 +476,18 @@ export class PointsService {
         newHighestBalance: updatedStudent.highestBalance,
       };
     });
+
+    await this.eventEmitter.emitAsync(
+      'point.adjusted',
+      new PointAdjustedEvent(
+        result.auditLogId,
+        result.studentId,
+        result.adjustmentAmount,
+        dto.reason,
+      ),
+    );
+
+    const { auditLogId, ...response } = result;
+    return response;
   }
 }

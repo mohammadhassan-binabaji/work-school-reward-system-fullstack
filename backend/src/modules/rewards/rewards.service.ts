@@ -5,6 +5,7 @@ import {
   ForbiddenException,
   ConflictException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuditLogService } from '../points/audit-log.service';
 import {
@@ -22,12 +23,17 @@ import {
   RecipientType,
   ActionType,
 } from '@prisma/client';
+import {
+  RewardStatusChangedEvent,
+  RewardRequiresApprovalEvent,
+} from '../notifications/events/reward-events';
 
 @Injectable()
 export class RewardsService {
   constructor(
     private prisma: PrismaService,
     private auditLogService: AuditLogService,
+    private eventEmitter: EventEmitter2,
   ) {}
 
   // Catalog CRUD (FR-024, FR-085)
@@ -224,7 +230,7 @@ export class RewardsService {
       });
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const createdRequest = await this.prisma.$transaction(async (tx) => {
       const profile = await tx.studentProfile.findUnique({
         where: { id: studentId },
       });
@@ -312,6 +318,32 @@ export class RewardsService {
 
       return request;
     });
+
+    if (createdRequest.requiresApproval) {
+      await this.eventEmitter.emitAsync(
+        'reward.requires_approval',
+        new RewardRequiresApprovalEvent(
+          createdRequest.id,
+          studentId,
+          `${student.firstName} ${student.lastName}`,
+          createdRequest.reward.name,
+          createdRequest.priceAtRequest,
+        ),
+      );
+    } else {
+      await this.eventEmitter.emitAsync(
+        'reward.status_changed',
+        new RewardStatusChangedEvent(
+          createdRequest.id,
+          studentId,
+          createdRequest.reward.name,
+          RewardRequestStatus.PENDING_TO_RECEIVE,
+          null,
+        ),
+      );
+    }
+
+    return createdRequest;
   }
 
   // Query Reward Requests
@@ -408,7 +440,7 @@ export class RewardsService {
       });
     }
 
-    return this.prisma.rewardRequest.update({
+    const updated = await this.prisma.rewardRequest.update({
       where: { id },
       data: {
         status: RewardRequestStatus.PENDING_TO_RECEIVE,
@@ -417,6 +449,19 @@ export class RewardsService {
       },
       include: { reward: true },
     });
+
+    await this.eventEmitter.emitAsync(
+      'reward.status_changed',
+      new RewardStatusChangedEvent(
+        updated.id,
+        updated.studentId,
+        updated.reward.name,
+        RewardRequestStatus.PENDING_TO_RECEIVE,
+        null,
+      ),
+    );
+
+    return updated;
   }
 
   // Admin Decline with Point Refund (FR-032)
@@ -450,7 +495,7 @@ export class RewardsService {
       });
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const updatedRequest = await this.prisma.$transaction(async (tx) => {
       // If non-approval, return inventory
       if (!req.requiresApproval && req.reward.inventoryQuantity !== null) {
         await tx.reward.update({
@@ -485,7 +530,7 @@ export class RewardsService {
         },
       });
 
-      const updatedRequest = await tx.rewardRequest.update({
+      const updated = await tx.rewardRequest.update({
         where: { id },
         data: {
           status: RewardRequestStatus.DECLINED,
@@ -518,8 +563,21 @@ export class RewardsService {
         tx,
       );
 
-      return updatedRequest;
+      return updated;
     });
+
+    await this.eventEmitter.emitAsync(
+      'reward.status_changed',
+      new RewardStatusChangedEvent(
+        updatedRequest.id,
+        updatedRequest.studentId,
+        updatedRequest.reward.name,
+        RewardRequestStatus.DECLINED,
+        dto.declineReason || 'Declined by administrator',
+      ),
+    );
+
+    return updatedRequest;
   }
 
   // Physical Handover Completed (FR-033)
@@ -545,7 +603,7 @@ export class RewardsService {
       });
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const updatedRequest = await this.prisma.$transaction(async (tx) => {
       // Clear reserved balance from student
       const studentProfile = await tx.studentProfile.findUnique({
         where: { id: req.studentId },
@@ -564,7 +622,7 @@ export class RewardsService {
         },
       });
 
-      const updatedRequest = await tx.rewardRequest.update({
+      const updated = await tx.rewardRequest.update({
         where: { id },
         data: {
           status: RewardRequestStatus.COMPLETED,
@@ -593,7 +651,20 @@ export class RewardsService {
         tx,
       );
 
-      return updatedRequest;
+      return updated;
     });
+
+    await this.eventEmitter.emitAsync(
+      'reward.status_changed',
+      new RewardStatusChangedEvent(
+        updatedRequest.id,
+        updatedRequest.studentId,
+        updatedRequest.reward.name,
+        RewardRequestStatus.COMPLETED,
+        null,
+      ),
+    );
+
+    return updatedRequest;
   }
 }

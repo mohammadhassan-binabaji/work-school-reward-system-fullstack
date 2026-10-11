@@ -20,8 +20,8 @@
 
 **Purpose**: Dependency management and root module setup for in-process event dispatch.
 
-- [ ] T001 Install and configure `@nestjs/event-emitter` dependency in `backend/package.json`
-- [ ] T002 Configure and register `EventEmitterModule.forRoot()` in root application module in `backend/src/app.module.ts`
+- [X] T001 Install and configure `@nestjs/event-emitter` dependency in `backend/package.json`
+- [X] T002 Configure and register `EventEmitterModule.forRoot()` in root application module in `backend/src/app.module.ts`
 
 ---
 
@@ -31,14 +31,14 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T003 Extend Prisma relational schema with `NotificationReadStatus` enum (`UNREAD`, `READ`), `OriginatingEntityType` enum (`REWARD_REQUEST`, `TASK_PROPOSAL`, `PROPOSAL_MESSAGE`, `CHALLENGE_VERIFICATION`, `POINT_ALLOCATION`, `POINT_AWARD`, `POINT_ADJUSTMENT`, `ACTIVITY_BAN`, `ACTIVITY_UNBLOCK`), `Notification` model (`id` UUID `@id @default(uuid())`, `recipientId` UUID `@map("recipient_id")`, `subject` VARCHAR(200) `@db.VarChar(200)`, `body` TEXT `@db.Text`, `readStatus` enum `@default(UNREAD) @map("read_status")`, `readAt` DateTime? `@map("read_at") @db.Timestamptz`, `originatingEntityType` enum `@map("originating_entity_type")`, `originatingEntityId` UUID `@map("originating_entity_id")`, `createdAt` DateTime `@default(now()) @map("created_at") @db.Timestamptz`) with composite indexes `@@index([recipientId, createdAt(sort: Desc), id(sort: Desc)])` and `@@index([recipientId, readStatus])`, and relation on `User` model (`notifications Notification[] @relation("UserNotifications")`) in `backend/prisma/schema.prisma`
-- [ ] T004 Generate and execute Prisma migration `2_add_notifications` and regenerate Prisma client in `backend/prisma/migrations/2_add_notifications/migration.sql`
-- [ ] T005 [P] Create strongly typed domain event classes for reward lifecycle (`RewardStatusChangedEvent`, `RewardRequiresApprovalEvent`) in `backend/src/modules/notifications/events/reward-events.ts`
-- [ ] T006 [P] Create strongly typed domain event classes for task proposals and messaging (`ProposalStatusChangedEvent`, `ProposalMessageEvent`) in `backend/src/modules/notifications/events/proposal-events.ts`
-- [ ] T007 [P] Create strongly typed domain event classes for points awards, adjustments, and teacher allocations (`PointAwardedEvent`, `PointAdjustedEvent`, `PointAllocatedEvent`) in `backend/src/modules/notifications/events/point-events.ts`
-- [ ] T008 [P] Create strongly typed domain event classes for activity verifications and bans/unblocks (`VerificationReviewedEvent`, `VerificationSubmittedEvent`, `ActivityBanEvent`, `ActivityUnblockEvent`) in `backend/src/modules/notifications/events/activity-events.ts`
-- [ ] T009 [P] Implement NotificationFormatter utility generating pre-rendered static `subject` (max 200 chars) and `body` strings for all 18 defined event templates (EVT-01 through EVT-18) in `backend/src/modules/notifications/utils/notification-formatter.ts`
-- [ ] T010 Create base NotificationsModule skeleton declaring controller, service, and listener, and register `NotificationsModule` in `backend/src/modules/notifications/notifications.module.ts` and `backend/src/app.module.ts`
+- [X] T003 Extend Prisma relational schema with `NotificationReadStatus` enum (`UNREAD`, `READ`), `OriginatingEntityType` enum (`REWARD_REQUEST`, `TASK_PROPOSAL`, `PROPOSAL_MESSAGE`, `CHALLENGE_VERIFICATION`, `POINT_ALLOCATION`, `POINT_AWARD`, `POINT_ADJUSTMENT`, `ACTIVITY_BAN`, `ACTIVITY_UNBLOCK`), `Notification` model (`id` UUID `@id @default(uuid())`, `recipientId` UUID `@map("recipient_id")`, `subject` VARCHAR(200) `@db.VarChar(200)`, `body` TEXT `@db.Text`, `readStatus` enum `@default(UNREAD) @map("read_status")`, `readAt` DateTime? `@map("read_at") @db.Timestamptz`, `originatingEntityType` enum `@map("originating_entity_type")`, `originatingEntityId` UUID `@map("originating_entity_id")`, `createdAt` DateTime `@default(now()) @map("created_at") @db.Timestamptz`) with composite indexes `@@index([recipientId, createdAt(sort: Desc), id(sort: Desc)])` and `@@index([recipientId, readStatus])`, and relation on `User` model (`notifications Notification[] @relation("UserNotifications")`) in `backend/prisma/schema.prisma`
+- [X] T004 Generate and execute Prisma migration `2_add_notifications` and regenerate Prisma client in `backend/prisma/migrations/2_add_notifications/migration.sql`
+- [X] T005 [P] Create strongly typed domain event classes for reward lifecycle (`RewardStatusChangedEvent`, `RewardRequiresApprovalEvent`) in `backend/src/modules/notifications/events/reward-events.ts`
+- [X] T006 [P] Create strongly typed domain event classes for task proposals and messaging (`ProposalStatusChangedEvent`, `ProposalMessageEvent`) in `backend/src/modules/notifications/events/proposal-events.ts`
+- [X] T007 [P] Create strongly typed domain event classes for points awards, adjustments, and teacher allocations (`PointAwardedEvent`, `PointAdjustedEvent`, `PointAllocatedEvent`) in `backend/src/modules/notifications/events/point-events.ts`
+- [X] T008 [P] Create strongly typed domain event classes for activity verifications and bans/unblocks (`VerificationReviewedEvent`, `VerificationSubmittedEvent`, `ActivityBanEvent`, `ActivityUnblockEvent`) in `backend/src/modules/notifications/events/activity-events.ts`
+- [X] T009 [P] Implement NotificationFormatter utility generating pre-rendered static `subject` (max 200 chars) and `body` strings for all 18 defined event templates (EVT-01 through EVT-18) in `backend/src/modules/notifications/utils/notification-formatter.ts`
+- [X] T010 Create base NotificationsModule skeleton declaring controller, service, and listener, and register `NotificationsModule` in `backend/src/modules/notifications/notifications.module.ts` and `backend/src/app.module.ts`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin.
 
@@ -52,14 +52,14 @@
 
 ### Tests for User Story 1 ⚠️
 
-- [ ] T011 [P] [US1] Contract tests for inbox query and unread counter endpoints (`GET /api/v1/notifications`, `GET /api/v1/notifications/unread-count`) validating OpenAPI schemas, pagination defaults (20 items/page, max 50 items/page), and status enum validation in `backend/test/contract/notifications.contract-spec.ts`
-- [ ] T012 [P] [US1] Integration tests for inbox retrieval, deterministic sorting (`createdAt DESC, id DESC`), status filtering (`ALL`, `UNREAD`, `READ`), unread badge count calculation, user isolation boundary enforcement (User A cannot view User B's notifications or count), and empty inbox handling in `backend/test/integration/notifications.integration-spec.ts`
+- [X] T011 [P] [US1] Contract tests for inbox query and unread counter endpoints (`GET /api/v1/notifications`, `GET /api/v1/notifications/unread-count`) validating OpenAPI schemas, pagination defaults (20 items/page, max 50 items/page), and status enum validation in `backend/test/contract/notifications.contract-spec.ts`
+- [X] T012 [P] [US1] Integration tests for inbox retrieval, deterministic sorting (`createdAt DESC, id DESC`), status filtering (`ALL`, `UNREAD`, `READ`), unread badge count calculation, user isolation boundary enforcement (User A cannot view User B's notifications or count), and empty inbox handling in `backend/test/integration/notifications.integration-spec.ts`
 
 ### Implementation for User Story 1
 
-- [ ] T013 [P] [US1] Create validation DTOs for inbox queries (`GetNotificationsQueryDto` with `page` min 1 default 1, `limit` min 1 max 50 default 20, `status` enum `ALL | UNREAD | READ` default `ALL`), `NotificationResponseDto`, `PaginationMetaDto`, `PaginatedNotificationsDto`, and `UnreadCountResponseDto` in `backend/src/modules/notifications/dto/get-notifications-query.dto.ts`, `backend/src/modules/notifications/dto/notification-response.dto.ts`, `backend/src/modules/notifications/dto/paginated-notifications.dto.ts`, and `backend/src/modules/notifications/dto/unread-count-response.dto.ts`
-- [ ] T014 [US1] Implement inbox retrieval (`getNotifications`) and unread count query (`getUnreadCount`) in `backend/src/modules/notifications/notifications.service.ts` enforcing `where: { recipientId: userId }`, status filtering, and deterministic ordering (`orderBy: [{ createdAt: 'desc' }, { id: 'desc' }]`)
-- [ ] T015 [P] [US1] Implement `GET /notifications` and `GET /notifications/unread-count` controller endpoints protected with `SessionAuthGuard` and `@CurrentUser()` in `backend/src/modules/notifications/notifications.controller.ts`
+- [X] T013 [P] [US1] Create validation DTOs for inbox queries (`GetNotificationsQueryDto` with `page` min 1 default 1, `limit` min 1 max 50 default 20, `status` enum `ALL | UNREAD | READ` default `ALL`), `NotificationResponseDto`, `PaginationMetaDto`, `PaginatedNotificationsDto`, and `UnreadCountResponseDto` in `backend/src/modules/notifications/dto/get-notifications-query.dto.ts`, `backend/src/modules/notifications/dto/notification-response.dto.ts`, `backend/src/modules/notifications/dto/paginated-notifications.dto.ts`, and `backend/src/modules/notifications/dto/unread-count-response.dto.ts`
+- [X] T014 [US1] Implement inbox retrieval (`getNotifications`) and unread count query (`getUnreadCount`) in `backend/src/modules/notifications/notifications.service.ts` enforcing `where: { recipientId: userId }`, status filtering, and deterministic ordering (`orderBy: [{ createdAt: 'desc' }, { id: 'desc' }]`)
+- [X] T015 [P] [US1] Implement `GET /notifications` and `GET /notifications/unread-count` controller endpoints protected with `SessionAuthGuard` and `@CurrentUser()` in `backend/src/modules/notifications/notifications.controller.ts`
 
 **Checkpoint**: User Story 1 (MVP) is fully functional and testable independently.
 
@@ -73,14 +73,14 @@
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T016 [P] [US2] Contract tests for mark-as-read endpoints (`PATCH /api/v1/notifications/:id/read`, `PATCH /api/v1/notifications/read-all`) in `backend/test/contract/notifications.contract-spec.ts`
-- [ ] T017 [P] [US2] Integration tests for single mark-as-read transition, `readAt` timestamp assignment, unread count decrement, idempotent re-marking of already read notifications, atomic bulk mark-all-as-read update, and cross-user modification rejection (User A attempting to mark User B's notification returns 404) in `backend/test/integration/notifications.integration-spec.ts`
+- [X] T016 [P] [US2] Contract tests for mark-as-read endpoints (`PATCH /api/v1/notifications/:id/read`, `PATCH /api/v1/notifications/read-all`) in `backend/test/contract/notifications.contract-spec.ts`
+- [X] T017 [P] [US2] Integration tests for single mark-as-read transition, `readAt` timestamp assignment, unread count decrement, idempotent re-marking of already read notifications, atomic bulk mark-all-as-read update, and cross-user modification rejection (User A attempting to mark User B's notification returns 404) in `backend/test/integration/notifications.integration-spec.ts`
 
 ### Implementation for User Story 2
 
-- [ ] T018 [P] [US2] Create DTO for bulk read response (`BulkReadResponseDto` with `updatedCount` non-negative integer) in `backend/src/modules/notifications/dto/bulk-read-response.dto.ts`
-- [ ] T019 [US2] Implement `markAsRead(userId: string, notificationId: string)` (enforcing recipient ownership, transitioning `UNREAD` -> `READ`, setting `readAt = now()`, and idempotent handling for already `READ` items) and `markAllAsRead(userId: string)` (executing single atomic `updateMany` for `where: { recipientId: userId, readStatus: 'UNREAD' }`) in `backend/src/modules/notifications/notifications.service.ts`
-- [ ] T020 [P] [US2] Implement `PATCH /notifications/:id/read` and `PATCH /notifications/read-all` controller endpoints in `backend/src/modules/notifications/notifications.controller.ts`
+- [X] T018 [P] [US2] Create DTO for bulk read response (`BulkReadResponseDto` with `updatedCount` non-negative integer) in `backend/src/modules/notifications/dto/bulk-read-response.dto.ts`
+- [X] T019 [US2] Implement `markAsRead(userId: string, notificationId: string)` (enforcing recipient ownership, transitioning `UNREAD` -> `READ`, setting `readAt = now()`, and idempotent handling for already `READ` items) and `markAllAsRead(userId: string)` (executing single atomic `updateMany` for `where: { recipientId: userId, readStatus: 'UNREAD' }`) in `backend/src/modules/notifications/notifications.service.ts`
+- [X] T020 [P] [US2] Implement `PATCH /notifications/:id/read` and `PATCH /notifications/read-all` controller endpoints in `backend/src/modules/notifications/notifications.controller.ts`
 
 **Checkpoint**: User Stories 1 and 2 work together independently for complete inbox management.
 
@@ -94,15 +94,15 @@
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T021 [P] [US3] Integration tests for student event notification generation: verify notifications created for reward request approvals (`PENDING_TO_RECEIVE`), completions (`COMPLETED`), declines (`DECLINED`), auto-approved reward creations, proposal status transitions (`READY_TO_DO`, `DECLINED`, `COMPLETED`), admin proposal messages, teacher point awards (`POINT_AWARD`), admin manual balance adjustments (`POINT_ADJUSTMENT`), activity verification acceptances/rejections (`CHALLENGE_VERIFICATION`), 3-rejection activity ban alerts (`ACTIVITY_BAN`), and admin unblock alerts (`ACTIVITY_UNBLOCK`) in `backend/test/integration/notifications.integration-spec.ts`
+- [X] T021 [P] [US3] Integration tests for student event notification generation: verify notifications created for reward request approvals (`PENDING_TO_RECEIVE`), completions (`COMPLETED`), declines (`DECLINED`), auto-approved reward creations, proposal status transitions (`READY_TO_DO`, `DECLINED`, `COMPLETED`), admin proposal messages, teacher point awards (`POINT_AWARD`), admin manual balance adjustments (`POINT_ADJUSTMENT`), activity verification acceptances/rejections (`CHALLENGE_VERIFICATION`), 3-rejection activity ban alerts (`ACTIVITY_BAN`), and admin unblock alerts (`ACTIVITY_UNBLOCK`) in `backend/test/integration/notifications.integration-spec.ts`
 
 ### Implementation for User Story 3
 
-- [ ] T022 [US3] Implement student domain event handler methods in `NotificationsListener` for reward events (`RewardStatusChangedEvent`), proposal events (`ProposalStatusChangedEvent`, `ProposalMessageEvent`), point events (`PointAwardedEvent`, `PointAdjustedEvent`), and activity events (`VerificationReviewedEvent`, `ActivityBanEvent`, `ActivityUnblockEvent`) formatting static text via `NotificationFormatter` and persisting records via `prisma.notification.create` in `backend/src/modules/notifications/notifications.listener.ts`
-- [ ] T023 [P] [US3] Dispatch `RewardStatusChangedEvent` from `RewardsService` on request status transitions (`PENDING_TO_RECEIVE`, `COMPLETED`, `DECLINED`, and immediate `PENDING_TO_RECEIVE` on auto-approved creation) in `backend/src/modules/rewards/rewards.service.ts`
-- [ ] T024 [P] [US3] Dispatch `ProposalStatusChangedEvent` (on approval to `READY_TO_DO`, point updates, completion, or decline) and `ProposalMessageEvent` (when admin posts a message to a student proposal) from `ProposalsService` in `backend/src/modules/proposals/proposals.service.ts`
-- [ ] T025 [P] [US3] Dispatch `PointAwardedEvent` (teacher award to student) and `PointAdjustedEvent` (admin balance adjustment) from `PointsService` in `backend/src/modules/points/points.service.ts`
-- [ ] T026 [P] [US3] Dispatch `VerificationReviewedEvent` (acceptance/rejection), `ActivityBanEvent` (upon 3rd rejection trigger), and `ActivityUnblockEvent` (upon admin manual unblock) from `ActivitiesService` in `backend/src/modules/activities/activities.service.ts`
+- [X] T022 [US3] Implement student domain event handler methods in `NotificationsListener` for reward events (`RewardStatusChangedEvent`), proposal events (`ProposalStatusChangedEvent`, `ProposalMessageEvent`), point events (`PointAwardedEvent`, `PointAdjustedEvent`), and activity events (`VerificationReviewedEvent`, `ActivityBanEvent`, `ActivityUnblockEvent`) formatting static text via `NotificationFormatter` and persisting records via `prisma.notification.create` in `backend/src/modules/notifications/notifications.listener.ts`
+- [X] T023 [P] [US3] Dispatch `RewardStatusChangedEvent` from `RewardsService` on request status transitions (`PENDING_TO_RECEIVE`, `COMPLETED`, `DECLINED`, and immediate `PENDING_TO_RECEIVE` on auto-approved creation) in `backend/src/modules/rewards/rewards.service.ts`
+- [X] T024 [P] [US3] Dispatch `ProposalStatusChangedEvent` (on approval to `READY_TO_DO`, point updates, completion, or decline) and `ProposalMessageEvent` (when admin posts a message to a student proposal) from `ProposalsService` in `backend/src/modules/proposals/proposals.service.ts`
+- [X] T025 [P] [US3] Dispatch `PointAwardedEvent` (teacher award to student) and `PointAdjustedEvent` (admin balance adjustment) from `PointsService` in `backend/src/modules/points/points.service.ts`
+- [X] T026 [P] [US3] Dispatch `VerificationReviewedEvent` (acceptance/rejection), `ActivityBanEvent` (upon 3rd rejection trigger), and `ActivityUnblockEvent` (upon admin manual unblock) from `ActivitiesService` in `backend/src/modules/activities/activities.service.ts`
 
 **Checkpoint**: All student-facing automated notification workflows are fully functional and verifiable.
 
@@ -116,14 +116,14 @@
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T027 [P] [US4] Integration tests for multi-admin fan-out notification delivery: verify student reward request submissions requiring approval (`PENDING_TO_APPROVE`), task proposal submissions (`PENDING_TO_APPROVE`), student proposal messages, and activity verification submissions create independent unread notifications for all active administrators, exclude deactivated administrators, and maintain independent read statuses per administrator in `backend/test/integration/notifications.integration-spec.ts`
+- [X] T027 [P] [US4] Integration tests for multi-admin fan-out notification delivery: verify student reward request submissions requiring approval (`PENDING_TO_APPROVE`), task proposal submissions (`PENDING_TO_APPROVE`), student proposal messages, and activity verification submissions create independent unread notifications for all active administrators, exclude deactivated administrators, and maintain independent read statuses per administrator in `backend/test/integration/notifications.integration-spec.ts`
 
 ### Implementation for User Story 4
 
-- [ ] T028 [US4] Implement multi-admin fan-out helper and event handlers in `NotificationsListener` querying all active administrators (`prisma.user.findMany({ where: { role: 'ADMIN', accountState: 'ACTIVE' } })`) and inserting records via `prisma.notification.createMany` for `RewardRequiresApprovalEvent`, proposal submission events, student proposal message events, and `VerificationSubmittedEvent` in `backend/src/modules/notifications/notifications.listener.ts`
-- [ ] T029 [P] [US4] Dispatch `RewardRequiresApprovalEvent` from `RewardsService` when a student creates a reward request requiring approval (`PENDING_TO_APPROVE`) in `backend/src/modules/rewards/rewards.service.ts`
-- [ ] T030 [P] [US4] Dispatch proposal submission event and student message event from `ProposalsService` in `backend/src/modules/proposals/proposals.service.ts`
-- [ ] T031 [P] [US4] Dispatch `VerificationSubmittedEvent` from `ActivitiesService` when a student submits challenge or mission verification evidence in `backend/src/modules/activities/activities.service.ts`
+- [X] T028 [US4] Implement multi-admin fan-out helper and event handlers in `NotificationsListener` querying all active administrators (`prisma.user.findMany({ where: { role: 'ADMIN', accountState: 'ACTIVE' } })`) and inserting records via `prisma.notification.createMany` for `RewardRequiresApprovalEvent`, proposal submission events, student proposal message events, and `VerificationSubmittedEvent` in `backend/src/modules/notifications/notifications.listener.ts`
+- [X] T029 [P] [US4] Dispatch `RewardRequiresApprovalEvent` from `RewardsService` when a student creates a reward request requiring approval (`PENDING_TO_APPROVE`) in `backend/src/modules/rewards/rewards.service.ts`
+- [X] T030 [P] [US4] Dispatch proposal submission event and student message event from `ProposalsService` in `backend/src/modules/proposals/proposals.service.ts`
+- [X] T031 [P] [US4] Dispatch `VerificationSubmittedEvent` from `ActivitiesService` when a student submits challenge or mission verification evidence in `backend/src/modules/activities/activities.service.ts`
 
 **Checkpoint**: Multi-admin review alert broadcasting is fully operational.
 
@@ -137,12 +137,12 @@
 
 ### Tests for User Story 5 ⚠️
 
-- [ ] T032 [P] [US5] Integration tests for teacher budget allocation notifications: verify transferring points from system pool to a teacher creates a notification exclusively in the target teacher's inbox with allocated amount and new balance, with zero notifications delivered to other teachers in `backend/test/integration/notifications.integration-spec.ts`
+- [X] T032 [P] [US5] Integration tests for teacher budget allocation notifications: verify transferring points from system pool to a teacher creates a notification exclusively in the target teacher's inbox with allocated amount and new balance, with zero notifications delivered to other teachers in `backend/test/integration/notifications.integration-spec.ts`
 
 ### Implementation for User Story 5
 
-- [ ] T033 [US5] Implement `PointAllocatedEvent` handler in `NotificationsListener` creating an unread `POINT_ALLOCATION` notification for the recipient teacher in `backend/src/modules/notifications/notifications.listener.ts`
-- [ ] T034 [US5] Dispatch `PointAllocatedEvent` from `PointsService` upon successful point allocation from system pool to teacher budget (`fundTeacherBudget`) in `backend/src/modules/points/points.service.ts`
+- [X] T033 [US5] Implement `PointAllocatedEvent` handler in `NotificationsListener` creating an unread `POINT_ALLOCATION` notification for the recipient teacher in `backend/src/modules/notifications/notifications.listener.ts`
+- [X] T034 [US5] Dispatch `PointAllocatedEvent` from `PointsService` upon successful point allocation from system pool to teacher budget (`fundTeacherBudget`) in `backend/src/modules/points/points.service.ts`
 
 **Checkpoint**: All user stories (US1 through US5) are implemented and functional.
 
@@ -152,10 +152,10 @@
 
 **Purpose**: API documentation refinement, comprehensive end-to-end verification, error propagation auditing, and non-regression validation across the full backend suite.
 
-- [ ] T035 [P] Add OpenAPI Swagger annotations (`@ApiTags`, `@ApiOperation`, `@ApiResponse`, `@ApiQuery`, `@ApiParam`) across `NotificationsController` and all notification DTOs in `backend/src/modules/notifications/`
-- [ ] T036 Implement and execute full End-to-End Quickstart Validation test suite covering all 6 verification scenarios from `quickstart.md` in `backend/test/e2e/quickstart-validation.e2e-spec.ts`
-- [ ] T037 [P] Audit notification error propagation, structured JSON logging, and correlation ID handling to ensure compliance with Constitution Principle VII (Error Handling & Observability) in `backend/src/modules/notifications/`
-- [ ] T038 Execute complete backend test suite (`npm run test`, `npm run test:e2e`) and TypeScript build check (`npm run build`) to confirm zero regressions across all modules in `backend/`
+- [X] T035 [P] Add OpenAPI Swagger annotations (`@ApiTags`, `@ApiOperation`, `@ApiResponse`, `@ApiQuery`, `@ApiParam`) across `NotificationsController` and all notification DTOs in `backend/src/modules/notifications/`
+- [X] T036 Implement and execute full End-to-End Quickstart Validation test suite covering all 6 verification scenarios from `quickstart.md` in `backend/test/e2e/quickstart-validation.e2e-spec.ts`
+- [X] T037 [P] Audit notification error propagation, structured JSON logging, and correlation ID handling to ensure compliance with Constitution Principle VII (Error Handling & Observability) in `backend/src/modules/notifications/`
+- [X] T038 Execute complete backend test suite (`npm run test`, `npm run test:e2e`) and TypeScript build check (`npm run build`) to confirm zero regressions across all modules in `backend/`
 
 ---
 

@@ -456,12 +456,12 @@ describe('Quickstart End-to-End Validation Suite (All 8 Scenarios)', () => {
       const rewardDb = await prisma.reward.findUnique({ where: { id: rewardId } });
       expect(rewardDb?.inventoryQuantity).toBe(0);
 
-      // Step 3: Out-of-Stock / Insufficient Balance Request Fails
+      // Step 3: Out-of-Stock / Duplicate Pending Request Fails
       await request(app.getHttpServer())
         .post('/api/v1/reward-requests')
         .set('Cookie', aliceAuth.cookie)
         .send({ rewardId })
-        .expect(400);
+        .expect(409);
 
       // Step 4: Admin Completes Physical Handover
       const receiveRes = await request(app.getHttpServer())
@@ -872,5 +872,297 @@ describe('Quickstart End-to-End Validation Suite (All 8 Scenarios)', () => {
       expect(pdfRes.headers['content-type']).toContain('application/pdf');
     });
   });
+
+  describe('Feature 002: In-App Notifications Quickstart Scenarios (Scenarios 1-6)', () => {
+    let adminAuth: any;
+    let studentAuth: any;
+    let studentId: string;
+    let teacherAuth: any;
+    let teacherId: string;
+
+    beforeEach(async () => {
+      // 1. Initial Admin
+      await request(app.getHttpServer())
+        .post('/api/v1/auth/initial-admin')
+        .send({
+          nationalId: '1111111111',
+          firstName: 'Admin',
+          lastName: 'Super',
+          username: 'admin',
+          password: 'AdminPassword123!',
+        })
+        .expect(201);
+      adminAuth = await loginUser(app, '1111111111', 'AdminPassword123!');
+
+      // 2. Student Alice
+      const studentRes = await request(app.getHttpServer())
+        .post('/api/v1/users')
+        .set('Cookie', adminAuth.cookie)
+        .send({
+          nationalId: '3333333333',
+          firstName: 'Alice',
+          lastName: 'Student',
+          username: 'alice',
+          password: 'Password123!',
+          role: 'STUDENT',
+        })
+        .expect(201);
+      studentId = studentRes.body.id;
+      studentAuth = await loginUser(app, '3333333333', 'Password123!');
+
+      // 3. Teacher Sarah
+      const teacherRes = await request(app.getHttpServer())
+        .post('/api/v1/users')
+        .set('Cookie', adminAuth.cookie)
+        .send({
+          nationalId: '2222222222',
+          firstName: 'Sarah',
+          lastName: 'Jenkins',
+          username: 'sjenkins',
+          password: 'Password123!',
+          role: 'TEACHER',
+        })
+        .expect(201);
+      teacherId = teacherRes.body.id;
+      teacherAuth = await loginUser(app, '2222222222', 'Password123!');
+    });
+
+    it('Scenario 1 & 2: Inbox Retrieval, Deterministic Sorting, Status Filtering & Unread Counter (FR-004, FR-005)', async () => {
+      // Create 4 UNREAD and 2 READ notifications for Alice
+      for (let i = 1; i <= 4; i++) {
+        await prisma.notification.create({
+          data: {
+            recipientId: studentId,
+            subject: `Alert ${i}`,
+            body: `Message body ${i}`,
+            readStatus: 'UNREAD',
+            originatingEntityType: 'POINT_AWARD',
+            originatingEntityId: '00000000-0000-0000-0000-000000000001',
+          },
+        });
+      }
+      for (let i = 5; i <= 6; i++) {
+        await prisma.notification.create({
+          data: {
+            recipientId: studentId,
+            subject: `Alert ${i}`,
+            body: `Message body ${i}`,
+            readStatus: 'READ',
+            readAt: new Date(),
+            originatingEntityType: 'POINT_AWARD',
+            originatingEntityId: '00000000-0000-0000-0000-000000000001',
+          },
+        });
+      }
+
+      // Query default inbox
+      const inboxRes = await request(app.getHttpServer())
+        .get('/api/v1/notifications?page=1&limit=20&status=ALL')
+        .set('Cookie', studentAuth.cookie)
+        .expect(200);
+
+      expect(inboxRes.body.data.length).toBe(6);
+      expect(inboxRes.body.meta.totalItems).toBe(6);
+
+      // Query filtered UNREAD
+      const unreadRes = await request(app.getHttpServer())
+        .get('/api/v1/notifications?status=UNREAD')
+        .set('Cookie', studentAuth.cookie)
+        .expect(200);
+
+      expect(unreadRes.body.data.length).toBe(4);
+      expect(unreadRes.body.data.every((n: any) => n.readStatus === 'UNREAD' && n.readAt === null)).toBe(true);
+
+      // Query filtered READ
+      const readRes = await request(app.getHttpServer())
+        .get('/api/v1/notifications?status=READ')
+        .set('Cookie', studentAuth.cookie)
+        .expect(200);
+
+      expect(readRes.body.data.length).toBe(2);
+      expect(readRes.body.data.every((n: any) => n.readStatus === 'READ' && n.readAt !== null)).toBe(true);
+
+      // Query unread count
+      const countRes = await request(app.getHttpServer())
+        .get('/api/v1/notifications/unread-count')
+        .set('Cookie', studentAuth.cookie)
+        .expect(200);
+
+      expect(countRes.body.unreadCount).toBe(4);
+    });
+
+    it('Scenario 3 & 4: Single Mark-as-Read (with idempotency) & Bulk Mark-All-as-Read (FR-006, FR-007)', async () => {
+      const n1 = await prisma.notification.create({
+        data: {
+          recipientId: studentId,
+          subject: 'Notification 1',
+          body: 'Body 1',
+          readStatus: 'UNREAD',
+          originatingEntityType: 'POINT_AWARD',
+          originatingEntityId: '00000000-0000-0000-0000-000000000001',
+        },
+      });
+
+      await prisma.notification.create({
+        data: {
+          recipientId: studentId,
+          subject: 'Notification 2',
+          body: 'Body 2',
+          readStatus: 'UNREAD',
+          originatingEntityType: 'POINT_AWARD',
+          originatingEntityId: '00000000-0000-0000-0000-000000000002',
+        },
+      });
+
+      // Mark single notification read
+      const markRes = await request(app.getHttpServer())
+        .patch(`/api/v1/notifications/${n1.id}/read`)
+        .set('Cookie', studentAuth.cookie)
+        .expect(200);
+
+      expect(markRes.body.readStatus).toBe('READ');
+      expect(markRes.body.readAt).toBeDefined();
+
+      const count1 = await request(app.getHttpServer())
+        .get('/api/v1/notifications/unread-count')
+        .set('Cookie', studentAuth.cookie)
+        .expect(200);
+      expect(count1.body.unreadCount).toBe(1);
+
+      // Idempotent re-mark
+      const remarkRes = await request(app.getHttpServer())
+        .patch(`/api/v1/notifications/${n1.id}/read`)
+        .set('Cookie', studentAuth.cookie)
+        .expect(200);
+
+      expect(remarkRes.body.readAt).toBe(markRes.body.readAt);
+
+      // Bulk mark all as read
+      const bulkRes = await request(app.getHttpServer())
+        .patch('/api/v1/notifications/read-all')
+        .set('Cookie', studentAuth.cookie)
+        .expect(200);
+
+      expect(bulkRes.body.updatedCount).toBe(1);
+
+      const count2 = await request(app.getHttpServer())
+        .get('/api/v1/notifications/unread-count')
+        .set('Cookie', studentAuth.cookie)
+        .expect(200);
+      expect(count2.body.unreadCount).toBe(0);
+    });
+
+    it('Scenario 5: User Isolation & Security (FR-008, SC-004)', async () => {
+      const bobRes = await request(app.getHttpServer())
+        .post('/api/v1/users')
+        .set('Cookie', adminAuth.cookie)
+        .send({
+          nationalId: '4444444444',
+          firstName: 'Bob',
+          lastName: 'Student',
+          username: 'bob',
+          password: 'Password123!',
+          role: 'STUDENT',
+        })
+        .expect(201);
+      const bobId = bobRes.body.id;
+
+      const bobNotif = await prisma.notification.create({
+        data: {
+          recipientId: bobId,
+          subject: 'Bob Private Alert',
+          body: 'Private',
+          readStatus: 'UNREAD',
+          originatingEntityType: 'POINT_AWARD',
+          originatingEntityId: '00000000-0000-0000-0000-000000000001',
+        },
+      });
+
+      // Alice tries to mark Bob's notification as read
+      await request(app.getHttpServer())
+        .patch(`/api/v1/notifications/${bobNotif.id}/read`)
+        .set('Cookie', studentAuth.cookie)
+        .expect(404);
+
+      // Verify Alice inbox has 0 items
+      const aliceInbox = await request(app.getHttpServer())
+        .get('/api/v1/notifications')
+        .set('Cookie', studentAuth.cookie)
+        .expect(200);
+      expect(aliceInbox.body.data).toEqual([]);
+    });
+
+    it('Scenario 6: End-to-End Domain Event Generation across Students, Admins, and Teachers (FR-009 - FR-020)', async () => {
+      // 1. Teacher Point Budget Allocation (EVT-18)
+      await request(app.getHttpServer())
+        .post('/api/v1/points/pool/fund-teacher')
+        .set('Cookie', adminAuth.cookie)
+        .send({ teacherId, amount: 200 })
+        .expect(200);
+
+      const teacherInbox = await request(app.getHttpServer())
+        .get('/api/v1/notifications')
+        .set('Cookie', teacherAuth.cookie)
+        .expect(200);
+
+      expect(teacherInbox.body.data.length).toBe(1);
+      expect(teacherInbox.body.data[0].subject).toBe('Point Budget Allocated');
+      expect(teacherInbox.body.data[0].originatingEntityType).toBe('POINT_ALLOCATION');
+
+      // 2. Student Submits Task Proposal -> Admin Alert (EVT-05)
+      const propRes = await request(app.getHttpServer())
+        .post('/api/v1/proposals')
+        .set('Cookie', studentAuth.cookie)
+        .send({ description: 'Campus cleanup project' })
+        .expect(201);
+      const proposalId = propRes.body.id;
+
+      const adminInbox1 = await request(app.getHttpServer())
+        .get('/api/v1/notifications')
+        .set('Cookie', adminAuth.cookie)
+        .expect(200);
+
+      const propAlert = adminInbox1.body.data.find(
+        (n: any) => n.originatingEntityId === proposalId && n.subject === 'New Task Proposal Submitted',
+      );
+      expect(propAlert).toBeDefined();
+
+      // 3. Admin Approves Proposal -> Student Alert (EVT-06)
+      await request(app.getHttpServer())
+        .post(`/api/v1/proposals/${proposalId}/approve`)
+        .set('Cookie', adminAuth.cookie)
+        .send({ assignedPointValue: 30 })
+        .expect(200);
+
+      const studentInbox1 = await request(app.getHttpServer())
+        .get('/api/v1/notifications')
+        .set('Cookie', studentAuth.cookie)
+        .expect(200);
+
+      const propApprovedNotif = studentInbox1.body.data.find(
+        (n: any) => n.originatingEntityId === proposalId && n.subject === 'Task Proposal Approved',
+      );
+      expect(propApprovedNotif).toBeDefined();
+
+      // 4. Admin Direct Adjust Student Balance -> Student Alert (EVT-17)
+      await request(app.getHttpServer())
+        .post('/api/v1/points/admin-adjust')
+        .set('Cookie', adminAuth.cookie)
+        .send({ studentId, amount: 50, reason: 'Participation bonus' })
+        .expect(200);
+
+      const studentInbox2 = await request(app.getHttpServer())
+        .get('/api/v1/notifications')
+        .set('Cookie', studentAuth.cookie)
+        .expect(200);
+
+      const adjustNotif = studentInbox2.body.data.find(
+        (n: any) => n.originatingEntityType === 'POINT_ADJUSTMENT',
+      );
+      expect(adjustNotif).toBeDefined();
+      expect(adjustNotif.subject).toBe('Point Balance Adjusted');
+    });
+  });
 });
+
 

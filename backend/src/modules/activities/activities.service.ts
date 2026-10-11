@@ -5,6 +5,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuditLogService } from '../points/audit-log.service';
 import {
@@ -23,6 +24,12 @@ import {
   RecipientType,
   ActionType,
 } from '@prisma/client';
+import {
+  VerificationReviewedEvent,
+  VerificationSubmittedEvent,
+  ActivityBanEvent,
+  ActivityUnblockEvent,
+} from '../notifications/events/activity-events';
 
 @Injectable()
 export class ActivitiesService {
@@ -30,6 +37,7 @@ export class ActivitiesService {
     private prisma: PrismaService,
     private auditLogService: AuditLogService,
     private configService: ConfigService,
+    private eventEmitter: EventEmitter2,
   ) {}
 
   // Activity CRUD (FR-035, FR-036, FR-087)
@@ -225,7 +233,12 @@ export class ActivitiesService {
       }
     }
 
-    return this.prisma.verificationRequest.create({
+    const student = await this.prisma.user.findUnique({
+      where: { id: studentId },
+    });
+    const studentName = student ? `${student.firstName} ${student.lastName}` : 'Student';
+
+    const verification = await this.prisma.verificationRequest.create({
       data: {
         studentId,
         activityId,
@@ -237,6 +250,19 @@ export class ActivitiesService {
         activity: true,
       },
     });
+
+    await this.eventEmitter.emitAsync(
+      'verification.submitted',
+      new VerificationSubmittedEvent(
+        verification.id,
+        studentId,
+        studentName,
+        activity.type,
+        activity.title,
+      ),
+    );
+
+    return verification;
   }
 
   async findAllVerifications(filter: {
@@ -332,7 +358,7 @@ export class ActivitiesService {
       });
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       // Update verification
       const updatedVerification = await tx.verificationRequest.update({
         where: { id },
@@ -407,6 +433,21 @@ export class ActivitiesService {
 
       return updatedVerification;
     });
+
+    await this.eventEmitter.emitAsync(
+      'verification.reviewed',
+      new VerificationReviewedEvent(
+        result.id,
+        result.studentId,
+        result.activity.type,
+        result.activity.title,
+        VerificationStatus.ACCEPTED,
+        result.activity.pointValue,
+        null,
+      ),
+    );
+
+    return result;
   }
 
   // Admin Rejection & Dynamic 3-Strike Ban (FR-041, FR-042)
@@ -432,7 +473,7 @@ export class ActivitiesService {
       });
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const updatedVerification = await tx.verificationRequest.update({
         where: { id },
         data: {
@@ -488,6 +529,33 @@ export class ActivitiesService {
         studentBannedUntil: bannedUntil,
       };
     });
+
+    await this.eventEmitter.emitAsync(
+      'verification.reviewed',
+      new VerificationReviewedEvent(
+        result.id,
+        result.studentId,
+        result.activity.type,
+        result.activity.title,
+        VerificationStatus.REJECTED,
+        undefined,
+        dto.rejectionReason || 'Submission rejected by administrator',
+      ),
+    );
+
+    if (result.studentBannedUntil) {
+      await this.eventEmitter.emitAsync(
+        'activity.ban',
+        new ActivityBanEvent(
+          result.activityId,
+          result.studentId,
+          result.activity.title,
+          result.studentBannedUntil,
+        ),
+      );
+    }
+
+    return result;
   }
 
   // Admin Manual Unban (FR-043)
@@ -499,6 +567,9 @@ export class ActivitiesService {
           activityId: dto.activityId,
         },
       },
+      include: {
+        activity: true,
+      },
     });
 
     if (!progress) {
@@ -509,7 +580,7 @@ export class ActivitiesService {
       });
     }
 
-    return this.prisma.studentActivityProgress.update({
+    const updated = await this.prisma.studentActivityProgress.update({
       where: {
         studentId_activityId: {
           studentId,
@@ -521,5 +592,16 @@ export class ActivitiesService {
         rejectionCount: 0,
       },
     });
+
+    await this.eventEmitter.emitAsync(
+      'activity.unblock',
+      new ActivityUnblockEvent(
+        dto.activityId,
+        studentId,
+        progress.activity?.title || 'Activity',
+      ),
+    );
+
+    return updated;
   }
 }

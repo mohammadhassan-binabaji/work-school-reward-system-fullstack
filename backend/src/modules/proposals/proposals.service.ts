@@ -4,6 +4,7 @@ import {
   BadRequestException,
   ForbiddenException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuditLogService } from '../points/audit-log.service';
 import {
@@ -21,12 +22,18 @@ import {
   RecipientType,
   ActionType,
 } from '@prisma/client';
+import {
+  ProposalStatusChangedEvent,
+  ProposalSubmittedEvent,
+  ProposalMessageEvent,
+} from '../notifications/events/proposal-events';
 
 @Injectable()
 export class ProposalsService {
   constructor(
     private prisma: PrismaService,
     private auditLogService: AuditLogService,
+    private eventEmitter: EventEmitter2,
   ) {}
 
   // Proposal Submission (FR-044, FR-089)
@@ -43,7 +50,7 @@ export class ProposalsService {
       });
     }
 
-    return this.prisma.studentTaskProposal.create({
+    const proposal = await this.prisma.studentTaskProposal.create({
       data: {
         studentId,
         description: dto.description,
@@ -53,6 +60,18 @@ export class ProposalsService {
         messages: true,
       },
     });
+
+    await this.eventEmitter.emitAsync(
+      'proposal.submitted',
+      new ProposalSubmittedEvent(
+        proposal.id,
+        studentId,
+        `${student.firstName} ${student.lastName}`,
+        proposal.description.substring(0, 50),
+      ),
+    );
+
+    return proposal;
   }
 
   // Query Proposals with Privacy Isolation (FR-050, FR-051, FR-052, FR-053)
@@ -175,7 +194,7 @@ export class ProposalsService {
       });
     }
 
-    return this.prisma.studentTaskProposal.update({
+    const updated = await this.prisma.studentTaskProposal.update({
       where: { id },
       data: {
         status: ProposalStatus.READY_TO_DO,
@@ -185,6 +204,19 @@ export class ProposalsService {
       },
       include: { messages: true },
     });
+
+    await this.eventEmitter.emitAsync(
+      'proposal.status_changed',
+      new ProposalStatusChangedEvent(
+        updated.id,
+        updated.studentId,
+        ProposalStatus.READY_TO_DO,
+        dto.assignedPointValue,
+        null,
+      ),
+    );
+
+    return updated;
   }
 
   // Admin Point Value Update in READY_TO_DO (FR-046)
@@ -206,10 +238,23 @@ export class ProposalsService {
       });
     }
 
-    return this.prisma.studentTaskProposal.update({
+    const updated = await this.prisma.studentTaskProposal.update({
       where: { id },
       data: { assignedPointValue: dto.assignedPointValue },
     });
+
+    await this.eventEmitter.emitAsync(
+      'proposal.status_changed',
+      new ProposalStatusChangedEvent(
+        updated.id,
+        updated.studentId,
+        ProposalStatus.READY_TO_DO,
+        dto.assignedPointValue,
+        null,
+      ),
+    );
+
+    return updated;
   }
 
   // Admin Decline (FR-045)
@@ -231,7 +276,7 @@ export class ProposalsService {
       });
     }
 
-    return this.prisma.studentTaskProposal.update({
+    const updated = await this.prisma.studentTaskProposal.update({
       where: { id },
       data: {
         status: ProposalStatus.DECLINED,
@@ -239,6 +284,19 @@ export class ProposalsService {
         declineReason: dto.declineReason ?? null,
       },
     });
+
+    await this.eventEmitter.emitAsync(
+      'proposal.status_changed',
+      new ProposalStatusChangedEvent(
+        updated.id,
+        updated.studentId,
+        ProposalStatus.DECLINED,
+        null,
+        dto.declineReason ?? null,
+      ),
+    );
+
+    return updated;
   }
 
   // Student Cancellation (FR-047)
@@ -305,7 +363,7 @@ export class ProposalsService {
       });
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const updatedProposal = await tx.studentTaskProposal.update({
         where: { id },
         data: {
@@ -356,6 +414,19 @@ export class ProposalsService {
 
       return updatedProposal;
     });
+
+    await this.eventEmitter.emitAsync(
+      'proposal.status_changed',
+      new ProposalStatusChangedEvent(
+        proposal.id,
+        proposal.studentId,
+        ProposalStatus.COMPLETED,
+        awardPoints,
+        null,
+      ),
+    );
+
+    return result;
   }
 
   // In-Request Messaging (FR-049, FR-090)
@@ -405,7 +476,15 @@ export class ProposalsService {
       });
     }
 
-    return this.prisma.taskProposalMessage.create({
+    const senderUser = await this.prisma.user.findUnique({
+      where: { id: sender.id },
+    });
+
+    const senderName = senderUser
+      ? `${senderUser.firstName} ${senderUser.lastName}`
+      : 'User';
+
+    const message = await this.prisma.taskProposalMessage.create({
       data: {
         proposalId,
         senderId: sender.id,
@@ -423,6 +502,20 @@ export class ProposalsService {
         },
       },
     });
+
+    await this.eventEmitter.emitAsync(
+      'proposal.message',
+      new ProposalMessageEvent(
+        proposalId,
+        proposal.studentId,
+        sender.id,
+        sender.role,
+        senderName,
+        dto.message.substring(0, 100),
+      ),
+    );
+
+    return message;
   }
 
   async getProposalMessages(proposalId: string, currentUser: { id: string; role: Role }) {

@@ -1,6 +1,7 @@
 import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { APP_GUARD } from '@nestjs/core';
 import { appConfig } from './config/env.config';
 import { PrismaModule } from './common/prisma/prisma.module';
@@ -21,6 +22,7 @@ import { ProposalsModule } from './modules/proposals/proposals.module';
 import { RankingsModule } from './modules/rankings/rankings.module';
 import { GuidanceModule } from './modules/guidance/guidance.module';
 import { ReportsModule } from './modules/reports/reports.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -29,6 +31,7 @@ import { ReportsModule } from './modules/reports/reports.module';
       load: [appConfig],
     }),
     ScheduleModule.forRoot(),
+    EventEmitterModule.forRoot(),
     PrismaModule,
     RedisModule,
     StorageModule,
@@ -42,6 +45,7 @@ import { ReportsModule } from './modules/reports/reports.module';
     RankingsModule,
     GuidanceModule,
     ReportsModule,
+    NotificationsModule,
   ],
   providers: [
     {
