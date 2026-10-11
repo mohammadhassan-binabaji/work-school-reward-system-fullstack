@@ -14,7 +14,11 @@
     "build:teacher": "npm run build --workspace=@student-reward/teacher",
     "build:admin": "npm run build --workspace=@student-reward/admin",
     "build": "npm run build --workspaces --if-present",
-    "typecheck": "npm run typecheck --workspaces --if-present"
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test:student": "npm run test --workspace=@student-reward/student",
+    "cap:sync:student": "npm run cap:sync --workspace=@student-reward/student",
+    "cap:open:student": "npm run cap:open --workspace=@student-reward/student",
+    "cap:build:student": "npm run cap:build --workspace=@student-reward/student"
   },
   "dependencies": {
     "vue": "^3.4.27",

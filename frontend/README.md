@@ -202,12 +202,39 @@ server {
     location / {
         try_files $uri $uri/ /index.html;
     }
+
+    # سرو فایل استاتیک نگارش اپلیکیشن اندروید با هدر جلوگیری از کش
+    location = /app-version.json {
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+        add_header Pragma "no-cache";
+        expires 0;
+    }
 }
 ```
 
 ---
 
-## ۸. احراز هویت و امنیت (Authentication & Security)
+## ۸. اپلیکیشن موبایل اندروید دانش‌آموز (Capacitor Android Project)
+
+اپلیکیشن دانش‌آموز به پروژه نیتیو اندروید با استفاده از **Capacitor 8** مجهز شده است:
+* **مسیر پروژه اندروید:** `frontend/apps/student/android`
+* **شناسه بسته اندروید:** `com.studentreward.student`
+* **دستورات کلیدی:**
+  ```bash
+  # بیلد وب و همگام‌سازی است‌ها با پروژه اندروید
+  npm run cap:build:student
+
+  # باز کردن پروژه در Android Studio
+  npm run cap:open:student
+
+  # اجرای آزمون‌های یونیت اعتبارسنجی نگارش برنامه
+  npm run test:student
+  ```
+برای مطالعه راهنمای کامل ساخت APK / AAB و بررسی نگارش، به مستند `frontend/apps/student/README.md` مراجعه فرمایید.
+
+---
+
+## ۹. احراز هویت و امنیت (Authentication & Security)
 
 * ورود کاربران در تمامی اپلیکیشن‌ها از طریق **کد ملی ۱۰ رقمی** و **رمز عبور** انجام می‌شود.
 * کلاینت متمرکز `api.ts` شناسه نشست (`sessionId`) را پس از ورود ذخیره کرده و در تمامی درخواست‌ها در هدر `Authorization: Bearer <sessionId>` و هدر `x-session-id` ارسال می‌کند، علاوه بر اینکه کوکی‌های HTTP-Only نیز با `credentials: include` ارسال می‌شوند.

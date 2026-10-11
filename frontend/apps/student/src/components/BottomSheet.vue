@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { watch, onUnmounted } from 'vue';
 import { X } from 'lucide-vue-next';
+import { registerBackHandler } from '../services/mobileNavigation';
 
 interface Props {
   isOpen: boolean;
@@ -18,6 +19,8 @@ const emit = defineEmits<{
   (e: 'close'): void;
 }>();
 
+let unregisterBack: (() => void) | null = null;
+
 watch(
   () => props.isOpen,
   (open) => {
@@ -28,12 +31,31 @@ watch(
         document.body.style.overflow = '';
       }
     }
+
+    if (open) {
+      if (!unregisterBack) {
+        unregisterBack = registerBackHandler(() => {
+          emit('close');
+          return true;
+        });
+      }
+    } else {
+      if (unregisterBack) {
+        unregisterBack();
+        unregisterBack = null;
+      }
+    }
   },
+  { immediate: true },
 );
 
 onUnmounted(() => {
   if (typeof document !== 'undefined') {
     document.body.style.overflow = '';
+  }
+  if (unregisterBack) {
+    unregisterBack();
+    unregisterBack = null;
   }
 });
 

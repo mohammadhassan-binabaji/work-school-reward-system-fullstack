@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">ناصر نوین</string>
+    <string name="title_activity_main">ناصر نوین</string>
+    <string name="package_name">ir.mhbj.student</string>
+    <string name="custom_url_scheme">ir.mhbj.student</string>
+</resources>

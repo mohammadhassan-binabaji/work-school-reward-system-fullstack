@@ -1,18 +1,32 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from './stores/auth';
 import { useNotificationsStore } from './stores/notifications';
+import { useVersionStore } from './stores/version';
+import { setupMobileNavigation } from './services/mobileNavigation';
 import StudentHeader from './components/StudentHeader.vue';
 import StudentBottomNav from './components/StudentBottomNav.vue';
+import VersionUpdateModal from './components/VersionUpdateModal.vue';
 
 const route = useRoute();
+const router = useRouter();
 const authStore = useAuthStore();
 const notifStore = useNotificationsStore();
+const versionStore = useVersionStore();
 
 const isAuthPage = computed(() => route.path === '/login');
 
 onMounted(async () => {
+  setupMobileNavigation(router, {
+    isMandatoryUpdateActive: () => versionStore.isMandatoryUpdate,
+  });
+
+  // Non-blocking version check
+  versionStore.checkVersion().catch((e) => {
+    console.warn('Initial app version check failed:', e);
+  });
+
   if (authStore.isAuthenticated) {
     await notifStore.fetchUnreadCount();
   }
@@ -21,6 +35,9 @@ onMounted(async () => {
 
 <template>
   <div class="min-h-screen bg-[#0B0E14] text-white flex flex-col font-sans select-none">
+    <!-- Version update modal / notifications -->
+    <VersionUpdateModal />
+
     <!-- Login page layout -->
     <template v-if="isAuthPage">
       <router-view />
