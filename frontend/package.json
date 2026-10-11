@@ -1,0 +1,34 @@
+{
+  "name": "student-reward-frontend-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:student": "npm run dev --workspace=@student-reward/student",
+    "dev:teacher": "npm run dev --workspace=@student-reward/teacher",
+    "dev:admin": "npm run dev --workspace=@student-reward/admin",
+    "build:student": "npm run build --workspace=@student-reward/student",
+    "build:teacher": "npm run build --workspace=@student-reward/teacher",
+    "build:admin": "npm run build --workspace=@student-reward/admin",
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "dependencies": {
+    "vue": "^3.4.27",
+    "vue-router": "^4.3.2",
+    "pinia": "^2.1.7",
+    "lucide-vue-next": "^0.378.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.0.4",
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.3",
+    "typescript": "^5.4.5",
+    "vite": "^5.2.11",
+    "vue-tsc": "^2.0.19"
+  }
+}
