@@ -71,6 +71,11 @@ This document analyzes the visual design and user experience intent of the provi
     * Fixed icon container on the right (~48x48px) featuring a dark translucent backing or vibrant 3D/neon category icon (3D gold trophy/star, glowing green shield/flag, electric blue cap).
     * Text container on the left holding white Title, muted gray Description, and glowing neon Point Value.
     * Absence of clickable affordances (no chevrons, arrows, tap shadows, or CTA buttons).
+  * **Guidance Empty State Component:**
+    * When no guidance cards are currently active or provisioned in the backend, the screen renders a centered, motivational empty state container below the hero greeting.
+    * Features a 3D blue bird mascot illustration in an inquisitive pose, framed by a soft neon-glowing border.
+    * Primary text: `«هنوز راهنمایی برای کسب نوین ثبت نشده است»` in crisp white Persian typography.
+    * Secondary copy: `«به زودی فعالیت‌های جدید توسط مدرسه اضافه خواهد شد. در این فاصله می‌توانید چالش‌ها و جوایز دیگر را بررسی کنید!»` in muted slate-gray text.
 * **DESIGN INTENT:** Guidance cards are strictly read-only for students. They communicate rules, expectations, and values created by administrators.
 
 ## 8. Interaction Patterns
@@ -120,7 +125,7 @@ This document analyzes the visual design and user experience intent of the provi
 * **Permissions:** Guidance cards are managed exclusively by administrators (selecting predefined logos, titles, descriptions, and point values/ranges) and remain completely non-interactive for students.
 * **Confirmed Rules & Constraints (Resolving Open Points):**
   * **Chronological Sorting:** The card stream is ordered strictly **newest first** (latest added guidance card appears at the very top of the list).
-  * **Permanent Content State:** The system always contains pre-populated guidance cards; there is **no empty state** needed for the student view.
+  * **Dynamic Content & Empty State Handling:** While the system typically contains pre-populated guidance cards, if zero cards exist (e.g. fresh installation or all cards removed by administrator), an **Empty State** is explicitly provided. The screen displays the inquisitive 3D bird mascot with motivational copy: `«هنوز راهنمایی برای کسب نوین ثبت نشده است»` and `«به زودی فعالیت‌های جدید توسط مدرسه اضافه خواهد شد.»` to prevent layout collapse.
   * **Title Constraint (30 Chars):** Activity titles are capped at a maximum of **30 characters**, ensuring titles stay on 1 or at most 2 compact lines and do not overwhelm the card header.
   * **Flexible Description Length:** Descriptions have no arbitrary character limit; the card container height expands dynamically to accommodate the full explanatory text without ellipsis truncation, preserving its role as a clear reference document.
 * **Recommended Enhancements:**
@@ -138,4 +143,4 @@ This document analyzes the visual design and user experience intent of the provi
 
 * **Dynamic Card Heights:** Because titles are capped at 30 characters while descriptions have no length limit, individual dark card heights will vary naturally based on description length. Generous vertical spacing (~12–16px) between neon-bordered cards will prevent visual crowding of the outer glows and maintain rhythm.
 * **Single Value vs. Range Display:** The card value slot must seamlessly accommodate both exact figures (e.g., "۵۰ نوین") and variable spans (e.g., "۵۰ تا ۱۵۰ نوین") using the same dark neon-accented pill badge layout.
-* **Scroll Performance with Newest-First Sorting:** Because cards are ordered newest-first and cards are never empty, returning students will immediately see newly introduced point-earning opportunities at the top of the dark feed without scrolling.
+* **Scroll Performance with Newest-First Sorting:** Because cards are ordered newest-first, returning students will immediately see newly introduced point-earning opportunities at the top of the dark feed without scrolling. In the event that no cards are present, the empty state ensures an engaging and polished fallback experience.

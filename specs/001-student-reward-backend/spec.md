@@ -274,7 +274,7 @@ As a school administrator, teacher, and student, I need the system to permanentl
 - **FR-043**: The system MUST allow administrators to manually unban/unblock a student for an activity from the student's profile/details page, immediately restoring submission eligibility.
 
 #### Student Task Proposals & In-Request Messaging
-- **FR-044**: The system MUST allow students to submit voluntary task proposals, initializing them in `Pending to Approve` status.
+- **FR-044**: The system MUST allow students to submit voluntary task proposals with an optional title/subject and proposed description, initializing them in `Pending to Approve` status.
 - **FR-045**: The system MUST allow administrators to review pending task proposals:
   - If rejected, the status MUST transition to `Declined` and close.
   - If approved, the administrator MUST set a positive point amount, and the status MUST transition to `Ready to Do` with the point amount visible to the student.
@@ -282,7 +282,7 @@ As a school administrator, teacher, and student, I need the system to permanentl
 - **FR-047**: The system MUST allow a student to cancel a task proposal ONLY while the proposal is in `Ready to Do` status, transitioning the status to `Canceled` and closing the proposal.
 - **FR-048**: When an administrator verifies completion of a `Ready to Do` task proposal, the system MUST transfer the assigned points to the student's current balance, transition the status to `Completed`, and close the proposal.
 - **FR-049**: The system MUST support an in-request message thread on each task proposal between the proposing student and administrators throughout the proposal's lifecycle.
-- **FR-050**: The system MUST allow students to view and list their own open task proposals (including proposals in `Pending to Approve` and `Ready to Do` states, as well as completed, declined, and canceled proposals), displaying the proposal description, current status, assigned point value, and full message thread history.
+- **FR-050**: The system MUST allow students to view and list their own open task proposals (including proposals in `Pending to Approve` and `Ready to Do` states, as well as completed, declined, and canceled proposals), displaying the proposal title (if provided), description, current status, assigned point value, and full message thread history.
 - **FR-051**: The system MUST enforce that students can ONLY view, query, and access their own submitted task proposals and CANNOT view, list, or access task proposals submitted by other students.
 - **FR-052**: The system MUST allow administrators to view, query, and filter all task proposals across the school by status (`Pending to Approve`, `Ready to Do`, `Completed`, `Declined`, `Canceled`).
 - **FR-053**: The system MUST strictly isolate student task proposals and proposal messages from teachers (teachers cannot view, query, or participate in proposals).
@@ -331,7 +331,7 @@ As a school administrator, teacher, and student, I need the system to permanentl
 - **FR-086**: Each reward request MUST preserve: student reference, reward reference, whether the reward requires approval (snapshot at request time), point price at request time, original request date and time, current request state, reserved point amount, and approval, decline, or receive information when applicable.
 - **FR-087**: The system MUST store for each challenge or mission: activity type (challenge or mission), name, description or required action, fixed point value (immutable), per-student completion limit, active/inactive/removed state, and creation information.
 - **FR-088**: Each challenge or mission verification request MUST preserve: student reference, activity reference, submitted evidence or verification information (supporting a text description and direct file or image upload attachments), submission date and time, administrator reviewer, review date and time, review result, rejection history, current activity-completion count for the student, and ban or unblock state when applicable.
-- **FR-089**: Each student task proposal MUST preserve: student proposer, proposed task description, current status, assigned point value (set by administrator upon approval; editable prior to completion), submission date and time, approval date and time, completion date and time, and reviewing administrator.
+- **FR-089**: Each student task proposal MUST preserve: student proposer, proposed task title (optional), proposed task description, current status, assigned point value (set by administrator upon approval; editable prior to completion), submission date and time, approval date and time, completion date and time, and reviewing administrator.
 - **FR-090**: Each task proposal message MUST preserve: task proposal reference, sender (student or administrator), message body, and sent date and time.
 - **FR-091**: The system MUST store for each guidance card: title, description, logo selected from a predefined set, suggested point value or range, and active or removed state.
 - **FR-092**: The system MUST store exactly five student tiers, each with: tier name, minimum current-point threshold, display information, and active configuration state if needed while editing.

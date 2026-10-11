@@ -53,6 +53,7 @@ export class ProposalsService {
     const proposal = await this.prisma.studentTaskProposal.create({
       data: {
         studentId,
+        title: dto.title ?? null,
         description: dto.description,
         status: ProposalStatus.PENDING_TO_APPROVE,
       },
@@ -67,7 +68,7 @@ export class ProposalsService {
         proposal.id,
         studentId,
         `${student.firstName} ${student.lastName}`,
-        proposal.description.substring(0, 50),
+        proposal.title || proposal.description.substring(0, 50),
       ),
     );
 

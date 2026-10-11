@@ -56,7 +56,9 @@ This document analyzes the visual design and user experience intent of the provi
   * Implement a space for messaging between the student and admin for each proposal.
   * Once a proposal is approved, the assigned "نوین" value must be displayed.
 **INFERENCE:**
-  * **Messaging Component:** To optimize for one-handed usage, tapping a submitted request card should trigger a **Bottom Sheet Modal**. This modal would slide up from the bottom of the screen, displaying a scrollable chat history and a sticky input field at the bottom for new messages.
+  * **Messaging Component:** To optimize for one-handed usage, tapping a submitted request card triggers a **Bottom Sheet Modal** sliding up from the bottom of the screen.
+    * **Active Lifecycle (Pending to Approve & Ready to Do):** Displays scrollable chat history and an active sticky input field at the bottom with a neon-accented send button for live communication with administrators.
+    * **Terminal Lifecycle (Completed, Declined, & Canceled):** The message input field is disabled and hidden. The sheet displays the read-only message history accompanied by a muted, neon-outlined "Thread Closed" indicator banner (e.g., `«گفتگو برای این درخواست بسته شده است»` with a subtle lock icon 🔒) to clearly signal that terminal proposals no longer accept student messages.
   * **Point Display Pattern:** On the list cards, the assigned "نوین" value should be positioned in the top-left corner of the card, directly opposite the right-aligned title. This creates a clear scanning pattern: Title (Right) -> Reward Value (Left).
 
 ## 8. Interaction Patterns
@@ -99,6 +101,7 @@ This document analyzes the visual design and user experience intent of the provi
 * The system requires a messaging interface within the context of individual task proposals.
 * Submitted proposals are read-only; students cannot edit the title or description after submission.
 * Proposal statuses must be identified via distinctly colored labels.
+* Messaging input is dynamically gated by proposal lifecycle: open during active states (`Pending to Approve`, `Ready to Do`), and disabled/hidden with a "Thread Closed" banner in terminal states (`Completed`, `Declined`, `Canceled`).
 
 ## 13. Observed Patterns
 
@@ -109,5 +112,5 @@ This document analyzes the visual design and user experience intent of the provi
 
 ## 14. Inferences
 
-* **Messaging UX Integration:** The messaging bottom sheet will serve a dual purpose: displaying the immutable original request at the top alongside the assigned "نوین" value, and hosting the active communication thread below it. This prevents the user from losing context while messaging the admin.
+* **Messaging UX Integration:** The messaging bottom sheet will serve a dual purpose: displaying the immutable original request at the top alongside the assigned "نوین" value, and hosting the active communication thread below it. In terminal states (`Completed`, `Declined`, `Canceled`), the sticky input is replaced by a "Thread Closed" indicator, preventing student frustration from attempting to message on finalized items.
 * **Value Visibility:** Placing the "نوین" value in the top-left of the card ensures it does not compete visually with the status badge.

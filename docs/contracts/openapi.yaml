@@ -370,6 +370,10 @@ components:
         studentId:
           type: string
           format: uuid
+        title:
+          type: string
+          nullable: true
+          example: "Organize the class library"
         description:
           type: string
           example: "Organize the class library bookshelves"
@@ -1916,6 +1920,7 @@ paths:
               type: object
               required: [description]
               properties:
+                title: { type: string, example: "Organize the class library" }
                 description: { type: string }
       responses:
         '201':

@@ -111,5 +111,23 @@ describe('Proposals Contract Tests (e2e)', () => {
     expect(getRes.body.status).toBe('DECLINED');
     expect(getRes.body.declineReason).toBe('Budget constraints for voluntary activity');
   });
+
+  it('POST /api/v1/proposals persists optional title and returns it in GET', async () => {
+    const proposalRes = await request(app.getHttpServer())
+      .post('/api/v1/proposals')
+      .set('Cookie', studentCookie)
+      .send({ title: 'School Garden Project', description: 'Planting herbs and flowers' })
+      .expect(201);
+
+    expect(proposalRes.body.title).toBe('School Garden Project');
+    expect(proposalRes.body.description).toBe('Planting herbs and flowers');
+
+    const getRes = await request(app.getHttpServer())
+      .get(`/api/v1/proposals/${proposalRes.body.id}`)
+      .set('Cookie', studentCookie)
+      .expect(200);
+
+    expect(getRes.body.title).toBe('School Garden Project');
+  });
 });
 

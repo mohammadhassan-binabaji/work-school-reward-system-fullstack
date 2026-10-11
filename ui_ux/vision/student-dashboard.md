@@ -179,11 +179,11 @@ Each of the 3 rows follows a consistent compact layout:
 
 * **Right (RTL Start):** A small circular colored icon indicating activity type:
   * 🟢 Green `+` icon for point gains (e.g., homework, attendance, challenge completion).
-  * 🔴 Red `−` icon for point deductions (e.g., rule violations, penalties).
-* **Center:** Activity title in Persian (e.g., `«انجام تکلیف ریاضی»`), with the Persian date and time below in smaller muted text (e.g., `«۱۴۰۳/۰۷/۱۸ — ساعت ۱۴:۳۰»`).
+  * 🔴 Red `−` icon for point deductions (exclusively from student reward redemptions or rare administrative adjustments; teachers only award positive points and do not issue negative penalties).
+* **Center:** Activity title in Persian (e.g., `«انجام تکلیف ریاضی»` or `«دریافت جایزه: دفترچه یادداشت»`), with the Persian date and time below in smaller muted text (e.g., `«۱۴۰۳/۰۷/۱۸ — ساعت ۱۴:۳۰»`).
 * **Left (RTL End):** Point delta displayed prominently:
   * Gains: bright green text, e.g., `«‎+۱۵ نوین»`.
-  * Deductions: red text, e.g., `«‎−۵ نوین»`.
+  * Deductions: red text, e.g., `«‎−۵۰ نوین»`.
 * **Row Separator:** A thin subtle divider line between rows.
 
 ### 16.0.3 Full Activity History — Bottom Sheet Modal
@@ -225,7 +225,7 @@ Each of the 3 rows follows a consistent compact layout:
 │  🟢  انجام تکلیف ریاضی              ‎+۱۵ نوین  ۱۴:۳۰ │
 │  🟢  حضور منظم در کلاس              ‎+۵ نوین   ۰۸:۰۰  │
 │  ─── ۱۴۰۳/۰۷/۱۷ ──────────────────────────────────  │
-│  🔴  تأخیر در تحویل پروژه           ‎−۱۰ نوین ۱۶:۰۰  │
+│  🔴  دریافت جایزه: دفترچه یادداشت   ‎−۵۰ نوین ۱۶:۰۰  │
 │  🟢  شرکت در چالش هفتگی            ‎+۲۰ نوین  ۱۰:۳۰  │
 │  ...                                                  │
 └───────────────────────────────────────────────────────┘
@@ -267,17 +267,16 @@ To provide students with transparent visibility into peer standings and foster h
 
 ### 16.3 Scope Selector (Segmented Tabs: Class vs. School)
 * **Pinned Segmented Control:** Positioned at the top of the modal beneath the title header:
-  1. **«کلاس من» (My Class):** Displays class-specific roster and standings (e.g., `«۳۲ دانش‌آموز»`).
-  2. **«کل مدرسه» (Whole School):** Displays school-wide ranking (e.g., `«۱۴۲ دانش‌آموز»`).
+  1. **«کلاس من» (My Class):** Displays class-specific top board and standing context (e.g., `«۳۲ دانش‌آموز»`).
+  2. **«کل مدرسه» (Whole School):** Displays school-wide top board and standing context (e.g., `«۱۴۲ دانش‌آموز»`).
 * **Active State:** Vibrant glowing neon border and neon green accent text.
-* **Transition:** Instant, animated list update between scopes without page reload.
+* **Transition:** Instant, animated update between scopes without page reload.
 
 ### 16.4 Pinned Self-Standing Banner (Sticky User Status)
-* **Persistent Bar:** A sticky card pinned immediately above the scrollable list (or anchored at the bottom edge) showing the current student's status at all times:
+* **Persistent Bar:** A prominent card pinned beneath the segmented scope control showing the current student's standing at all times:
   * **Rank Badge:** e.g., `«رتبه شما: ۱۲ از ۱۴۲»` (در مدرسه) or `«رتبه شما: ۴ از ۳۲»` (در کلاس).
   * **Points Balance:** Explicitly formatted with Persian terminology: `«۴۳۰ نوین»`.
-  * **Trend Indicator:** Upward/downward green arrow with delta (e.g., `«↗ ۲ پله صعود»`).
-  * **Quick Navigation:** Tapping this sticky bar auto-scrolls the leaderboard list directly to the student's row.
+  * **Trend Indicator:** Upward/downward green arrow with delta (e.g., `«↗ ۲ پله صعود»` or `«↗ +۲»`).
 
 ### 16.5 Leaderboard Layout Hierarchy
 
@@ -289,7 +288,7 @@ To provide students with transparent visibility into peer standings and foster h
 │ │   [✓] کلاس من (۳۲)   │   کل مدرسه (۱۴۲)   │ │ <- Segmented Scope Tabs
 │ └──────────────────────┴────────────────────┘ │
 │ ┌───────────────────────────────────────────┐ │
-│ │ ★ رتبه شما: ۴ از ۳۲      ۴۳۰ نوین    ↗ +۲ │ │ <- Pinned Self Status
+│ │ ★ رتبه شما: ۱۲ از ۱۴۲    ۴۳۰ نوین    ↗ +۲ │ │ <- Pinned Self Status Banner
 │ └───────────────────────────────────────────┘ │
 │                                               │
 │             [ سکوی ۳ نفر برتر ]              │
@@ -298,31 +297,27 @@ To provide students with transparent visibility into peer standings and foster h
 │     ۴۸۰ نوین            ۵۲۰ نوین      ۴۶۰ نوین│
 │                                               │
 │ ───────────────────────────────────────────── │
-│  ۴.  [👤] نرگس حسینی       ۴۴۰ نوین   سطح ۵   │
-│ ┌───────────────────────────────────────────┐ │
-│ │۵.  [👤] شما (محمد)        ۴۳۰ نوین   سطح ۵│ │ <- Highlighted User Row
-│ └───────────────────────────────────────────┘ │
-│  ۶.  [👤] امیر قاسمی       ۴۱۰ نوین   سطح ۴   │
-│  ...                                          │
+│  🔒 برای حفظ حریم خصوصی دانش‌آموزان،          │
+│     تنها رتبه‌های برتر نمایش داده می‌شوند.     │ <- Privacy Notice (Ranks 4+ Masked)
 └───────────────────────────────────────────────┘
 ```
 
 #### A. Top 3 Podium (سکوی ۳ نفر برتر)
-* Prominently featured above the main list for top ranks (۱، ۲، ۳):
+* Prominently featured in the center of the leaderboard modal for top ranks (۱، ۲، ۳):
   * **رتبه ۱ (طلا):** Center elevated position, gold neon border glow, golden crown/trophy mascot, student name, and points badge (`۵۲۰ نوین`).
   * **رتبه ۲ (نقره):** Flanking right/left position, silver neon accent, silver medal mascot, student name, and points badge.
   * **رتبه ۳ (برنز):** Flanking position, bronze neon accent, bronze badge mascot, student name, and points badge.
 
-#### B. Scrollable Ranked List (رتبه‌های ۴ به بعد)
-* Vertically scrolling list of discrete card rows styled with dark translucent backgrounds and rounded corners:
-  * **Right (RTL Start):** Distinct rank number pill in Persian numerals (`۴`, `۵`, `۶`, ...).
-  * **Center:** Student avatar / tiered mascot + Student full name.
-  * **Left (RTL End):** Current points balance with `«نوین»` (e.g., `«۴۱۰ نوین»`) alongside Tier indicator chip (e.g., `«سطح ۵»`).
-* **Current Student Row Highlighting:**
-  * When the current student appears in the list, their row features a radiant cyan/green glowing neon border and a small `«شما»` (You) badge for immediate recognition.
+#### B. Peer Standings Privacy Enforcement
+* In strict adherence to school privacy rules and FR-058, peer names and point balances outside the Top 3 podium are strictly masked and not accessible to students.
+* The modal provides students with clear visibility into:
+  1. The Top 3 recognized achievers (Podium).
+  2. The student's own exact rank, point balance, and trend relative to the full class or school population.
+  3. Total active student count in the scope (e.g., `از ۱۴۲ دانش‌آموز`).
 
 ### 16.6 Business Rules & System Consistency
+* **Privacy Masking Compliance (FR-058):** Students see only their own rank and the top-student board. Non-top peer data is masked and omitted from the client view.
 * **Active Enrolled Students Only:** Deactivated, departed, and inactive students are strictly filtered out from both class and school scopes.
 * **Current Points Basis:** Ordering is computed based on active current balance (`current points`), matching backend ranking logic.
-* **Tied Rank Handling:** Students with identical points share the same rank number (e.g., two students tied at rank ۵ both show `۵`, and the following student is assigned rank `۷`).
+* **Tied Rank Handling:** Students with identical points share the same rank number (e.g., two students tied at rank ۱ both show `۱`, and the following student is assigned rank `۳`).
 * **Number & Currency Formatting:** Strict adherence to Persian numerals (`۰, ۱, ۲, ...`) and the required currency term `«نوین»`.
