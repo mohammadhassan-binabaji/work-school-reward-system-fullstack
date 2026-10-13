@@ -7,7 +7,7 @@ services:
     restart: always
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgrespassword
+      POSTGRES_PASSWORD: MY_SECURE_DB_PASSWORD
       POSTGRES_DB: student_rewards
     ports:
       - "5432:5432"
@@ -33,26 +33,6 @@ services:
       timeout: 5s
       retries: 5
 
-  minio:
-    image: quay.io/minio/minio:latest
-    container_name: student_rewards_minio
-    restart: always
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadminpassword
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    command: server /data --console-address ":9001"
-    volumes:
-      - miniodata:/data
-    healthcheck:
-      test: [ "CMD-SHELL", "curl -f http://localhost:9000/minio/health/live || exit 1" ]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
 volumes:
   pgdata:
   redisdata:
-  miniodata:
