@@ -206,13 +206,14 @@ export async function fetchRemoteVersionConfig(
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
+  // Append timestamp for cache busting instead of sending custom/non-safelisted request headers.
+  // This keeps the request as a CORS "simple request", preventing browser/WebView from sending an OPTIONS preflight.
+  const separator = url.includes('?') ? '&' : '?';
+  const fetchUrl = `${url}${separator}_t=${Date.now()}`;
+
   try {
-    const res = await fetch(url, {
+    const res = await fetch(fetchUrl, {
       signal: controller.signal,
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-      },
     });
 
     if (!res.ok) {
