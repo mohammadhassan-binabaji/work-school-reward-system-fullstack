@@ -11,15 +11,16 @@ import {
 
 describe('versionService', () => {
   describe('semver parsing and validation', () => {
-    it('validates correct semantic versions', () => {
+    it('validates correct semantic and Android versions', () => {
       expect(isValidSemver('1.0.0')).toBe(true);
+      expect(isValidSemver('1.0')).toBe(true);
+      expect(isValidSemver('v1.0')).toBe(true);
       expect(isValidSemver('v1.2.3')).toBe(true);
       expect(isValidSemver('0.1.0-beta.1')).toBe(true);
       expect(isValidSemver('2.15.8')).toBe(true);
     });
 
     it('rejects invalid versions', () => {
-      expect(isValidSemver('1.0')).toBe(false);
       expect(isValidSemver('latest')).toBe(false);
       expect(isValidSemver('')).toBe(false);
       expect(isValidSemver('abc.def.ghi')).toBe(false);
@@ -27,11 +28,20 @@ describe('versionService', () => {
 
     it('parses version components accurately', () => {
       expect(parseSemver('1.2.3')).toEqual({ major: 1, minor: 2, patch: 3, prerelease: undefined });
+      expect(parseSemver('1.0')).toEqual({ major: 1, minor: 0, patch: 0, prerelease: undefined });
       expect(parseSemver('v2.0.1-rc.1')).toEqual({ major: 2, minor: 0, patch: 1, prerelease: 'rc.1' });
     });
   });
 
   describe('compareSemver (non-lexicographical comparison)', () => {
+    it('handles 2-part and 3-part version parity', () => {
+      // 1.0 is equivalent to 1.0.0
+      expect(compareSemver('1.0', '1.0.0')).toBe(0);
+      expect(compareSemver('1.0.0', '1.0')).toBe(0);
+      expect(compareSemver('1.0', '1.0.1')).toBeLessThan(0);
+      expect(compareSemver('1.1', '1.0.9')).toBeGreaterThan(0);
+    });
+
     it('handles major version differences', () => {
       expect(compareSemver('2.0.0', '1.0.0')).toBeGreaterThan(0);
       expect(compareSemver('1.0.0', '2.0.0')).toBeLessThan(0);

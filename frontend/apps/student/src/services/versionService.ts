@@ -26,18 +26,21 @@ export interface VersionCheckResult {
   error?: string;
 }
 
-const SEMVER_REGEX = /^v?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/;
+const SEMVER_REGEX = /^v?(\d+)(?:\.(\d+))?(?:\.(\d+))?(?:-([0-9A-Za-z.-]+))?$/;
 
 /**
- * Validates whether a version string matches semver syntax (major.minor.patch[-prerelease])
+ * Validates whether a version string matches standard or Android version syntax (major[.minor][.patch][-prerelease])
  */
 export function isValidSemver(v: string): boolean {
   if (typeof v !== 'string') return false;
-  return SEMVER_REGEX.test(v.trim());
+  const trimmed = v.trim();
+  if (!trimmed) return false;
+  return SEMVER_REGEX.test(trimmed);
 }
 
 /**
- * Parses a semantic version string into numeric parts.
+ * Parses a version string into numeric parts.
+ * Automatically normalizes 2-part Android versions like "1.0" into major: 1, minor: 0, patch: 0.
  */
 export function parseSemver(v: string): {
   major: number;
@@ -52,8 +55,8 @@ export function parseSemver(v: string): {
   }
   return {
     major: parseInt(match[1], 10),
-    minor: parseInt(match[2], 10),
-    patch: parseInt(match[3], 10),
+    minor: match[2] !== undefined ? parseInt(match[2], 10) : 0,
+    patch: match[3] !== undefined ? parseInt(match[3], 10) : 0,
     prerelease: match[4],
   };
 }
