@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="adminBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0F172A" />
+      <stop offset="50%" stop-color="#1E293B" />
+      <stop offset="100%" stop-color="#0F172A" />
+    </linearGradient>
+    <linearGradient id="adminBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3B82F6" />
+      <stop offset="100%" stop-color="#1D4ED8" />
+    </linearGradient>
+    <linearGradient id="goldAdmin" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FDE047" />
+      <stop offset="50%" stop-color="#EAB308" />
+      <stop offset="100%" stop-color="#CA8A04" />
+    </linearGradient>
+    <radialGradient id="adminAura" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#2563EB" stop-opacity="0.25" />
+      <stop offset="100%" stop-color="#0F172A" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" fill="url(#adminBg)" />
+  <circle cx="256" cy="256" r="220" fill="url(#adminAura)" />
+
+  <!-- Shield Crest (Centered within safe zone) -->
+  <g transform="translate(256, 256)">
+    <!-- Outer Shield Border -->
+    <path d="M 0,-145 L 125,-85 C 125,45 75,130 0,165 C -75,130 -125,45 -125,-85 Z" fill="#1E293B" stroke="#2563EB" stroke-width="7" />
+    <!-- Inner Shield Surface -->
+    <path d="M 0,-130 L 110,-77 C 110,38 65,115 0,146 C -65,115 -110,38 -110,-77 Z" fill="url(#adminBlue)" opacity="0.92" />
+
+    <!-- System Landmark Pillars / Dashboard Metrics -->
+    <!-- Central Pillar / Chart Bar -->
+    <rect x="-14" y="-20" width="28" height="85" rx="5" fill="#FFFFFF" />
+    <!-- Left Pillar / Chart Bar -->
+    <rect x="-52" y="5" width="26" height="60" rx="5" fill="#DBEAFE" />
+    <!-- Right Pillar / Chart Bar -->
+    <rect x="26" y="-5" width="26" height="70" rx="5" fill="#DBEAFE" />
+
+    <!-- Executive Crown / Star at top of shield -->
+    <g transform="translate(0, -60)">
+      <polygon points="0,-32 10,-8 35,-12 18,10 24,34 0,22 -24,34 -18,10 -35,-12 -10,-8" fill="url(#goldAdmin)" stroke="#CA8A04" stroke-width="2" />
+    </g>
+
+    <!-- Base Pedestal Line -->
+    <rect x="-70" y="72" width="140" height="9" rx="4.5" fill="#FFFFFF" />
+  </g>
+</svg>

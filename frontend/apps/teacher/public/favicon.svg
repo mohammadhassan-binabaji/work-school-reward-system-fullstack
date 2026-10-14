@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="teacherBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4F46E5" />
+      <stop offset="50%" stop-color="#4338CA" />
+      <stop offset="100%" stop-color="#3730A3" />
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FDE047" />
+      <stop offset="50%" stop-color="#EAB308" />
+      <stop offset="100%" stop-color="#CA8A04" />
+    </linearGradient>
+    <radialGradient id="teacherHighlight" cx="50%" cy="35%" r="50%">
+      <stop offset="0%" stop-color="#818CF8" stop-opacity="0.35" />
+      <stop offset="100%" stop-color="#4F46E5" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" fill="url(#teacherBg)" />
+  <circle cx="256" cy="220" r="200" fill="url(#teacherHighlight)" />
+
+  <!-- Emblem Container (Centered within safe zone) -->
+  <g transform="translate(256, 256)">
+    <!-- Graduation / Academic Mortarboard -->
+    <g transform="translate(0, -50)">
+      <!-- Cap Diamond -->
+      <polygon points="0,-75 135,-32 0,11 -135,-32" fill="#FFFFFF" />
+      <!-- Cap Underside Shadow -->
+      <polygon points="0,11 135,-32 120,-24 0,16" fill="#E2E8F0" />
+      <!-- Skull cap band -->
+      <path d="M -70,-10 C -70,30 70,30 70,-10 L 58,-14 C 58,20 -58,20 -58,-14 Z" fill="#E2E8F0" />
+      <!-- Button and Tassel -->
+      <circle cx="0" cy="-32" r="7" fill="#FDE047" />
+      <path d="M 0,-32 Q 60,-20 85,25" fill="none" stroke="#FDE047" stroke-width="4.5" />
+      <rect x="80" y="25" width="10" height="22" rx="3" fill="#EAB308" />
+    </g>
+
+    <!-- Open Knowledge Book -->
+    <g transform="translate(0, 75)">
+      <!-- Spine -->
+      <path d="M -125,-25 Q 0,-4 125,-25 L 125,45 Q 0,65 -125,45 Z" fill="#312E81" opacity="0.4" />
+      <!-- Left Page -->
+      <path d="M -8,48 C -35,32 -80,32 -120,44 L -120,-25 C -80,-37 -35,-37 -8,-22 Z" fill="#FFFFFF" />
+      <path d="M -22,-10 L -95,-10 M -22,6 L -95,6 M -22,22 L -70,22" stroke="#CBD5E1" stroke-width="4" stroke-linecap="round" />
+      <!-- Right Page -->
+      <path d="M 8,48 C 35,32 80,32 120,44 L 120,-25 C 80,-37 35,-37 8,-22 Z" fill="#F8FAFC" />
+      <path d="M 22,-10 L 95,-10 M 22,6 L 95,6 M 22,22 L 70,22" stroke="#CBD5E1" stroke-width="4" stroke-linecap="round" />
+      <!-- Book Center Spine -->
+      <path d="M -8,-22 Q 0,-25 8,-22 L 8,48 Q 0,45 -8,48 Z" fill="#CBD5E1" />
+    </g>
+
+    <!-- Golden Award Novin Coin Badge -->
+    <g transform="translate(85, 20)">
+      <circle cx="0" cy="0" r="32" fill="url(#goldGrad)" stroke="#FFFFFF" stroke-width="4" />
+      <!-- Persian Noon (ن) glyph for Novin -->
+      <path d="M -16,-3 C -16,13 16,13 16,-3" fill="none" stroke="#78350F" stroke-width="4.5" stroke-linecap="round" />
+      <circle cx="0" cy="-6" r="3.5" fill="#78350F" />
+    </g>
+  </g>
+</svg>
