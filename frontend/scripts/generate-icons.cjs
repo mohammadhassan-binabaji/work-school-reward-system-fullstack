@@ -253,16 +253,39 @@ async function generateStudentIcons() {
     fs.mkdirSync(studentDestDir, { recursive: true });
   }
 
+  // Helper to generate an icon fitted within a safe zone with background padding
+  async function generatePaddedIcon(source, size, scale = 0.75, bg = '#FFFFFF') {
+    const innerSize = Math.round(size * scale);
+    const padX = Math.floor((size - innerSize) / 2);
+    const padY = Math.floor((size - innerSize) / 2);
+
+    return sharp(source)
+      .resize(innerSize, innerSize, { fit: 'inside' })
+      .extend({
+        top: padY,
+        bottom: size - innerSize - padY,
+        left: padX,
+        right: size - innerSize - padX,
+        background: bg === 'transparent' ? { r: 0, g: 0, b: 0, alpha: 0 } : bg,
+      })
+      .png();
+  }
+
   // --- Favicon / Apple touch icon from logo.png ---
   await sharp(studentFaviconSource).resize(32, 32).png().toFile(path.join(studentDestDir, 'favicon.png'));
   await sharp(studentFaviconSource).resize(48, 48).png().toFile(path.join(studentDestDir, 'favicon.ico'));
   await sharp(studentFaviconSource).resize(180, 180).png().toFile(path.join(studentDestDir, 'apple-touch-icon.png'));
 
   // --- PWA icons from android-app-icon.png ---
+  // Standard full-bleed for desktop/unmasked use (purpose: any)
   await sharp(studentPwaSource).resize(192, 192).png().toFile(path.join(studentDestDir, 'pwa-192x192.png'));
   await sharp(studentPwaSource).resize(512, 512).png().toFile(path.join(studentDestDir, 'pwa-512x512.png'));
-  await sharp(studentPwaSource).resize(192, 192).png().toFile(path.join(studentDestDir, 'pwa-maskable-192x192.png'));
-  await sharp(studentPwaSource).resize(512, 512).png().toFile(path.join(studentDestDir, 'pwa-maskable-512x512.png'));
+
+  // Maskable icons: W3C safe zone is inner 80% circle. Pad with white background so OS masks don't cut corners
+  const maskable192 = await generatePaddedIcon(studentPwaSource, 192, 0.75, '#FFFFFF');
+  await maskable192.toFile(path.join(studentDestDir, 'pwa-maskable-192x192.png'));
+  const maskable512 = await generatePaddedIcon(studentPwaSource, 512, 0.75, '#FFFFFF');
+  await maskable512.toFile(path.join(studentDestDir, 'pwa-maskable-512x512.png'));
 
   // --- Android mipmap launcher icons from android-app-icon.png ---
   const androidResDir = path.resolve(__dirname, '../apps/student/android/app/src/main/res');
@@ -279,9 +302,17 @@ async function generateStudentIcons() {
     if (!fs.existsSync(mipmapDir)) {
       fs.mkdirSync(mipmapDir, { recursive: true });
     }
-    await sharp(studentPwaSource).resize(size, size).png().toFile(path.join(mipmapDir, 'ic_launcher.png'));
-    await sharp(studentPwaSource).resize(size, size).png().toFile(path.join(mipmapDir, 'ic_launcher_round.png'));
-    await sharp(studentPwaSource).resize(size, size).png().toFile(path.join(mipmapDir, 'ic_launcher_foreground.png'));
+    // ic_launcher_foreground: Android adaptive icon draws this over ic_launcher_background (#FFFFFF),
+    // and crops to the central 72dp of the 108dp canvas (66.6% safe zone).
+    // Scaling to 68% with transparent padding prevents cropping of corners/edges.
+    const foreground = await generatePaddedIcon(studentPwaSource, size, 0.68, 'transparent');
+    await foreground.toFile(path.join(mipmapDir, 'ic_launcher_foreground.png'));
+
+    // Legacy fallback icons (scaled with white background)
+    const legacyIcon = await generatePaddedIcon(studentPwaSource, size, 0.75, '#FFFFFF');
+    await legacyIcon.toFile(path.join(mipmapDir, 'ic_launcher.png'));
+    const roundIcon = await generatePaddedIcon(studentPwaSource, size, 0.75, '#FFFFFF');
+    await roundIcon.toFile(path.join(mipmapDir, 'ic_launcher_round.png'));
   }
 
   console.log(`Generated icons for student in ${studentDestDir}`);
