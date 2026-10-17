@@ -10,10 +10,10 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const sizeClasses = {
-  sm: 'w-12 h-12',
-  md: 'w-20 h-20',
-  lg: 'w-32 h-32',
-  xl: 'w-44 h-44',
+  sm: 'w-20 h-20',
+  md: 'w-32 h-32',
+  lg: 'w-44 h-44',
+  xl: 'w-64 h-64',
 };
 </script>
 

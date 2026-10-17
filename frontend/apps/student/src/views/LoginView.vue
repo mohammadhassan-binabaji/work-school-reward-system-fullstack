@@ -44,9 +44,8 @@ async function handleLogin() {
   <div class="min-h-screen flex flex-col justify-center items-center px-5 py-8 max-w-sm mx-auto">
     <!-- Top Brand & Welcome -->
     <div class="text-center space-y-3 mb-8">
-      <div class="relative w-52 h-52 mx-auto flex items-center justify-center">
-        <div class="absolute inset-0 rounded-full blur-xl opacity-40 bg-gradient-to-tr from-cyan-500 via-blue-600 to-emerald-400"></div>
-        <img :src="brandImage" alt="نوین من" class="w-full h-full relative z-10 drop-shadow-[0_10px_20px_rgba(0,229,255,0.3)] object-contain" />
+      <div class="w-72 h-72 mx-auto flex items-center justify-center">
+        <img :src="brandImage" alt="نوین من" class="w-full h-full object-contain" />
       </div>
       <h1 class="text-2xl font-black text-white tracking-tight">
         نوین من
