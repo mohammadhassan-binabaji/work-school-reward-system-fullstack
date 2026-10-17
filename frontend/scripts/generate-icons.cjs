@@ -210,66 +210,91 @@ const adminSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" 
   </g>
 </svg>`;
 
-const configs = [
-  { name: 'student', svg: studentSvg, destDir: path.resolve(__dirname, '../apps/student/public') },
+// Student uses PNG source images instead of SVG
+const studentDestDir = path.resolve(__dirname, '../apps/student/public');
+const studentFaviconSource = path.join(studentDestDir, 'logo.png');
+const studentPwaSource = path.join(studentDestDir, 'android-app-icon.png');
+
+const svgConfigs = [
   { name: 'teacher', svg: teacherSvg, destDir: path.resolve(__dirname, '../apps/teacher/public') },
   { name: 'admin', svg: adminSvg, destDir: path.resolve(__dirname, '../apps/admin/public') },
 ];
 
-async function generate() {
-  for (const config of configs) {
-    if (!fs.existsSync(config.destDir)) {
-      fs.mkdirSync(config.destDir, { recursive: true });
+async function generateFromSvg(config) {
+  if (!fs.existsSync(config.destDir)) {
+    fs.mkdirSync(config.destDir, { recursive: true });
+  }
+
+  const svgBuffer = Buffer.from(config.svg);
+
+  // Save favicon.svg
+  fs.writeFileSync(path.join(config.destDir, 'favicon.svg'), config.svg, 'utf8');
+
+  // PWA icons
+  await sharp(svgBuffer).resize(192, 192).png().toFile(path.join(config.destDir, 'pwa-192x192.png'));
+  await sharp(svgBuffer).resize(512, 512).png().toFile(path.join(config.destDir, 'pwa-512x512.png'));
+  await sharp(svgBuffer).resize(192, 192).png().toFile(path.join(config.destDir, 'pwa-maskable-192x192.png'));
+  await sharp(svgBuffer).resize(512, 512).png().toFile(path.join(config.destDir, 'pwa-maskable-512x512.png'));
+
+  // Apple touch icon 180x180
+  await sharp(svgBuffer).resize(180, 180).png().toFile(path.join(config.destDir, 'apple-touch-icon.png'));
+
+  // 32x32 for favicon.png
+  await sharp(svgBuffer).resize(32, 32).png().toFile(path.join(config.destDir, 'favicon.png'));
+
+  // 48x48 for favicon.ico
+  await sharp(svgBuffer).resize(48, 48).png().toFile(path.join(config.destDir, 'favicon.ico'));
+
+  console.log(`Generated icons for ${config.name} in ${config.destDir}`);
+}
+
+async function generateStudentIcons() {
+  if (!fs.existsSync(studentDestDir)) {
+    fs.mkdirSync(studentDestDir, { recursive: true });
+  }
+
+  // --- Favicon / Apple touch icon from logo.png ---
+  await sharp(studentFaviconSource).resize(32, 32).png().toFile(path.join(studentDestDir, 'favicon.png'));
+  await sharp(studentFaviconSource).resize(48, 48).png().toFile(path.join(studentDestDir, 'favicon.ico'));
+  await sharp(studentFaviconSource).resize(180, 180).png().toFile(path.join(studentDestDir, 'apple-touch-icon.png'));
+
+  // --- PWA icons from android-app-icon.png ---
+  await sharp(studentPwaSource).resize(192, 192).png().toFile(path.join(studentDestDir, 'pwa-192x192.png'));
+  await sharp(studentPwaSource).resize(512, 512).png().toFile(path.join(studentDestDir, 'pwa-512x512.png'));
+  await sharp(studentPwaSource).resize(192, 192).png().toFile(path.join(studentDestDir, 'pwa-maskable-192x192.png'));
+  await sharp(studentPwaSource).resize(512, 512).png().toFile(path.join(studentDestDir, 'pwa-maskable-512x512.png'));
+
+  // --- Android mipmap launcher icons from android-app-icon.png ---
+  const androidResDir = path.resolve(__dirname, '../apps/student/android/app/src/main/res');
+  const mipmapSizes = [
+    { folder: 'mipmap-mdpi', size: 48 },
+    { folder: 'mipmap-hdpi', size: 72 },
+    { folder: 'mipmap-xhdpi', size: 96 },
+    { folder: 'mipmap-xxhdpi', size: 144 },
+    { folder: 'mipmap-xxxhdpi', size: 192 },
+  ];
+
+  for (const { folder, size } of mipmapSizes) {
+    const mipmapDir = path.join(androidResDir, folder);
+    if (!fs.existsSync(mipmapDir)) {
+      fs.mkdirSync(mipmapDir, { recursive: true });
     }
+    await sharp(studentPwaSource).resize(size, size).png().toFile(path.join(mipmapDir, 'ic_launcher.png'));
+    await sharp(studentPwaSource).resize(size, size).png().toFile(path.join(mipmapDir, 'ic_launcher_round.png'));
+    await sharp(studentPwaSource).resize(size, size).png().toFile(path.join(mipmapDir, 'ic_launcher_foreground.png'));
+  }
 
-    const svgBuffer = Buffer.from(config.svg);
+  console.log(`Generated icons for student in ${studentDestDir}`);
+  console.log(`Generated Android launcher icons in ${androidResDir}`);
+}
 
-    // Save favicon.svg
-    fs.writeFileSync(path.join(config.destDir, 'favicon.svg'), config.svg, 'utf8');
+async function generate() {
+  // Generate student icons from PNG sources
+  await generateStudentIcons();
 
-    // 192x192
-    await sharp(svgBuffer)
-      .resize(192, 192)
-      .png()
-      .toFile(path.join(config.destDir, 'pwa-192x192.png'));
-
-    // 512x512
-    await sharp(svgBuffer)
-      .resize(512, 512)
-      .png()
-      .toFile(path.join(config.destDir, 'pwa-512x512.png'));
-
-    // Maskable 192x192 (safe zone already built into SVG with bleed background)
-    await sharp(svgBuffer)
-      .resize(192, 192)
-      .png()
-      .toFile(path.join(config.destDir, 'pwa-maskable-192x192.png'));
-
-    // Maskable 512x512
-    await sharp(svgBuffer)
-      .resize(512, 512)
-      .png()
-      .toFile(path.join(config.destDir, 'pwa-maskable-512x512.png'));
-
-    // Apple touch icon 180x180
-    await sharp(svgBuffer)
-      .resize(180, 180)
-      .png()
-      .toFile(path.join(config.destDir, 'apple-touch-icon.png'));
-
-    // 32x32 for favicon.png
-    await sharp(svgBuffer)
-      .resize(32, 32)
-      .png()
-      .toFile(path.join(config.destDir, 'favicon.png'));
-
-    // 48x48 for favicon.ico
-    await sharp(svgBuffer)
-      .resize(48, 48)
-      .png()
-      .toFile(path.join(config.destDir, 'favicon.ico'));
-
-    console.log(`Generated icons for ${config.name} in ${config.destDir}`);
+  // Generate teacher & admin icons from SVG sources
+  for (const config of svgConfigs) {
+    await generateFromSvg(config);
   }
 }
 

@@ -12,7 +12,7 @@ import {
   Calendar,
 } from 'lucide-vue-next';
 import { useAuthStore } from '../stores/auth';
-import BirdMascot from '../components/BirdMascot.vue';
+import OwlMascot from '../components/OwlMascot.vue';
 import BottomSheet from '../components/BottomSheet.vue';
 import {
   api,
@@ -241,7 +241,7 @@ const filteredActivities = computed(() => {
 
           <!-- Center Mascot -->
           <div class="absolute inset-0 flex flex-col items-center justify-center">
-            <BirdMascot variant="trophy" size="sm" />
+            <OwlMascot size="sm" />
             <span class="text-[10px] font-bold text-neon-red -mt-1">
               {{ toPersianDigits(progressPercent) }}٪
             </span>

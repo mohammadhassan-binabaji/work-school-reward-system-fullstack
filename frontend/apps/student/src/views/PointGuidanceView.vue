@@ -2,7 +2,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { BookOpen, Award, ShieldCheck, GraduationCap, Sparkles } from 'lucide-vue-next';
 import { useAuthStore } from '../stores/auth';
-import BirdMascot from '../components/BirdMascot.vue';
+import OwlMascot from '../components/OwlMascot.vue';
 import { api, type GuidanceCard } from '@student-reward/shared';
 
 const authStore = useAuthStore();
@@ -99,7 +99,7 @@ function getCardTheme(idx: number): {
             نوین‌ها توسط معلمان ثبت و به حساب شما افزوده می‌شوند.
           </div>
         </div>
-        <BirdMascot variant="book" size="md" />
+        <OwlMascot size="md" />
       </div>
     </div>
 
@@ -166,7 +166,7 @@ function getCardTheme(idx: number): {
 
     <!-- Empty State -->
     <div v-else class="py-14 text-center space-y-3 bg-dark-card rounded-3xl p-6 border border-slate-800">
-      <BirdMascot variant="inquisitive" size="lg" class="mx-auto" />
+      <OwlMascot size="lg" class="mx-auto" />
       <h3 class="text-sm font-bold text-white">
         هنوز راهنمایی برای کسب نوین ثبت نشده است
       </h3>
