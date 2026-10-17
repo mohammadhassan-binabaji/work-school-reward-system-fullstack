@@ -10,15 +10,15 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const sizeClasses = {
-  sm: 'w-20 h-20',
-  md: 'w-32 h-32',
-  lg: 'w-44 h-44',
-  xl: 'w-64 h-64',
+  sm: 'w-28 h-28',
+  md: 'w-36 h-36',
+  lg: 'w-56 h-56',
+  xl: 'w-72 h-72',
 };
 </script>
 
 <template>
-  <div :class="['relative flex items-center justify-center select-none', sizeClasses[props.size]]">
+  <div :class="['relative flex items-center justify-center select-none shrink-0', sizeClasses[props.size]]">
     <!-- Outer ambient neon aura -->
     <div
       class="absolute inset-0 rounded-full blur-xl opacity-40 bg-gradient-to-tr from-cyan-500 via-blue-600 to-emerald-400"

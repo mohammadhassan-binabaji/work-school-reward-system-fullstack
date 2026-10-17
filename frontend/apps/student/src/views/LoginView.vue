@@ -41,19 +41,21 @@ async function handleLogin() {
 </script>
 
 <template>
-  <div class="min-h-screen flex flex-col justify-center items-center px-5 py-8 max-w-sm mx-auto">
+  <div class="min-h-screen flex flex-col justify-start items-center px-5 pt-8 mt-8 pb-8 max-w-sm mx-auto">
     <!-- Top Brand & Welcome -->
-    <div class="text-center space-y-3 mb-8">
-      <div class="w-72 h-72 mx-auto flex items-center justify-center">
-        <img :src="brandImage" alt="نوین من" class="w-full h-full object-contain" />
+    <div class="text-center mb-7 w-full">
+      <div class="w-full max-w-[320px] mx-auto flex items-center justify-center">
+        <img :src="brandImage" alt="نوین من" class="w-full h-auto object-contain" />
       </div>
-      <h1 class="text-2xl font-black text-white tracking-tight">
-        نوین من
-      </h1>
-      <p class="text-sm font-bold text-slate-300">
-        سامانه پاداش دانش‌آموزی
-      </p>
-      <p class="text-xs text-slate-400">
+      <div class="mt-2 space-y-1">
+        <h1 class="text-2xl font-black text-white tracking-tight">
+          نوین من
+        </h1>
+        <p class="text-sm font-bold text-slate-300">
+          سامانه پاداش دانش‌آموزی
+        </p>
+      </div>
+      <p class="text-xs text-slate-400 mt-8 pt-4">
         ورود به پنل دانش‌آموز با کد ملی و رمز عبور
       </p>
     </div>

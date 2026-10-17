@@ -186,7 +186,7 @@ const filteredActivities = computed(() => {
   <div class="space-y-4 pb-24 pt-2">
     <!-- Card 1: Points Card (Red Neon Glow) -->
     <div
-      class="bg-dark-card rounded-3xl p-5 border-1.5 neon-border-red relative overflow-hidden transition-all duration-300"
+      class="bg-dark-card rounded-3xl px-5 py-2.5 border-1.5 neon-border-red relative overflow-hidden transition-all duration-300"
     >
       <!-- Background Ambient Glow -->
       <div
@@ -215,36 +215,33 @@ const filteredActivities = computed(() => {
         </div>
 
         <!-- Mascot & Circular Progress Gauge -->
-        <div class="relative flex items-center justify-center">
-          <svg class="w-24 h-24 transform -rotate-90">
+        <div class="relative flex items-center justify-center shrink-0">
+          <svg class="w-36 h-36 transform -rotate-90" viewBox="0 0 120 120">
             <circle
-              cx="48"
-              cy="48"
-              r="40"
+              cx="60"
+              cy="60"
+              r="50"
               stroke="#1E293B"
-              stroke-width="7"
+              stroke-width="8"
               fill="transparent"
             />
             <circle
-              cx="48"
-              cy="48"
-              r="40"
+              cx="60"
+              cy="60"
+              r="50"
               stroke="#FF3D00"
-              stroke-width="7"
+              stroke-width="8"
               stroke-linecap="round"
               fill="transparent"
-              :stroke-dasharray="251.2"
-              :stroke-dashoffset="251.2 - (251.2 * progressPercent) / 100"
+              :stroke-dasharray="314.16"
+              :stroke-dashoffset="314.16 - (314.16 * progressPercent) / 100"
               class="transition-all duration-1000 ease-out"
             />
           </svg>
 
           <!-- Center Mascot -->
-          <div class="absolute inset-0 flex flex-col items-center justify-center">
+          <div class="absolute inset-0 flex items-center justify-center">
             <OwlMascot size="sm" />
-            <span class="text-[10px] font-bold text-neon-red -mt-1">
-              {{ toPersianDigits(progressPercent) }}٪
-            </span>
           </div>
         </div>
       </div>
