@@ -41,21 +41,29 @@ async function handleLogin() {
 </script>
 
 <template>
-  <div class="min-h-screen flex flex-col justify-start items-center px-5 pt-8 mt-8 pb-8 max-w-sm mx-auto">
+  <div class="min-h-screen flex flex-col justify-start items-center px-5 pt-2 mt-2 pb-8 max-w-sm mx-auto">
     <!-- Top Brand & Welcome -->
-    <div class="text-center mb-7 w-full">
-      <div class="w-full max-w-[320px] mx-auto flex items-center justify-center">
+    <div class="text-center mb-4 w-full">
+      <div class="w-full max-w-[300px] mx-auto flex items-center justify-center">
         <img :src="brandImage" alt="نوین من" class="w-full h-auto object-contain" />
       </div>
-      <div class="mt-2 space-y-1">
-        <h1 class="text-2xl font-black text-white tracking-tight">
+      <div class="mt-3 space-y-0.5">
+        <!-- App Name — big, bright, spaced out -->
+        <h1 class="text-3xl font-black text-white tracking-widest">
           نوین من
         </h1>
-        <p class="text-sm font-bold text-slate-300">
-          سامانه پاداش دانش‌آموزی
+
+        <!-- App Description — smaller, muted, comfortable spacing -->
+        <p class="text-sm font-semibold text-slate-400 tracking-wide pt-1">
+          سامانه هوشمند پاداش دانش‌آموزی
+        </p>
+
+        <!-- Organization Name — accent color, subtle separator feel -->
+        <p class="text-xs font-medium text-neon-green/70 tracking-wider pt-2">
+          مجموعه مدارس ناصر نوین
         </p>
       </div>
-      <p class="text-xs text-slate-400 mt-8 pt-4">
+      <p class="text-xs text-slate-400 mt-6 pt-3">
         ورود به پنل دانش‌آموز با کد ملی و رمز عبور
       </p>
     </div>
