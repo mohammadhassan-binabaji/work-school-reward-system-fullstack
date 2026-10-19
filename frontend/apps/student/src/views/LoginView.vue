@@ -44,7 +44,7 @@ async function handleLogin() {
   <div class="min-h-screen flex flex-col justify-start items-center px-5 pt-2 mt-2 pb-8 max-w-sm mx-auto">
     <!-- Top Brand & Welcome -->
     <div class="text-center mb-4 w-full">
-      <div class="w-full max-w-[300px] mx-auto flex items-center justify-center">
+      <div class="w-full max-w-[280px] mx-auto flex items-center justify-center">
         <img :src="brandImage" alt="نوین من" class="w-full h-auto object-contain" />
       </div>
       <div class="mt-3 space-y-0.5">
