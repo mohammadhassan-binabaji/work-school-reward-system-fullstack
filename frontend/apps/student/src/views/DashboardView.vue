@@ -55,24 +55,29 @@ const loadingActivities = ref(false);
 // Calculations
 const currentPoints = computed(() => authStore.currentBalance);
 const tier = computed(() => authStore.currentTier);
+const nextTier = computed(() => authStore.nextTier);
 
 // Calculate progress to next tier
 const progressPercent = computed(() => {
   if (!tier.value) return 50;
   const current = currentPoints.value;
   const currentThreshold = tier.value.minPointsThreshold;
-  // If at max tier (e.g. Diamond 1000+)
-  const nextTarget = tier.value.tierNumber >= 5 ? 1000 : (tier.value.minPointsThreshold + 250);
+
+  if (!nextTier.value) {
+    // If at max tier
+    return 100;
+  }
+
+  const nextTarget = nextTier.value.minPointsThreshold;
   if (current >= nextTarget) return 100;
-  const range = nextTarget - currentThreshold;
-  const gained = current - currentThreshold;
+  const range = Math.max(1, nextTarget - currentThreshold);
+  const gained = Math.max(0, current - currentThreshold);
   return Math.min(100, Math.max(5, Math.round((gained / range) * 100)));
 });
 
 const pointsToNextTier = computed(() => {
-  if (!tier.value || tier.value.tierNumber >= 5) return 0;
-  const nextTarget = tier.value.minPointsThreshold + 250;
-  return Math.max(0, nextTarget - currentPoints.value);
+  if (!tier.value || !nextTier.value) return 0;
+  return Math.max(0, nextTier.value.minPointsThreshold - currentPoints.value);
 });
 
 // Latest snapshot for rank

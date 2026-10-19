@@ -1,17 +1,49 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { api, type UserMe, type Role } from '@student-reward/shared';
+import { api, type UserMe, type Role, type TierConfiguration } from '@student-reward/shared';
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<UserMe | null>(null);
   const loading = ref(false);
   const error = ref<string | null>(null);
+  const tierConfigurations = ref<TierConfiguration[]>([]);
+  const tiersLoading = ref(false);
 
   const isAuthenticated = computed(() => !!user.value && !!api.getSessionId());
   const isStudent = computed(() => user.value?.role === 'STUDENT');
   const currentBalance = computed(() => user.value?.studentProfile?.currentBalance ?? 0);
   const reservedBalance = computed(() => user.value?.studentProfile?.reservedBalance ?? 0);
-  const currentTier = computed(() => user.value?.studentProfile?.currentTier ?? null);
+  const currentTierId = computed(() => user.value?.studentProfile?.currentTierId ?? null);
+
+  const currentTier = computed<TierConfiguration | null>(() => {
+    if (tierConfigurations.value.length === 0) return null;
+    const tierId = currentTierId.value;
+    if (!tierId) return tierConfigurations.value[0] ?? null;
+    return tierConfigurations.value.find((t) => t.id === tierId) ?? tierConfigurations.value[0] ?? null;
+  });
+
+  const nextTier = computed<TierConfiguration | null>(() => {
+    if (!currentTier.value) return null;
+    const nextTierNumber = currentTier.value.tierNumber + 1;
+    return tierConfigurations.value.find((t) => t.tierNumber === nextTierNumber) ?? null;
+  });
+
+  async function fetchTierConfigurations(force = false): Promise<TierConfiguration[]> {
+    if (!force && tierConfigurations.value.length > 0) {
+      return tierConfigurations.value;
+    }
+    tiersLoading.value = true;
+    try {
+      const data = await api.get<TierConfiguration[]>('/tiers');
+      tierConfigurations.value = [...data].sort((a, b) => a.tierNumber - b.tierNumber);
+      return tierConfigurations.value;
+    } catch (err: any) {
+      console.warn('Failed to fetch tier configurations:', err);
+      return [];
+    } finally {
+      tiersLoading.value = false;
+    }
+  }
 
   async function fetchMe(): Promise<boolean> {
     const sessionId = api.getSessionId();
@@ -23,8 +55,11 @@ export const useAuthStore = defineStore('auth', () => {
     loading.value = true;
     error.value = null;
     try {
-      const data = await api.get<UserMe>('/auth/me');
-      user.value = data;
+      const [userData] = await Promise.all([
+        api.get<UserMe>('/auth/me'),
+        fetchTierConfigurations(),
+      ]);
+      user.value = userData;
       return true;
     } catch (err: any) {
       console.warn('Failed to fetch user profile:', err);
@@ -81,7 +116,12 @@ export const useAuthStore = defineStore('auth', () => {
     isStudent,
     currentBalance,
     reservedBalance,
+    currentTierId,
     currentTier,
+    nextTier,
+    tierConfigurations,
+    tiersLoading,
+    fetchTierConfigurations,
     fetchMe,
     login,
     logout,
