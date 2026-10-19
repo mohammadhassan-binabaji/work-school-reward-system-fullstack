@@ -141,7 +141,7 @@ async function submitVerification() {
             چالش‌های موجود را تکمیل کن، مدرک ارسال کن و نوین کسب کن!
           </p>
         </div>
-        <OwlMascot size="md" />
+        <OwlMascot size="md" variant="checking" />
       </div>
     </div>
 
@@ -252,7 +252,7 @@ async function submitVerification() {
 
     <!-- Empty State -->
     <div v-else class="py-16 text-center space-y-3">
-      <OwlMascot size="lg" class="mx-auto" />
+      <OwlMascot size="lg" variant="checking" class="mx-auto" />
       <h3 class="text-sm font-bold text-white">هنوز چالشی تعریف نشده است</h3>
       <p class="text-xs text-slate-400">به زودی چالش‌های جذاب به سامانه اضافه خواهند شد.</p>
     </div>

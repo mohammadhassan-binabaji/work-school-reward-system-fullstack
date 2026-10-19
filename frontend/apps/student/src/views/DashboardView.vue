@@ -241,7 +241,7 @@ const filteredActivities = computed(() => {
 
           <!-- Center Mascot -->
           <div class="absolute inset-0 flex items-center justify-center">
-            <OwlMascot size="sm" />
+            <OwlMascot size="sm" variant="cheering" />
           </div>
         </div>
       </div>

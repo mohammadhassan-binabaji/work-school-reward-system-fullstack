@@ -99,7 +99,7 @@ function getCardTheme(idx: number): {
             نوین‌ها توسط معلمان ثبت و به حساب شما افزوده می‌شوند.
           </div>
         </div>
-        <OwlMascot size="md" />
+        <OwlMascot size="md" variant="guidance" />
       </div>
     </div>
 
@@ -166,7 +166,7 @@ function getCardTheme(idx: number): {
 
     <!-- Empty State -->
     <div v-else class="py-14 text-center space-y-3 bg-dark-card rounded-3xl p-6 border border-slate-800">
-      <OwlMascot size="lg" class="mx-auto" />
+      <OwlMascot size="lg" variant="guidance" class="mx-auto" />
       <h3 class="text-sm font-bold text-white">
         هنوز راهنمایی برای کسب نوین ثبت نشده است
       </h3>

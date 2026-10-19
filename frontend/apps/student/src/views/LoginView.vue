@@ -3,7 +3,7 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { LogIn, Lock, User, RefreshCw, AlertCircle } from 'lucide-vue-next';
 import { useAuthStore } from '../stores/auth';
-import brandImage from '../assets/images/brand.png';
+import brandImage from '../assets/images/owl-brand.png';
 
 const router = useRouter();
 const authStore = useAuthStore();

@@ -1,12 +1,17 @@
 <script setup lang="ts">
-import owlImage from '../assets/images/owl.png';
+import owlDefault from '../assets/images/owl.png';
+import owlCheering from '../assets/images/owl-cheering.png';
+import owlChecking from '../assets/images/owl-checking.png';
+import owlGuidance from '../assets/images/owl-guidance.png';
 
 interface Props {
   size?: 'sm' | 'md' | 'lg' | 'xl';
+  variant?: 'default' | 'cheering' | 'checking' | 'guidance';
 }
 
 const props = withDefaults(defineProps<Props>(), {
   size: 'md',
+  variant: 'default',
 });
 
 const sizeClasses = {
@@ -14,6 +19,13 @@ const sizeClasses = {
   md: 'w-36 h-36',
   lg: 'w-56 h-56',
   xl: 'w-72 h-72',
+};
+
+const variantImages: Record<string, string> = {
+  default: owlDefault,
+  cheering: owlCheering,
+  checking: owlChecking,
+  guidance: owlGuidance,
 };
 </script>
 
@@ -26,7 +38,7 @@ const sizeClasses = {
 
     <!-- Owl Mascot Image -->
     <img
-      :src="owlImage"
+      :src="variantImages[props.variant]"
       alt="Owl Mascot"
       class="w-full h-full relative z-10 drop-shadow-[0_10px_20px_rgba(0,229,255,0.3)] object-contain"
     />
