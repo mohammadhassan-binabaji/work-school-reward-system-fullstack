@@ -51,6 +51,7 @@
 - Students move between tiers automatically when their current points cross tier thresholds.
 - Tiers have no reward, privilege, or theme behavior in the current phase.
 - Student weekly history records the current balance at the end of each day.
+- Historical student balance snapshot records may be panned and queried lazily across multi-week timelines with non-negative scale bounds ($y \ge 0$).
 - Challenge and mission activity can produce student point awards.
 - Only administrators can create and manage challenges and missions.
 - Challenge and mission point values are fixed at creation and cannot be edited; a changed value requires removing and recreating the activity.

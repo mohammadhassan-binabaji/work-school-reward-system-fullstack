@@ -321,3 +321,39 @@ To provide students with transparent visibility into peer standings and foster h
 * **Current Points Basis:** Ordering is computed based on active current balance (`current points`), matching backend ranking logic.
 * **Tied Rank Handling:** Students with identical points share the same rank number (e.g., two students tied at rank ۱ both show `۱`, and the following student is assigned rank `۳`).
 * **Number & Currency Formatting:** Strict adherence to Persian numerals (`۰, ۱, ۲, ...`) and the required currency term `«نوین»`.
+
+---
+
+## 18. Weekly Balance History — Scrollable Bezier Line Chart (نمودار تاریخچه نوین)
+
+### 18.1 Overview & Core Architecture
+Card 3 on the student dashboard replaces static vertical bar representations with an interactive, Android-grade smooth Bezier line chart tailored for high performance on mobile devices.
+
+### 18.2 Visual Layout & 7-Day Viewport
+* **Chart Geometry:** Smooth (Cubic Bezier) curved line chart with glowing cyan stroke (`#00F0FF`) and semi-transparent vertical gradient fill beneath the curve down to the baseline (`rgba(0, 240, 255, 0.22)` to `transparent`).
+* **Visible Viewport Window:** Fixed **7-day data window** on screen at any time, maintaining optimal spacing across standard mobile screens (360px–430px).
+* **Chronological Directionality:** Left-to-Right (`LTR`) chronological timeline embedded cleanly inside the Persian (`RTL`) application shell. Oldest visible date is on the left, newest date is on the right (e.g., `۰۷/۲۰` on the left, `۰۷/۲۷` on the right).
+* **Static / Sticky Left Y-Axis:**
+  * Scale labels (`۰, ۲۵, ۵۰...`) are anchored on the far left edge of the chart container and remain stationary as the timeline scrolls underneath.
+  * An occlusion gradient / frosted background prevents overlapping dates from clashing with Y-axis tick numbers.
+* **Mathematical Baseline (Non-Negative Bounds):**
+  * Y-axis minimum is strictly bounded at zero ($y \ge 0$). Negative values are mathematically invalid.
+  * Y-axis scale dynamically recalculates its maximum height ceiling based on the highest balance in the visible 7-day window.
+
+### 18.3 Panning, Momentum & Lazy Loading
+* **Horizontal Touch Panning (`PanX`):** Smooth touch-drag and swipe gestures horizontally inside the chart bounds. Sliding right pulls in older historical dates.
+* **Inertial Momentum & Bounce:** Touch releases trigger physics-based momentum deceleration with elastic bounce-back at timeline boundaries.
+* **Cursor-Based Lazy Loading:** When the user pans near the oldest loaded date boundary, an event triggers cursor pagination (`limit` + `beforeDate`) to fetch older historical snapshots without UI stutter.
+* **Position Indicator:** A subtle horizontal scroll indicator pill at the bottom of the card visually communicates the position of the visible 7-day window relative to the entire loaded history.
+
+### 18.4 Touch Scrubbing & Tooltip Lifecycle
+* **Active Node Highlighting:** Scrubbing or touching any point immediately selects the closest data node, rendering a bright neon halo ring and a vertical dashed cyan drop-line aligning with the corresponding X-axis date.
+* **Glassmorphic Floating Tooltip:** Displays a compact frosted glass popup directly above the active node showing:
+  * Value: `[X] نوین` (in Persian numerals).
+  * Date: `[ماه/روز]` (e.g., `۰۷/۲۷`).
+* **Auto-Dismiss:** The tooltip and highlight ring appear on touch/drag and automatically fade out when the user lifts their finger.
+
+### 18.5 Sparse Data Handling
+* Only recorded daily snapshot dates from the database are plotted. Days without snapshot entries are not fabricated with synthetic dates.
+* If snapshot history is sparse or empty, the card renders an elegant zero-baseline with a motivational empty-state indicator.
+

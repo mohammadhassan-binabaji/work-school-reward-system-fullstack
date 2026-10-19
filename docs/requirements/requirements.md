@@ -104,6 +104,7 @@ The system enables teachers to award points to students for actions such as comp
 - Teachers shall be able to view student point reports only for students in classes to which they are assigned.
 - Students shall be able to view their own weekly current-point history in diagrams and other reporting views.
 - Weekly student point history shall represent the student's current balance at the end of each day.
+- The student point history diagram shall render an interactive curved timeline with a 7-day visible viewport, non-negative scale bounds ($y \ge 0$), horizontal touch panning, and cursor-based lazy-loading for historical dates.
 - The system shall store each student's highest current-point balance.
 - The system shall provide a five-tier student tier system based on current points.
 - Administrators shall define and change the names and minimum required current-point thresholds for the five tiers.

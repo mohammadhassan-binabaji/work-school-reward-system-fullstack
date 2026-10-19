@@ -53,6 +53,23 @@ export class RankingsController {
     return this.rankingsService.getStudentSnapshotHistory(studentId, user!, days ? Number(days) : 7);
   }
 
+  @Roles('ADMIN', 'TEACHER', 'STUDENT')
+  @Get('students/:id/balance-history')
+  @ApiOperation({ summary: 'Get student daily balance history (date + balance only) with cursor pagination' })
+  async getStudentBalanceHistory(
+    @Param('id', ParseUUIDPipe) studentId: string,
+    @Query('limit') limit?: number,
+    @Query('beforeDate') beforeDate?: string,
+    @CurrentUser() user?: { id: string; role: Role },
+  ) {
+    return this.rankingsService.getStudentBalanceHistory(
+      studentId,
+      user!,
+      limit ? Math.min(Math.max(Number(limit), 1), 60) : 14,
+      beforeDate,
+    );
+  }
+
   @Roles('ADMIN')
   @Post('snapshots/trigger')
   @HttpCode(HttpStatus.OK)

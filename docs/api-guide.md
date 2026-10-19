@@ -63,6 +63,7 @@ This guide describes the core API endpoints and verification flows for the Stude
 - `GET /api/v1/rankings/class/:id` - Standard competition ranking for class (privacy-masked for students).
 - `GET /api/v1/rankings/school` - School-wide standard competition ranking.
 - `GET /api/v1/rankings/students/:id/snapshot-history` - Student daily snapshot history (balance + school/class ranks) for charts.
+- `GET /api/v1/rankings/students/:id/balance-history?limit=14&beforeDate=...` - Student daily balance snapshot history for interactive line charts (chronological LTR, cursor-based pagination).
 - `GET/PUT /api/v1/tiers` - Configure exactly 5 student tiers.
 
 ### 9. Point Flow Audit & Reporting (`/api/v1/reports`)

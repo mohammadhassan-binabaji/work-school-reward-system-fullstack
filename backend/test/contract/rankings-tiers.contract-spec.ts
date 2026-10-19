@@ -81,5 +81,30 @@ describe('Rankings & Tiers Contract Tests (e2e)', () => {
       .set('Cookie', adminCookie)
       .expect(400);
   });
+
+  it('GET /api/v1/rankings/students/:id/balance-history validates UUID format and requires auth', async () => {
+    // Unauthenticated request
+    await request(app.getHttpServer())
+      .get('/api/v1/rankings/students/a0000000-0000-0000-0000-000000000001/balance-history')
+      .expect(401);
+
+    // Invalid UUID
+    await request(app.getHttpServer())
+      .get('/api/v1/rankings/students/not-a-uuid/balance-history')
+      .set('Cookie', adminCookie)
+      .expect(400);
+
+    // Valid UUID returns expected response envelope with data and pagination
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/rankings/students/a0000000-0000-0000-0000-000000000001/balance-history?limit=7')
+      .set('Cookie', adminCookie)
+      .expect(200);
+
+    expect(res.body).toHaveProperty('data');
+    expect(res.body).toHaveProperty('pagination');
+    expect(Array.isArray(res.body.data)).toBe(true);
+    expect(res.body.pagination.limit).toBe(7);
+    expect(typeof res.body.pagination.hasMore).toBe('boolean');
+  });
 });
 

@@ -220,4 +220,81 @@ export class RankingsService {
       orderBy: { snapshotDate: 'asc' },
     });
   }
+
+  // Student Balance History with cursor pagination for line charts
+  async getStudentBalanceHistory(
+    studentId: string,
+    currentUser: { id: string; role: Role },
+    limit = 14,
+    beforeDate?: string,
+  ) {
+    if (currentUser.role === Role.STUDENT && currentUser.id !== studentId) {
+      throw new ForbiddenException({
+        statusCode: 403,
+        errorCode: 'FORBIDDEN',
+        message: 'Cannot view balance history of other students',
+      });
+    }
+
+    if (currentUser.role === Role.TEACHER) {
+      const studentProfile = await this.prisma.studentProfile.findUnique({
+        where: { id: studentId },
+      });
+      if (studentProfile?.classId) {
+        const assignment = await this.prisma.teacherClassSubjectAssignment.findFirst({
+          where: { teacherId: currentUser.id, classId: studentProfile.classId, status: 'ACTIVE' },
+        });
+        if (!assignment) {
+          throw new ForbiddenException({
+            statusCode: 403,
+            errorCode: 'FORBIDDEN',
+            message: 'Teacher is not assigned to this student class',
+          });
+        }
+      }
+    }
+
+    const where: any = { studentId };
+    if (beforeDate) {
+      const parsedBefore = new Date(beforeDate);
+      if (!isNaN(parsedBefore.getTime())) {
+        where.snapshotDate = { lt: parsedBefore };
+      }
+    }
+
+    // Query limit + 1 ordered by snapshotDate descending to detect hasMore
+    const rawSnapshots = await this.prisma.dailyStudentSnapshot.findMany({
+      where,
+      orderBy: { snapshotDate: 'desc' },
+      take: limit + 1,
+      select: {
+        snapshotDate: true,
+        balance: true,
+      },
+    });
+
+    const hasMore = rawSnapshots.length > limit;
+    const pageSnapshots = hasMore ? rawSnapshots.slice(0, limit) : rawSnapshots;
+
+    // Determine nextCursor (oldest date in this page if hasMore)
+    const nextCursor =
+      hasMore && pageSnapshots.length > 0
+        ? pageSnapshots[pageSnapshots.length - 1].snapshotDate.toISOString().split('T')[0]
+        : null;
+
+    // Reverse to chronological ascending (oldest to newest) for LTR chart plotting
+    const data = pageSnapshots.reverse().map((snap) => ({
+      date: snap.snapshotDate.toISOString().split('T')[0],
+      balance: snap.balance,
+    }));
+
+    return {
+      data,
+      pagination: {
+        limit,
+        nextCursor,
+        hasMore,
+      },
+    };
+  }
 }

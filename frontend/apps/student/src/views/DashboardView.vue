@@ -14,6 +14,7 @@ import {
 import { useAuthStore } from '../stores/auth';
 import OwlMascot from '../components/OwlMascot.vue';
 import BottomSheet from '../components/BottomSheet.vue';
+import ScrollableBezierChart from '../components/ScrollableBezierChart.vue';
 import {
   api,
   toPersianDigits,
@@ -23,6 +24,8 @@ import {
   type DailySnapshot,
   type PointAuditLog,
   type StudentRankingView,
+  type StudentBalancePoint,
+  type StudentBalanceHistoryResponse,
 } from '@student-reward/shared';
 
 const authStore = useAuthStore();
@@ -30,6 +33,10 @@ const authStore = useAuthStore();
 // State
 const loading = ref(true);
 const snapshotHistory = ref<DailySnapshot[]>([]);
+const balanceHistory = ref<StudentBalancePoint[]>([]);
+const hasMoreHistory = ref(false);
+const nextHistoryCursor = ref<string | null>(null);
+const loadingMoreHistory = ref(false);
 const recentActivities = ref<PointAuditLog[]>([]);
 const allActivities = ref<PointAuditLog[]>([]);
 const activityFilter = ref<'all' | 'gain' | 'deduct'>('all');
@@ -107,6 +114,19 @@ async function loadDashboardData() {
       console.warn('Snapshot history not available yet');
     }
 
+    // Load initial 14 balance history points for scrollable line chart
+    try {
+      const balanceRes = await api.get<StudentBalanceHistoryResponse>(
+        `/rankings/students/${studentId}/balance-history`,
+        { limit: 14 },
+      );
+      balanceHistory.value = balanceRes.data || [];
+      hasMoreHistory.value = balanceRes.pagination?.hasMore ?? false;
+      nextHistoryCursor.value = balanceRes.pagination?.nextCursor ?? null;
+    } catch (e) {
+      console.warn('Balance history not available yet');
+    }
+
     // Load recent 3 activities
     try {
       const res = await api.get<{ data: PointAuditLog[]; total: number }>(
@@ -127,6 +147,32 @@ async function loadDashboardData() {
     }
   } finally {
     loading.value = false;
+  }
+}
+
+async function loadMoreHistory() {
+  if (loadingMoreHistory.value || !hasMoreHistory.value || !nextHistoryCursor.value) return;
+  const studentId = authStore.user?.id;
+  if (!studentId) return;
+
+  loadingMoreHistory.value = true;
+  try {
+    const res = await api.get<StudentBalanceHistoryResponse>(
+      `/rankings/students/${studentId}/balance-history`,
+      { limit: 14, beforeDate: nextHistoryCursor.value },
+    );
+    if (res.data && res.data.length > 0) {
+      // Prepend older history to the left
+      balanceHistory.value = [...res.data, ...balanceHistory.value];
+      hasMoreHistory.value = res.pagination.hasMore;
+      nextHistoryCursor.value = res.pagination.nextCursor;
+    } else {
+      hasMoreHistory.value = false;
+    }
+  } catch (e) {
+    console.error('Failed to load older balance history', e);
+  } finally {
+    loadingMoreHistory.value = false;
   }
 }
 
@@ -283,55 +329,21 @@ const filteredActivities = computed(() => {
 
     <!-- Card 3: Weekly Balance History Graph Card (Blue Neon Glow) -->
     <div class="bg-dark-card rounded-3xl p-5 border-1.5 neon-border-cyan relative overflow-hidden">
-      <div class="flex items-center justify-between mb-3">
+      <div class="flex items-center justify-between mb-2">
         <h3 class="text-sm font-bold text-white flex items-center gap-2">
           <Calendar class="w-4 h-4 text-neon-cyan" />
           <span>تاریخچه هفتگی نوین</span>
         </h3>
-        <span class="text-[11px] text-slate-400">۷ روز گذشته</span>
+        <span class="text-[11px] text-slate-400">نمایش ۷ روزه (قابل پیمایش)</span>
       </div>
 
-      <!-- Graph Visualization -->
-      <div class="h-32 w-full mt-2 flex items-end justify-between gap-2 pt-4 px-2">
-        <template v-if="snapshotHistory.length > 0">
-          <div
-            v-for="(snap, idx) in snapshotHistory"
-            :key="idx"
-            class="flex-1 flex flex-col items-center gap-1.5 h-full justify-end group"
-          >
-            <span
-              class="text-[10px] text-neon-cyan font-bold opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              {{ toPersianDigits(snap.balance) }}
-            </span>
-            <div
-              class="w-full bg-gradient-to-t from-neon-cyan/20 to-neon-cyan rounded-t-lg transition-all duration-500 hover:brightness-125"
-              :style="{
-                height: `${Math.max(15, Math.min(100, (snap.balance / (currentPoints || 100)) * 90))}%`,
-              }"
-            ></div>
-            <span class="text-[9px] text-slate-400 font-medium">
-              {{ formatJalaliDate(snap.snapshotDate).split('/').slice(1).join('/') }}
-            </span>
-          </div>
-        </template>
-        <template v-else>
-          <!-- Stylized default placeholder bars when no historical snapshots yet -->
-          <div
-            v-for="bar in [40, 55, 60, 75, 70, 85, 100]"
-            :key="bar"
-            class="flex-1 flex flex-col items-center gap-1.5 h-full justify-end"
-          >
-            <div
-              class="w-full bg-gradient-to-t from-neon-cyan/20 to-neon-cyan/80 rounded-t-lg"
-              :style="{ height: `${bar}%` }"
-            ></div>
-            <span class="text-[9px] text-slate-400 font-medium">
-              {{ toPersianDigits(bar) }}
-            </span>
-          </div>
-        </template>
-      </div>
+      <!-- Scrollable Bezier Line Chart -->
+      <ScrollableBezierChart
+        :balance-points="balanceHistory"
+        :has-more="hasMoreHistory"
+        :loading-more="loadingMoreHistory"
+        @load-more="loadMoreHistory"
+      />
     </div>
 
     <!-- Card 4: Latest Activities Card (Blue Neon Glow) -->

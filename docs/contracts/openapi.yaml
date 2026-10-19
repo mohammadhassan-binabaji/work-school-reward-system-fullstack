@@ -660,6 +660,47 @@ components:
           type: string
           format: date-time
 
+    StudentBalancePointDto:
+      type: object
+      required:
+        - date
+        - balance
+      properties:
+        date:
+          type: string
+          example: '2026-10-18'
+        balance:
+          type: integer
+          minimum: 0
+          example: 150
+
+    StudentBalanceHistoryResponseDto:
+      type: object
+      required:
+        - data
+        - pagination
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/StudentBalancePointDto'
+        pagination:
+          type: object
+          required:
+            - limit
+            - hasMore
+          properties:
+            limit:
+              type: integer
+              example: 14
+            nextCursor:
+              type: string
+              nullable: true
+              example: '2026-10-04'
+            hasMore:
+              type: boolean
+              example: true
+
     PaginatedPointFlowResponse:
       type: object
       required:
@@ -2150,6 +2191,41 @@ paths:
               schema:
                 type: array
                 items: { $ref: '#/components/schemas/DailyStudentSnapshotDto' }
+
+  /rankings/students/{id}/balance-history:
+    get:
+      summary: Get Student Daily Balance Snapshot History (for timeline line charts)
+      description: Returns student balance snapshots ordered chronologically ascending with cursor-based pagination for older history.
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Student ID
+          schema: { type: string, format: uuid }
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 14
+            minimum: 1
+            maximum: 60
+            description: Number of daily snapshots to retrieve
+        - name: beforeDate
+          in: query
+          required: false
+          schema:
+            type: string
+            description: Date cursor (ISO date or YYYY-MM-DD) to fetch older snapshots prior to this date
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentBalanceHistoryResponseDto'
 
   /rankings/snapshots/trigger:
     post:

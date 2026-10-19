@@ -274,6 +274,20 @@ export interface DailySnapshot {
   createdAt: string;
 }
 
+export interface StudentBalancePoint {
+  date: string;
+  balance: number;
+}
+
+export interface StudentBalanceHistoryResponse {
+  data: StudentBalancePoint[];
+  pagination: {
+    limit: number;
+    nextCursor: string | null;
+    hasMore: boolean;
+  };
+}
+
 export interface RankedStudent {
   rank: number;
   studentId: string;
