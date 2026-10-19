@@ -48,11 +48,21 @@ const minTranslateX = computed(() => {
 const maxTranslateX = 0; // scrolled all the way to oldest
 
 const translateX = ref(0);
+const hasUserScrolled = ref(false);
 const isDragging = ref(false);
 const activeIndex = ref<number | null>(null);
 const isTooltipVisible = ref(false);
 
-// Auto-align to latest 7 days when data loads or changes
+// Keep translateX aligned to the latest 7 days on load or resize until user manually scrolls
+watch(minTranslateX, (newMin) => {
+  if (!hasUserScrolled.value) {
+    translateX.value = newMin;
+  } else {
+    translateX.value = Math.max(newMin, Math.min(maxTranslateX, translateX.value));
+  }
+});
+
+// Auto-align when data loads or older history is prepended
 watch(
   () => props.balancePoints.length,
   async (newLen, oldLen) => {
@@ -159,7 +169,17 @@ const areaPath = computed(() => {
 
 // Date formatting for X-axis labels
 function formatShortDate(dateStr: string): string {
-  const formatted = formatJalaliDate(dateStr);
+  if (!dateStr) return '';
+  // Avoid UTC midnight timezone rollback on date-only strings
+  let d: Date;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    const [y, m, day] = dateStr.split('-').map(Number);
+    d = new Date(y, m - 1, day, 12, 0, 0);
+  } else {
+    d = new Date(dateStr);
+  }
+
+  const formatted = formatJalaliDate(d);
   if (formatted === '—') return '';
   const parts = formatted.split('/');
   if (parts.length >= 3) {
@@ -206,6 +226,7 @@ function stopMomentum() {
 function handlePointerDown(e: PointerEvent) {
   stopMomentum();
   isDragging.value = true;
+  hasUserScrolled.value = true;
   startX = e.clientX;
   lastX = e.clientX;
   startTranslate = translateX.value;
@@ -222,6 +243,13 @@ function handlePointerDown(e: PointerEvent) {
 }
 
 function handlePointerMove(e: PointerEvent) {
+  // Support desktop mouse hover without button press
+  if (e.pointerType === 'mouse' && !isDragging.value) {
+    updateActivePoint(e.clientX);
+    isTooltipVisible.value = true;
+    return;
+  }
+
   if (!isDragging.value) return;
 
   const currentX = e.clientX;
@@ -251,6 +279,13 @@ function handlePointerMove(e: PointerEvent) {
 
   // Trigger lazy loading when near oldest date boundary
   checkLazyLoad();
+}
+
+function handlePointerLeave(e: PointerEvent) {
+  if (e.pointerType === 'mouse' && !isDragging.value) {
+    isTooltipVisible.value = false;
+    activeIndex.value = null;
+  }
 }
 
 function handlePointerUp(e: PointerEvent) {
@@ -389,12 +424,14 @@ onUnmounted(() => {
 <template>
   <div
     ref="containerRef"
+    dir="ltr"
     class="relative w-full select-none touch-none overflow-hidden"
     :style="{ height: `${chartHeight + 16}px` }"
     @pointerdown="handlePointerDown"
     @pointermove="handlePointerMove"
     @pointerup="handlePointerUp"
     @pointercancel="handlePointerCancel"
+    @pointerleave="handlePointerLeave"
   >
     <!-- Background Horizontal Guide Lines -->
     <div
