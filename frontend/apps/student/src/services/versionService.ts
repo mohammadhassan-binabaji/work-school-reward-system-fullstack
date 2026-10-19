@@ -169,6 +169,13 @@ export function evaluateVersion(
 }
 
 /**
+ * Checks whether the application is running as a native Android Capacitor app.
+ */
+export function isNativeAndroidPlatform(): boolean {
+  return Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android';
+}
+
+/**
  * Resolves the absolute URL to app-version.json
  */
 export function resolveVersionConfigUrl(): string {
@@ -179,7 +186,7 @@ export function resolveVersionConfigUrl(): string {
   }
 
   // 2. If running on Web / Dev browser, relative path is fine
-  if (typeof window !== 'undefined' && !Capacitor.isNativePlatform()) {
+  if (!isNativeAndroidPlatform()) {
     return '/app-version.json';
   }
 
@@ -239,7 +246,7 @@ export async function fetchRemoteVersionConfig(
  * Gets the actual native Android installed version through Capacitor App plugin.
  */
 export async function getInstalledAppInfo(): Promise<{ version: string; build: string }> {
-  if (Capacitor.isNativePlatform()) {
+  if (isNativeAndroidPlatform()) {
     try {
       const info = await App.getInfo();
       return {
@@ -264,7 +271,7 @@ export async function getInstalledAppInfo(): Promise<{ version: string; build: s
 export function openUpdateUrl(url: string): void {
   if (!url) return;
   try {
-    const target = Capacitor.isNativePlatform() ? '_system' : '_blank';
+    const target = isNativeAndroidPlatform() ? '_system' : '_blank';
     window.open(url, target, 'noopener,noreferrer');
   } catch {
     window.location.href = url;

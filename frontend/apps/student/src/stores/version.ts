@@ -7,6 +7,7 @@ import {
   getInstalledAppInfo,
   evaluateVersion,
   openUpdateUrl,
+  isNativeAndroidPlatform,
 } from '../services/versionService';
 
 export const useVersionStore = defineStore('app-version', () => {
@@ -24,6 +25,17 @@ export const useVersionStore = defineStore('app-version', () => {
   async function checkVersion(): Promise<VersionCheckResult> {
     isChecking.value = true;
     checkError.value = null;
+
+    // Version alerts and update modals apply exclusively to native Android Capacitor builds
+    if (!isNativeAndroidPlatform()) {
+      const skippedResult: VersionCheckResult = {
+        status: 'UP_TO_DATE',
+        installedVersion: 'web',
+      };
+      result.value = skippedResult;
+      isChecking.value = false;
+      return skippedResult;
+    }
 
     const { version: installedVersion, build: installedBuild } = await getInstalledAppInfo();
 

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { Capacitor } from '@capacitor/core';
 import {
   isValidSemver,
   parseSemver,
@@ -6,6 +7,7 @@ import {
   validateVersionConfig,
   evaluateVersion,
   fetchRemoteVersionConfig,
+  isNativeAndroidPlatform,
   type AppVersionConfig,
 } from './versionService';
 
@@ -208,4 +210,29 @@ describe('versionService', () => {
       ).rejects.toThrowError(/زمان انتظار/);
     });
   });
+
+  describe('isNativeAndroidPlatform', () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('returns true when running natively on android', () => {
+      vi.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(true);
+      vi.spyOn(Capacitor, 'getPlatform').mockReturnValue('android');
+      expect(isNativeAndroidPlatform()).toBe(true);
+    });
+
+    it('returns false when running on web / browser / pwa', () => {
+      vi.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(false);
+      vi.spyOn(Capacitor, 'getPlatform').mockReturnValue('web');
+      expect(isNativeAndroidPlatform()).toBe(false);
+    });
+
+    it('returns false when running natively on non-android platforms', () => {
+      vi.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(true);
+      vi.spyOn(Capacitor, 'getPlatform').mockReturnValue('ios');
+      expect(isNativeAndroidPlatform()).toBe(false);
+    });
+  });
 });
+
