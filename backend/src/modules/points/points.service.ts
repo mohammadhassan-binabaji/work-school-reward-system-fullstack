@@ -75,7 +75,6 @@ export class PointsService {
         recipientId: pool.id,
         amount: dto.balance,
         actionType: ActionType.POOL_FUND_TEACHER,
-        taskOrReason: `System pool balance set to ${dto.balance}`,
         resultingRecipientBalance: pool.balance,
       });
     }
@@ -141,7 +140,6 @@ export class PointsService {
           recipientId: dto.teacherId,
           amount: dto.amount,
           actionType: ActionType.POOL_FUND_TEACHER,
-          taskOrReason: `Admin funded teacher award budget with ${dto.amount} points`,
           resultingSourceBalance: updatedPool.balance,
           resultingRecipientBalance: updatedTeacher.pointBalance,
         },
@@ -363,7 +361,7 @@ export class PointsService {
           recipientId: dto.studentId,
           amount: awardPoints,
           actionType: ActionType.TEACHER_AWARD_STUDENT,
-          taskOrReason: `Awarded for ${option.task.name}: ${option.label || awardPoints + ' pts'} (${assignment.subject.name})`,
+          reasonDetail: option.task.name,
           relatedEntityType: 'TeacherClassSubjectAssignment',
           relatedEntityId: assignment.id,
           resultingSourceBalance: updatedTeacher.pointBalance,
@@ -460,7 +458,7 @@ export class PointsService {
           recipientId: dto.amount > 0 ? dto.studentId : null,
           amount: Math.abs(dto.amount),
           actionType: ActionType.ADMIN_ADJUST_STUDENT,
-          taskOrReason: `Admin adjustment: ${dto.reason}`,
+          reasonDetail: dto.reason,
           resultingSourceBalance: dto.amount < 0 ? updatedStudent.currentBalance : null,
           resultingRecipientBalance: dto.amount > 0 ? updatedStudent.currentBalance : updatedStudent.currentBalance,
         },

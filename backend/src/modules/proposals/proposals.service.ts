@@ -405,7 +405,6 @@ export class ProposalsService {
           recipientId: proposal.studentId,
           amount: awardPoints,
           actionType: ActionType.PROPOSAL_AWARD_STUDENT,
-          taskOrReason: `Voluntary task completed: ${proposal.description.substring(0, 50)}`,
           relatedEntityType: 'StudentTaskProposal',
           relatedEntityId: proposal.id,
           resultingRecipientBalance: newCurrentBalance,

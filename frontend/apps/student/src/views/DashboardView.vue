@@ -21,6 +21,8 @@ import {
   formatNovin,
   formatJalaliDateTime,
   formatJalaliDate,
+  formatAuditLogDescription,
+  resolveStudentPointDelta,
   type DailySnapshot,
   type PointAuditLog,
   type StudentRankingView,
@@ -222,12 +224,16 @@ async function openFullActivities() {
   }
 }
 
+function getItemDelta(item: PointAuditLog): number {
+  return resolveStudentPointDelta(item, authStore.user?.id);
+}
+
 const filteredActivities = computed(() => {
   if (activityFilter.value === 'gain') {
-    return allActivities.value.filter((a) => a.amount > 0);
+    return allActivities.value.filter((a) => getItemDelta(a) > 0);
   }
   if (activityFilter.value === 'deduct') {
-    return allActivities.value.filter((a) => a.amount < 0);
+    return allActivities.value.filter((a) => getItemDelta(a) < 0);
   }
   return allActivities.value;
 });
@@ -375,15 +381,15 @@ const filteredActivities = computed(() => {
             <div
               :class="[
                 'w-8 h-8 rounded-full flex items-center justify-center font-bold',
-                item.amount > 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400',
+                getItemDelta(item) >= 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400',
               ]"
             >
-              <Plus v-if="item.amount > 0" class="w-4 h-4" />
+              <Plus v-if="getItemDelta(item) >= 0" class="w-4 h-4" />
               <Minus v-else class="w-4 h-4" />
             </div>
             <div>
               <p class="text-xs font-bold text-white line-clamp-1">
-                {{ item.taskOrReason || 'تغییر موجودی نوین' }}
+                {{ formatAuditLogDescription(item) }}
               </p>
               <span class="text-[10px] text-slate-400 block mt-0.5">
                 {{ formatJalaliDateTime(item.createdAt) }}
@@ -394,10 +400,10 @@ const filteredActivities = computed(() => {
           <div
             :class="[
               'text-xs font-black tracking-wide',
-              item.amount > 0 ? 'text-neon-green' : 'text-neon-red',
+              getItemDelta(item) >= 0 ? 'text-neon-green' : 'text-neon-red',
             ]"
           >
-            {{ formatNovin(item.amount, { showSign: true }) }}
+            {{ formatNovin(getItemDelta(item), { showSign: true }) }}
           </div>
         </div>
       </div>
@@ -589,15 +595,15 @@ const filteredActivities = computed(() => {
               <div
                 :class="[
                   'w-8 h-8 rounded-full flex items-center justify-center font-bold shrink-0',
-                  item.amount > 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400',
+                  getItemDelta(item) >= 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400',
                 ]"
               >
-                <Plus v-if="item.amount > 0" class="w-4 h-4" />
+                <Plus v-if="getItemDelta(item) >= 0" class="w-4 h-4" />
                 <Minus v-else class="w-4 h-4" />
               </div>
               <div>
                 <p class="text-xs font-bold text-white">
-                  {{ item.taskOrReason || 'تراکنش نوین' }}
+                  {{ formatAuditLogDescription(item) }}
                 </p>
                 <span class="text-[10px] text-slate-400 block mt-0.5">
                   {{ formatJalaliDateTime(item.createdAt) }}
@@ -608,10 +614,10 @@ const filteredActivities = computed(() => {
             <div
               :class="[
                 'text-xs font-black shrink-0 mr-2',
-                item.amount > 0 ? 'text-neon-green' : 'text-neon-red',
+                getItemDelta(item) >= 0 ? 'text-neon-green' : 'text-neon-red',
               ]"
             >
-              {{ formatNovin(item.amount, { showSign: true }) }}
+              {{ formatNovin(getItemDelta(item), { showSign: true }) }}
             </div>
           </div>
         </div>

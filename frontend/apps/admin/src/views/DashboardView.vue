@@ -19,6 +19,8 @@ import {
   toPersianDigits,
   formatNovin,
   formatJalaliDateTime,
+  formatAuditLogDescription,
+  formatActionType,
   type SystemPointPool,
   type PointAuditLog,
   type User,
@@ -188,16 +190,14 @@ async function loadDashboard() {
                   {{ log.actor ? `${log.actor.firstName} ${log.actor.lastName}` : 'سیستم' }}
                 </td>
                 <td class="p-3.5 text-slate-800 max-w-xs truncate">
-                  {{ log.taskOrReason || '—' }}
+                  {{ formatAuditLogDescription(log) }}
                 </td>
                 <td class="p-3.5 font-black text-slate-900 whitespace-nowrap">
-                  <span :class="log.amount > 0 ? 'text-emerald-600' : 'text-rose-600'">
-                    {{ formatNovin(log.amount, { showSign: true }) }}
-                  </span>
+                  {{ formatNovin(log.amount, { showSign: false }) }}
                 </td>
                 <td class="p-3.5 pl-5 text-slate-500 whitespace-nowrap">
                   <span class="px-2 py-0.5 rounded-lg bg-slate-100 text-[10px] font-bold text-slate-600">
-                    {{ log.actionType }}
+                    {{ formatActionType(log.actionType) }}
                   </span>
                 </td>
               </tr>

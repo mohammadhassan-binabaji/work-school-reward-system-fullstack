@@ -12,7 +12,7 @@ export interface CreateAuditLogParams {
   recipientId?: string | null;
   amount: number;
   actionType: ActionType;
-  taskOrReason: string;
+  reasonDetail?: string | null;
   relatedEntityType?: string | null;
   relatedEntityId?: string | null;
   resultingSourceBalance?: number | null;
@@ -36,7 +36,7 @@ export class AuditLogService {
         recipientId: params.recipientId || null,
         amount: params.amount,
         actionType: params.actionType,
-        taskOrReason: params.taskOrReason,
+        reasonDetail: params.reasonDetail ?? null,
         relatedEntityType: params.relatedEntityType || null,
         relatedEntityId: params.relatedEntityId || null,
         resultingSourceBalance: params.resultingSourceBalance ?? null,

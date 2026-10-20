@@ -84,7 +84,7 @@ export class ReportsService {
       source: log.sourceType,
       recipient: log.recipientType,
       amount: log.amount,
-      reason: log.taskOrReason,
+      reason: log.reasonDetail || '',
       correlationId: log.correlationId,
     }));
 

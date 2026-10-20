@@ -1,16 +1,24 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { Clock, Plus, Award } from 'lucide-vue-next';
+import { Clock, Plus, Minus, Award } from 'lucide-vue-next';
+import { useAuthStore } from '../stores/auth';
 import {
   api,
   toPersianDigits,
   formatNovin,
   formatJalaliDateTime,
+  formatAuditLogDescription,
+  resolveTeacherPointDelta,
   type PointAuditLog,
 } from '@student-reward/shared';
 
+const authStore = useAuthStore();
 const logs = ref<PointAuditLog[]>([]);
 const loading = ref(true);
+
+function getTeacherDelta(item: PointAuditLog): number {
+  return resolveTeacherPointDelta(item, authStore.user?.id);
+}
 
 onMounted(async () => {
   await fetchHistory();
@@ -58,14 +66,18 @@ async function fetchHistory() {
       >
         <div class="flex items-center gap-3">
           <div
-            class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold shrink-0"
+            :class="[
+              'w-8 h-8 rounded-full flex items-center justify-center font-bold shrink-0',
+              getTeacherDelta(item) >= 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700',
+            ]"
           >
-            <Plus class="w-4 h-4" />
+            <Plus v-if="getTeacherDelta(item) >= 0" class="w-4 h-4" />
+            <Minus v-else class="w-4 h-4" />
           </div>
 
           <div>
             <span class="text-xs font-bold text-slate-800 block">
-              {{ item.taskOrReason || 'اهدای پاداش نوین' }}
+              {{ formatAuditLogDescription(item) }}
             </span>
             <span class="text-[10px] text-slate-400 block mt-0.5">
               {{ formatJalaliDateTime(item.createdAt) }}
@@ -74,8 +86,13 @@ async function fetchHistory() {
         </div>
 
         <div class="text-left shrink-0">
-          <span class="text-xs font-black text-emerald-600">
-            {{ formatNovin(item.amount, { showSign: true }) }}
+          <span
+            :class="[
+              'text-xs font-black',
+              getTeacherDelta(item) >= 0 ? 'text-emerald-600' : 'text-rose-600',
+            ]"
+          >
+            {{ formatNovin(getTeacherDelta(item), { showSign: true }) }}
           </span>
         </div>
       </div>

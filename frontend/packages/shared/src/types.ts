@@ -141,7 +141,7 @@ export interface PointAuditLog {
   recipientId?: string | null;
   amount: number;
   actionType: ActionType;
-  taskOrReason: string;
+  reasonDetail?: string | null;
   relatedEntityType?: string | null;
   relatedEntityId?: string | null;
   resultingSourceBalance?: number | null;

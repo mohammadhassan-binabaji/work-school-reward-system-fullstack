@@ -423,7 +423,6 @@ export class ActivitiesService {
           recipientId: verification.studentId,
           amount: awardPoints,
           actionType: ActionType.CHALLENGE_AWARD_STUDENT,
-          taskOrReason: `Challenge/Mission verified: ${verification.activity.title}`,
           relatedEntityType: 'VerificationRequest',
           relatedEntityId: verification.id,
           resultingRecipientBalance: newCurrentBalance,

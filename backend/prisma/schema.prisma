@@ -256,7 +256,7 @@ model PointAuditLog {
   recipientId              String?       @map("recipient_id") @db.Uuid
   amount                   Int
   actionType               ActionType    @map("action_type")
-  taskOrReason             String        @map("task_or_reason") @db.Text
+  reasonDetail             String?       @map("reason_detail") @db.Text
   relatedEntityType        String?       @map("related_entity_type") @db.VarChar(50)
   relatedEntityId          String?       @map("related_entity_id") @db.Uuid
   resultingSourceBalance    Int?          @map("resulting_source_balance")

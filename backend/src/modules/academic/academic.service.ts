@@ -354,7 +354,6 @@ export class AcademicService {
             recipientType: RecipientType.NONE,
             amount: totalPointsToClear,
             actionType: ActionType.STUDENT_DEPARTURE_DEDUCT,
-            taskOrReason: 'Student departure - balances cleared',
             resultingSourceBalance: 0,
           },
         });
@@ -523,7 +522,6 @@ export class AcademicService {
             recipientId: pool.id,
             amount: remainingBudget,
             actionType: ActionType.POOL_FUND_TEACHER,
-            taskOrReason: 'Teacher departure - unused budget returned to system pool',
             resultingSourceBalance: 0,
             resultingRecipientBalance: pool.balance + remainingBudget,
           },

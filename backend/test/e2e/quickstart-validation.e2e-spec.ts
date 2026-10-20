@@ -841,7 +841,7 @@ describe('Quickstart End-to-End Validation Suite (All 8 Scenarios)', () => {
       expect(reportRes.body.data).toBeDefined();
       expect(reportRes.body.data.length).toBeGreaterThanOrEqual(1);
       expect(reportRes.body.data[0].amount).toBe(50);
-      expect(reportRes.body.data[0].taskOrReason).toContain('Special recognition award');
+      expect(reportRes.body.data[0].reasonDetail).toContain('Special recognition award');
 
       // Step 2: Export CSV Format
       const csvRes = await request(app.getHttpServer())

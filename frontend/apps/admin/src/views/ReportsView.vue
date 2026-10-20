@@ -13,6 +13,9 @@ import {
   toPersianDigits,
   formatNovin,
   formatJalaliDateTime,
+  formatAuditLogDescription,
+  formatAuditEntity,
+  formatActionType,
   type PointAuditLog,
   type ActionType,
 } from '@student-reward/shared';
@@ -162,8 +165,9 @@ async function handleExport(format: 'csv' | 'xlsx' | 'pdf') {
             <tr>
               <th class="p-3.5 pr-5">تاریخ و ساعت</th>
               <th class="p-3.5">اقدام‌کننده</th>
-              <th class="p-3.5">علت / شرح رویداد</th>
-              <th class="p-3.5">مقدار نوین</th>
+              <th class="p-3.5">گردش (مبدأ ← مقصد)</th>
+              <th class="p-3.5">شرح رویداد</th>
+              <th class="p-3.5">حجم نوین</th>
               <th class="p-3.5">نوع رویداد</th>
               <th class="p-3.5 pl-5 font-mono">شناسه رهگیری (Correlation ID)</th>
             </tr>
@@ -171,7 +175,7 @@ async function handleExport(format: 'csv' | 'xlsx' | 'pdf') {
           <tbody class="divide-y divide-slate-100 font-medium">
             <template v-if="loading">
               <tr>
-                <td colspan="6" class="py-12 text-center text-slate-400">در حال دریافت داده‌های گزارش...</td>
+                <td colspan="7" class="py-12 text-center text-slate-400">در حال دریافت داده‌های گزارش...</td>
               </tr>
             </template>
             <template v-else-if="logs.length > 0">
@@ -182,15 +186,20 @@ async function handleExport(format: 'csv' | 'xlsx' | 'pdf') {
                 <td class="p-3.5 font-bold text-slate-800 whitespace-nowrap">
                   {{ l.actor ? `${l.actor.firstName} ${l.actor.lastName} (${l.actor.username})` : 'سیستم' }}
                 </td>
-                <td class="p-3.5 text-slate-700 max-w-xs truncate">{{ l.taskOrReason || '—' }}</td>
-                <td class="p-3.5 font-black whitespace-nowrap">
-                  <span :class="l.amount > 0 ? 'text-emerald-600' : 'text-rose-600'">
-                    {{ formatNovin(l.amount, { showSign: true }) }}
+                <td class="p-3.5 text-slate-600 whitespace-nowrap">
+                  <span class="inline-flex items-center gap-1.5 text-[11px]">
+                    <span class="font-medium text-slate-700">{{ formatAuditEntity(l.sourceType) }}</span>
+                    <span class="text-slate-400">←</span>
+                    <span class="font-medium text-slate-700">{{ formatAuditEntity(l.recipientType) }}</span>
                   </span>
+                </td>
+                <td class="p-3.5 text-slate-700 max-w-xs truncate">{{ formatAuditLogDescription(l) }}</td>
+                <td class="p-3.5 font-black text-slate-900 whitespace-nowrap">
+                  {{ formatNovin(l.amount, { showSign: false }) }}
                 </td>
                 <td class="p-3.5 whitespace-nowrap">
                   <span class="px-2 py-0.5 rounded-lg bg-slate-100 text-[10px] font-bold text-slate-600">
-                    {{ l.actionType }}
+                    {{ formatActionType(l.actionType) }}
                   </span>
                 </td>
                 <td class="p-3.5 pl-5 font-mono text-[11px] text-slate-400 truncate max-w-[150px]">
@@ -199,7 +208,7 @@ async function handleExport(format: 'csv' | 'xlsx' | 'pdf') {
               </tr>
             </template>
             <tr v-else>
-              <td colspan="6" class="py-12 text-center text-slate-400">رکوردی مطابق فیلتر یافت نشد.</td>
+              <td colspan="7" class="py-12 text-center text-slate-400">رکوردی مطابق فیلتر یافت نشد.</td>
             </tr>
           </tbody>
         </table>
