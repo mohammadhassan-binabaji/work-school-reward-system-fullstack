@@ -167,8 +167,8 @@ Append-only immutable audit trail for every point event in the system.
 | `recipient_type`| ENUM | NOT NULL: `TEACHER`, `STUDENT_CURRENT`, `STUDENT_RESERVED`, `SYSTEM_POOL`, `NONE` | Destination balance entity |
 | `recipient_id` | UUID | NULLABLE | ID of recipient user/entity |
 | `amount` | INTEGER | NOT NULL, `CHECK (amount > 0)` | Points transferred/adjusted |
-| `action_type` | ENUM | NOT NULL: `POOL_FUND_TEACHER`, `TEACHER_AWARD_STUDENT`, `ADMIN_ADJUST_STUDENT`, `REWARD_RESERVE_POINTS`, `REWARD_DECLINE_RETURN`, `REWARD_REMOVE_RETURN`, `REWARD_RECEIVE_COMPLETE`, `CHALLENGE_AWARD_STUDENT`, `PROPOSAL_AWARD_STUDENT` | Action classification |
-| `task_or_reason`| TEXT | NOT NULL | Reason description or task name/option |
+| `action_type` | ENUM | NOT NULL: `POOL_FUND_TEACHER`, `TEACHER_AWARD_STUDENT`, `ADMIN_ADJUST_STUDENT`, `REWARD_RESERVE_POINTS`, `REWARD_DECLINE_RETURN`, `REWARD_REMOVE_RETURN`, `REWARD_RECEIVE_COMPLETE`, `CHALLENGE_AWARD_STUDENT`, `PROPOSAL_AWARD_STUDENT`, `STUDENT_DEPARTURE_DEDUCT` | Action classification |
+| `reason_detail`| TEXT | NULLABLE | Supplemental detail text (task name for teacher awards, user-supplied reason for admin balance adjustments; null for other actions) |
 | `related_entity_type` | VARCHAR(50) | NULLABLE | E.g. `Class`, `Subject`, `RewardRequest`, `Activity`, `Proposal` |
 | `related_entity_id` | UUID | NULLABLE | ID of related entity |
 | `resulting_source_balance` | INTEGER | NULLABLE | Resulting balance of source |

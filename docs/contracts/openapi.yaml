@@ -701,6 +701,117 @@ components:
               type: boolean
               example: true
 
+    AuditLogActor:
+      type: object
+      required:
+        - id
+        - nationalId
+        - firstName
+        - lastName
+        - username
+        - role
+      properties:
+        id:
+          type: string
+          format: uuid
+        nationalId:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        username:
+          type: string
+        role:
+          type: string
+          enum: [ADMIN, TEACHER, STUDENT]
+
+    PointAuditLogResponse:
+      type: object
+      required:
+        - id
+        - correlationId
+        - actorRole
+        - sourceType
+        - recipientType
+        - amount
+        - actionType
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        correlationId:
+          type: string
+          example: 'c1f2e3d4-5678-90ab-cdef-1234567890ab'
+        actorId:
+          type: string
+          format: uuid
+          nullable: true
+        actor:
+          $ref: '#/components/schemas/AuditLogActor'
+          nullable: true
+        actorRole:
+          type: string
+          enum: [ADMIN, TEACHER, STUDENT, SYSTEM]
+        sourceType:
+          type: string
+          enum: [SYSTEM_POOL, TEACHER, STUDENT_CURRENT, STUDENT_RESERVED]
+        sourceId:
+          type: string
+          format: uuid
+          nullable: true
+        recipientType:
+          type: string
+          enum: [TEACHER, STUDENT_CURRENT, STUDENT_RESERVED, SYSTEM_POOL, NONE]
+        recipientId:
+          type: string
+          format: uuid
+          nullable: true
+        amount:
+          type: integer
+          minimum: 1
+          description: Non-negative magnitude of points transferred
+          example: 50
+        actionType:
+          type: string
+          enum:
+            - POOL_FUND_TEACHER
+            - TEACHER_AWARD_STUDENT
+            - ADMIN_ADJUST_STUDENT
+            - REWARD_RESERVE_POINTS
+            - REWARD_DECLINE_RETURN
+            - REWARD_REMOVE_RETURN
+            - REWARD_RECEIVE_COMPLETE
+            - CHALLENGE_AWARD_STUDENT
+            - PROPOSAL_AWARD_STUDENT
+            - STUDENT_DEPARTURE_DEDUCT
+        reasonDetail:
+          type: string
+          nullable: true
+          description: >-
+            Optional supplemental detail text. Present only for TEACHER_AWARD_STUDENT
+            (contains task name directly) and ADMIN_ADJUST_STUDENT (contains admin-supplied reason);
+            null for all other action types.
+          example: 'Special recognition award'
+        relatedEntityType:
+          type: string
+          nullable: true
+          example: 'TeacherClassSubjectAssignment'
+        relatedEntityId:
+          type: string
+          format: uuid
+          nullable: true
+        resultingSourceBalance:
+          type: integer
+          nullable: true
+        resultingRecipientBalance:
+          type: integer
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
     PaginatedPointFlowResponse:
       type: object
       required:
@@ -718,7 +829,7 @@ components:
         data:
           type: array
           items:
-            type: object
+            $ref: '#/components/schemas/PointAuditLogResponse'
 
     NotificationReadStatus:
       type: string
@@ -2370,6 +2481,12 @@ paths:
   /reports/point-flow:
     get:
       summary: Query Filtered Point Flow Report
+      description: >-
+        Query role-scoped immutable audit log records. Student callers can only query logs involving
+        their own account; teachers can query logs involving themselves or their assigned students;
+        administrators have unrestricted school-wide visibility. Transfer amounts are positive magnitudes
+        between debited sourceType and credited recipientType. Optional reasonDetail is present for
+        TEACHER_AWARD_STUDENT (task name) and ADMIN_ADJUST_STUDENT (admin note); null for other actions.
       security:
         - SessionAuth: []
       parameters:

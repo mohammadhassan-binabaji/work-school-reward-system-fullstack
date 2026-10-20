@@ -67,7 +67,7 @@ This guide describes the core API endpoints and verification flows for the Stude
 - `GET/PUT /api/v1/tiers` - Configure exactly 5 student tiers.
 
 ### 9. Point Flow Audit & Reporting (`/api/v1/reports`)
-- `GET /api/v1/reports/point-flow` - Query role-scoped immutable audit log records.
+- `GET /api/v1/reports/point-flow` - Query role-scoped immutable audit log records. Transfer amounts are positive magnitudes between debited `sourceType` and credited `recipientType`. Optional `reasonDetail` contains the task name for `TEACHER_AWARD_STUDENT` or user-supplied reason for `ADMIN_ADJUST_STUDENT` (`null` for other action types).
 - `GET /api/v1/reports/point-flow/export?format=csv|xlsx|pdf` - Stream report in CSV, Excel (XLSX), or PDF format.
 
 ### 10. Guidance Cards (`/api/v1/guidance-cards`)
