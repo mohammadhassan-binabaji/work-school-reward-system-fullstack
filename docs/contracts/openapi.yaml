@@ -786,6 +786,8 @@ components:
             - CHALLENGE_AWARD_STUDENT
             - PROPOSAL_AWARD_STUDENT
             - STUDENT_DEPARTURE_DEDUCT
+            - SET_POOL_BALANCE
+            - TEACHER_DEPARTURE_RETURN
         reasonDetail:
           type: string
           nullable: true

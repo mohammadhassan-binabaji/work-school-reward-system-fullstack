@@ -136,6 +136,8 @@ export function formatActionType(action: ActionType | string): string {
     REWARD_REMOVE_RETURN: 'بازگشت نوین (حذف جایزه)',
     REWARD_RECEIVE_COMPLETE: 'تحویل فیزیکی جایزه',
     STUDENT_DEPARTURE_DEDUCT: 'کسر خروج دانش‌آموز',
+    SET_POOL_BALANCE: 'تنظیم موجودی استخر نوین',
+    TEACHER_DEPARTURE_RETURN: 'بازگشت بودجه خروج معلم به استخر',
   };
   return map[action] || action;
 }
@@ -172,6 +174,10 @@ export function formatAuditLogDescription(log: PointAuditLog): string {
       return 'تکمیل تحویل فیزیکی جایزه';
     case 'POOL_FUND_TEACHER':
       return 'تخصیص بودجه پاداش معلم از استخر';
+    case 'SET_POOL_BALANCE':
+      return 'تنظیم مستقیم موجودی استخر نوین توسط مدیر';
+    case 'TEACHER_DEPARTURE_RETURN':
+      return 'بازگشت باقیمانده بودجه معلم به استخر به علت خروج';
     case 'STUDENT_DEPARTURE_DEDUCT':
       return 'تسویه موجودی به علت خروج دانش‌آموز';
     default:
@@ -223,7 +229,7 @@ export function resolveTeacherPointDelta(log: PointAuditLog, teacherId?: string)
     return log.amount;
   }
 
-  if (log.actionType === 'TEACHER_AWARD_STUDENT') {
+  if (log.actionType === 'TEACHER_AWARD_STUDENT' || log.actionType === 'TEACHER_DEPARTURE_RETURN') {
     return -log.amount;
   }
 

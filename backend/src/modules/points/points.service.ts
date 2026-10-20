@@ -74,7 +74,7 @@ export class PointsService {
         recipientType: RecipientType.SYSTEM_POOL,
         recipientId: pool.id,
         amount: dto.balance,
-        actionType: ActionType.POOL_FUND_TEACHER,
+        actionType: ActionType.SET_POOL_BALANCE,
         resultingRecipientBalance: pool.balance,
       });
     }

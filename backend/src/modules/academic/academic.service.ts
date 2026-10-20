@@ -521,7 +521,7 @@ export class AcademicService {
             recipientType: RecipientType.SYSTEM_POOL,
             recipientId: pool.id,
             amount: remainingBudget,
-            actionType: ActionType.POOL_FUND_TEACHER,
+            actionType: ActionType.TEACHER_DEPARTURE_RETURN,
             resultingSourceBalance: 0,
             resultingRecipientBalance: pool.balance + remainingBudget,
           },
