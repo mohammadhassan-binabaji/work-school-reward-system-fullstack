@@ -138,7 +138,7 @@ async function loadDashboardData() {
     try {
       const res = await api.get<{ data: PointAuditLog[]; total: number }>(
         '/reports/point-flow',
-        { limit: 3 },
+        { limit: 3, excludeActionType: 'REWARD_RECEIVE_COMPLETE' },
       );
       recentActivities.value = res.data || [];
     } catch (e) {
@@ -214,7 +214,7 @@ async function openFullActivities() {
   try {
     const res = await api.get<{ data: PointAuditLog[]; total: number }>(
       '/reports/point-flow',
-      { limit: 50 },
+      { limit: 50, excludeActionType: 'REWARD_RECEIVE_COMPLETE' },
     );
     allActivities.value = res.data || [];
   } catch (e) {

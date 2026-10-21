@@ -2539,6 +2539,11 @@ paths:
           in: query
           required: false
           schema: { type: string }
+        - name: excludeActionType
+          in: query
+          required: false
+          description: Exclude audit logs matching this ActionType (e.g. REWARD_RECEIVE_COMPLETE)
+          schema: { type: string }
         - name: limit
           in: query
           required: false
@@ -2591,6 +2596,11 @@ paths:
         - name: actionType
           in: query
           required: false
+          schema: { type: string }
+        - name: excludeActionType
+          in: query
+          required: false
+          description: Exclude audit logs matching this ActionType (e.g. REWARD_RECEIVE_COMPLETE)
           schema: { type: string }
       responses:
         '200':

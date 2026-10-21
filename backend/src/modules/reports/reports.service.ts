@@ -1,4 +1,4 @@
-import { Injectable, ForbiddenException } from '@nestjs/common';
+import { Injectable, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { ActionType, Role, RecipientType, SourceType } from '@prisma/client';
 import { ExportUtil, AuditLogExportRow } from '../../common/utils/export.util';
@@ -11,6 +11,7 @@ export interface PointFlowQueryFilter {
   classId?: string;
   subjectId?: string;
   actionType?: ActionType;
+  excludeActionType?: ActionType;
   limit?: number;
   offset?: number;
 }
@@ -129,8 +130,15 @@ export class ReportsService {
       if (filter.endDate) where.createdAt.lte = new Date(filter.endDate);
     }
 
-    if (filter.actionType) {
+    if (filter.actionType && filter.excludeActionType) {
+      if (filter.actionType === filter.excludeActionType) {
+        throw new BadRequestException('actionType and excludeActionType cannot be identical');
+      }
       where.actionType = filter.actionType;
+    } else if (filter.actionType) {
+      where.actionType = filter.actionType;
+    } else if (filter.excludeActionType) {
+      where.actionType = { not: filter.excludeActionType };
     }
 
     // Role-based visibility scoping

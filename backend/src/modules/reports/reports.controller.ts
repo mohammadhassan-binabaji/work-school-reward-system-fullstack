@@ -1,4 +1,4 @@
-import { Controller, Get, Query, Res, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Query, Res, BadRequestException, ParseEnumPipe } from '@nestjs/common';
 import { Response } from 'express';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiCookieAuth } from '@nestjs/swagger';
 import { ReportsService } from './reports.service';
@@ -23,13 +23,14 @@ export class ReportsController {
     @Query('teacherId') teacherId?: string,
     @Query('classId') classId?: string,
     @Query('subjectId') subjectId?: string,
-    @Query('actionType') actionType?: ActionType,
+    @Query('actionType', new ParseEnumPipe(ActionType, { optional: true })) actionType?: ActionType,
+    @Query('excludeActionType', new ParseEnumPipe(ActionType, { optional: true })) excludeActionType?: ActionType,
     @Query('limit') limit?: number,
     @Query('offset') offset?: number,
     @CurrentUser() user?: { id: string; role: Role },
   ) {
     return this.reportsService.getPointFlowReport(
-      { startDate, endDate, studentId, teacherId, classId, subjectId, actionType, limit, offset },
+      { startDate, endDate, studentId, teacherId, classId, subjectId, actionType, excludeActionType, limit, offset },
       user!,
     );
   }
@@ -45,7 +46,8 @@ export class ReportsController {
     @Query('teacherId') teacherId?: string,
     @Query('classId') classId?: string,
     @Query('subjectId') subjectId?: string,
-    @Query('actionType') actionType?: ActionType,
+    @Query('actionType', new ParseEnumPipe(ActionType, { optional: true })) actionType?: ActionType,
+    @Query('excludeActionType', new ParseEnumPipe(ActionType, { optional: true })) excludeActionType?: ActionType,
     @CurrentUser() user?: { id: string; role: Role },
     @Res() res?: Response,
   ) {
@@ -54,7 +56,7 @@ export class ReportsController {
     }
 
     const result = await this.reportsService.exportPointFlowReport(
-      { startDate, endDate, studentId, teacherId, classId, subjectId, actionType },
+      { startDate, endDate, studentId, teacherId, classId, subjectId, actionType, excludeActionType },
       user!,
       format,
     );
