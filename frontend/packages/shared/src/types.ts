@@ -131,6 +131,16 @@ export interface PointTransferTask {
   options: PointTaskOption[];
 }
 
+export interface PointAuditLogMetadata {
+  teacherName?: string;
+  subjectName?: string;
+  adminName?: string;
+  studentName?: string;
+  activityTitle?: string;
+  proposalTitle?: string;
+  rewardName?: string;
+}
+
 export interface PointAuditLog {
   id: string;
   correlationId: string;
@@ -146,6 +156,7 @@ export interface PointAuditLog {
   reasonDetail?: string | null;
   relatedEntityType?: string | null;
   relatedEntityId?: string | null;
+  metadata?: PointAuditLogMetadata | null;
   resultingSourceBalance?: number | null;
   resultingRecipientBalance?: number | null;
   createdAt: string;

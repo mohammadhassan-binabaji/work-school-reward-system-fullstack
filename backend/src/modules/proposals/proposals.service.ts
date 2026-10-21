@@ -407,6 +407,7 @@ export class ProposalsService {
           actionType: ActionType.PROPOSAL_AWARD_STUDENT,
           relatedEntityType: 'StudentTaskProposal',
           relatedEntityId: proposal.id,
+          metadata: { proposalTitle: proposal.title || proposal.description },
           resultingRecipientBalance: newCurrentBalance,
         },
         tx,

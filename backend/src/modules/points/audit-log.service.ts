@@ -15,6 +15,7 @@ export interface CreateAuditLogParams {
   reasonDetail?: string | null;
   relatedEntityType?: string | null;
   relatedEntityId?: string | null;
+  metadata?: Record<string, any> | null;
   resultingSourceBalance?: number | null;
   resultingRecipientBalance?: number | null;
 }
@@ -39,6 +40,7 @@ export class AuditLogService {
         reasonDetail: params.reasonDetail ?? null,
         relatedEntityType: params.relatedEntityType || null,
         relatedEntityId: params.relatedEntityId || null,
+        metadata: params.metadata ?? null,
         resultingSourceBalance: params.resultingSourceBalance ?? null,
         resultingRecipientBalance: params.resultingRecipientBalance ?? null,
       },

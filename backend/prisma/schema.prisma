@@ -261,6 +261,7 @@ model PointAuditLog {
   reasonDetail             String?       @map("reason_detail") @db.Text
   relatedEntityType        String?       @map("related_entity_type") @db.VarChar(50)
   relatedEntityId          String?       @map("related_entity_id") @db.Uuid
+  metadata                 Json?         @map("metadata")
   resultingSourceBalance    Int?          @map("resulting_source_balance")
   resultingRecipientBalance Int?          @map("resulting_recipient_balance")
   createdAt                DateTime      @default(now()) @map("created_at") @db.Timestamptz

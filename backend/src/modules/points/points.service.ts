@@ -65,6 +65,12 @@ export class PointsService {
     }
 
     if (correlationId) {
+      let adminName: string | undefined;
+      if (adminId) {
+        const admin = await this.prisma.user.findUnique({ where: { id: adminId } });
+        if (admin) adminName = `${admin.firstName} ${admin.lastName}`.trim();
+      }
+
       await this.auditLogService.log({
         correlationId,
         actorId: adminId || null,
@@ -75,6 +81,7 @@ export class PointsService {
         recipientId: pool.id,
         amount: dto.balance,
         actionType: ActionType.SET_POOL_BALANCE,
+        metadata: adminName ? { adminName } : null,
         resultingRecipientBalance: pool.balance,
       });
     }
@@ -129,6 +136,10 @@ export class PointsService {
         data: { pointBalance: { increment: dto.amount } },
       });
 
+      const admin = await tx.user.findUnique({ where: { id: adminId } });
+      const adminName = admin ? `${admin.firstName} ${admin.lastName}`.trim() : 'مدیر';
+      const teacherName = `${teacher.firstName} ${teacher.lastName}`.trim();
+
       const auditLog = await this.auditLogService.log(
         {
           correlationId,
@@ -140,6 +151,7 @@ export class PointsService {
           recipientId: dto.teacherId,
           amount: dto.amount,
           actionType: ActionType.POOL_FUND_TEACHER,
+          metadata: { adminName, teacherName },
           resultingSourceBalance: updatedPool.balance,
           resultingRecipientBalance: updatedTeacher.pointBalance,
         },
@@ -364,6 +376,10 @@ export class PointsService {
           reasonDetail: option.task.name,
           relatedEntityType: 'TeacherClassSubjectAssignment',
           relatedEntityId: assignment.id,
+          metadata: {
+            teacherName,
+            subjectName: assignment.subject.name,
+          },
           resultingSourceBalance: updatedTeacher.pointBalance,
           resultingRecipientBalance: updatedStudent.currentBalance,
         },
@@ -447,6 +463,9 @@ export class PointsService {
         },
       });
 
+      const admin = await tx.user.findUnique({ where: { id: adminId } });
+      const adminName = admin ? `${admin.firstName} ${admin.lastName}`.trim() : 'مدیر';
+
       const auditLog = await this.auditLogService.log(
         {
           correlationId,
@@ -459,6 +478,7 @@ export class PointsService {
           amount: Math.abs(dto.amount),
           actionType: ActionType.ADMIN_ADJUST_STUDENT,
           reasonDetail: dto.reason,
+          metadata: { adminName },
           resultingSourceBalance: dto.amount < 0 ? updatedStudent.currentBalance : null,
           resultingRecipientBalance: dto.amount > 0 ? updatedStudent.currentBalance : updatedStudent.currentBalance,
         },

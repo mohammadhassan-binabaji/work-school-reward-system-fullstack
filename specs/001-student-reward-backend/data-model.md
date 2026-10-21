@@ -171,6 +171,7 @@ Append-only immutable audit trail for every point event in the system.
 | `reason_detail`| TEXT | NULLABLE | Supplemental detail text (task name for teacher awards, user-supplied reason for admin balance adjustments; null for other actions) |
 | `related_entity_type` | VARCHAR(50) | NULLABLE | E.g. `Class`, `Subject`, `RewardRequest`, `Activity`, `Proposal` |
 | `related_entity_id` | UUID | NULLABLE | ID of related entity |
+| `metadata` | JSONB | NULLABLE | Contextual snapshot metadata for display (e.g. teacher/subject/reward names) |
 | `resulting_source_balance` | INTEGER | NULLABLE | Resulting balance of source |
 | `resulting_recipient_balance` | INTEGER | NULLABLE | Resulting balance of recipient |
 | `created_at` | TIMESTAMPTZ | NOT NULL, default: `now()` | Immutable creation timestamp |

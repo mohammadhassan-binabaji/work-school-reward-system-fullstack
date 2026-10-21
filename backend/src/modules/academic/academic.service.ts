@@ -354,6 +354,7 @@ export class AcademicService {
             recipientType: RecipientType.NONE,
             amount: totalPointsToClear,
             actionType: ActionType.STUDENT_DEPARTURE_DEDUCT,
+            metadata: { studentName: `${student.firstName} ${student.lastName}`.trim() },
             resultingSourceBalance: 0,
           },
         });
@@ -522,6 +523,7 @@ export class AcademicService {
             recipientId: pool.id,
             amount: remainingBudget,
             actionType: ActionType.TEACHER_DEPARTURE_RETURN,
+            metadata: { teacherName: `${teacher.firstName} ${teacher.lastName}`.trim() },
             resultingSourceBalance: 0,
             resultingRecipientBalance: pool.balance + remainingBudget,
           },

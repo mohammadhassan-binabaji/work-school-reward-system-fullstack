@@ -425,6 +425,7 @@ export class ActivitiesService {
           actionType: ActionType.CHALLENGE_AWARD_STUDENT,
           relatedEntityType: 'VerificationRequest',
           relatedEntityId: verification.id,
+          metadata: { activityTitle: verification.activity.title },
           resultingRecipientBalance: newCurrentBalance,
         },
         tx,

@@ -804,6 +804,25 @@ components:
           type: string
           format: uuid
           nullable: true
+        metadata:
+          type: object
+          nullable: true
+          description: Contextual snapshot metadata for localized display
+          properties:
+            teacherName:
+              type: string
+            subjectName:
+              type: string
+            adminName:
+              type: string
+            studentName:
+              type: string
+            activityTitle:
+              type: string
+            proposalTitle:
+              type: string
+            rewardName:
+              type: string
         resultingSourceBalance:
           type: integer
           nullable: true

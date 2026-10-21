@@ -156,30 +156,92 @@ export function formatAuditEntity(type: string | null | undefined): string {
 
 export function formatAuditLogDescription(log: PointAuditLog): string {
   switch (log.actionType) {
-    case 'TEACHER_AWARD_STUDENT':
-      return log.reasonDetail ? `پاداش معلم: ${log.reasonDetail}` : 'اهدای پاداش معلم برای فعالیت کلاسی';
-    case 'ADMIN_ADJUST_STUDENT':
-      return log.reasonDetail ? `تنظیم مدیر: ${log.reasonDetail}` : 'تنظیم مستقیم موجودی توسط مدیر';
-    case 'CHALLENGE_AWARD_STUDENT':
-      return 'پاداش تایید چالش';
-    case 'PROPOSAL_AWARD_STUDENT':
-      return 'پاداش تایید و تکمیل پیشنهاد';
-    case 'REWARD_RESERVE_POINTS':
-      return 'رزرو نوین جهت ثبت درخواست جایزه';
-    case 'REWARD_DECLINE_RETURN':
-      return 'بازگشت نوین به علت رد درخواست جایزه';
-    case 'REWARD_REMOVE_RETURN':
-      return 'بازگشت نوین به علت حذف جایزه از سامانه';
-    case 'REWARD_RECEIVE_COMPLETE':
-      return 'تکمیل تحویل فیزیکی جایزه';
-    case 'POOL_FUND_TEACHER':
+    case 'TEACHER_AWARD_STUDENT': {
+      const teacherName =
+        log.metadata?.teacherName ||
+        (log.actor ? `${log.actor.firstName} ${log.actor.lastName}`.trim() : 'معلم');
+      const subjectName = log.metadata?.subjectName ? ` در درس : ${log.metadata.subjectName}` : '';
+      const reason = log.reasonDetail ?? 'فعالیت کلاسی';
+      return `پاداش معلم ${teacherName}${subjectName} برای : ${reason}`;
+    }
+
+    case 'ADMIN_ADJUST_STUDENT': {
+      const adminName =
+        log.metadata?.adminName ||
+        (log.actor ? `${log.actor.firstName} ${log.actor.lastName}`.trim() : 'مدیر');
+      const reason = log.reasonDetail ? ` برای : ${log.reasonDetail}` : '';
+      return `تنظیم نوین توسط مدیر ${adminName}${reason}`;
+    }
+
+    case 'CHALLENGE_AWARD_STUDENT': {
+      const title = log.metadata?.activityTitle;
+      return title ? `پاداش تایید چالش : ${title}` : 'پاداش تایید چالش';
+    }
+
+    case 'PROPOSAL_AWARD_STUDENT': {
+      const title = log.metadata?.proposalTitle;
+      return title ? `پاداش تکمیل پیشنهاد : ${title}` : 'پاداش تایید و تکمیل پیشنهاد';
+    }
+
+    case 'REWARD_RESERVE_POINTS': {
+      const name = log.metadata?.rewardName;
+      return name ? `رزرو نوین برای درخواست جایزه : ${name}` : 'رزرو نوین جهت ثبت درخواست جایزه';
+    }
+
+    case 'REWARD_DECLINE_RETURN': {
+      const name = log.metadata?.rewardName;
+      return name ? `بازگشت نوین به علت رد درخواست جایزه : ${name}` : 'بازگشت نوین به علت رد درخواست جایزه';
+    }
+
+    case 'REWARD_REMOVE_RETURN': {
+      const name = log.metadata?.rewardName;
+      return name ? `بازگشت نوین به علت حذف جایزه : ${name}` : 'بازگشت نوین به علت حذف جایزه از سامانه';
+    }
+
+    case 'REWARD_RECEIVE_COMPLETE': {
+      const name = log.metadata?.rewardName;
+      return name ? `تکمیل تحویل فیزیکی جایزه : ${name}` : 'تکمیل تحویل فیزیکی جایزه';
+    }
+
+    case 'POOL_FUND_TEACHER': {
+      const adminName =
+        log.metadata?.adminName ||
+        (log.actor ? `${log.actor.firstName} ${log.actor.lastName}`.trim() : '');
+      const teacherName = log.metadata?.teacherName;
+      if (adminName && teacherName) {
+        return `تخصیص بودجه به معلم ${teacherName} توسط مدیر ${adminName} از استخر`;
+      }
+      if (teacherName) {
+        return `تخصیص بودجه به معلم ${teacherName} از استخر`;
+      }
       return 'تخصیص بودجه پاداش معلم از استخر';
-    case 'SET_POOL_BALANCE':
-      return 'تنظیم مستقیم موجودی استخر نوین توسط مدیر';
-    case 'TEACHER_DEPARTURE_RETURN':
-      return 'بازگشت باقیمانده بودجه معلم به استخر به علت خروج';
-    case 'STUDENT_DEPARTURE_DEDUCT':
-      return 'تسویه موجودی به علت خروج دانش‌آموز';
+    }
+
+    case 'SET_POOL_BALANCE': {
+      const adminName =
+        log.metadata?.adminName ||
+        (log.actor ? `${log.actor.firstName} ${log.actor.lastName}`.trim() : 'مدیر');
+      return `تنظیم موجودی استخر نوین توسط مدیر ${adminName}`;
+    }
+
+    case 'TEACHER_DEPARTURE_RETURN': {
+      const teacherName =
+        log.metadata?.teacherName ||
+        (log.actor?.role === 'TEACHER' ? `${log.actor.firstName} ${log.actor.lastName}`.trim() : '');
+      return teacherName
+        ? `بازگشت باقیمانده بودجه معلم ${teacherName} به استخر به علت خروج`
+        : 'بازگشت باقیمانده بودجه معلم به استخر به علت خروج';
+    }
+
+    case 'STUDENT_DEPARTURE_DEDUCT': {
+      const studentName =
+        log.metadata?.studentName ||
+        (log.actor?.role === 'STUDENT' ? `${log.actor.firstName} ${log.actor.lastName}`.trim() : '');
+      return studentName
+        ? `تسویه موجودی به علت خروج دانش‌آموز ${studentName}`
+        : 'تسویه موجودی به علت خروج دانش‌آموز';
+    }
+
     default:
       return log.reasonDetail || 'تغییر موجودی نوین';
   }
