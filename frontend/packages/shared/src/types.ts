@@ -271,10 +271,23 @@ export interface Notification {
   subject: string;
   body: string;
   readStatus: NotificationReadStatus;
-  readAt?: string | null;
+  readAt: string | null;
   originatingEntityType: string;
   originatingEntityId: string;
   createdAt: string;
+}
+
+export interface NotificationPaginationMeta {
+  totalItems: number;
+  itemCount: number;
+  itemsPerPage: number;
+  totalPages: number;
+  currentPage: number;
+}
+
+export interface PaginatedNotificationsResponse {
+  data: Notification[];
+  meta: NotificationPaginationMeta;
 }
 
 export interface DailySnapshot {

@@ -1,11 +1,17 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import { api, type Notification } from '@student-reward/shared';
+import {
+  api,
+  type Notification,
+  type PaginatedNotificationsResponse,
+} from '@student-reward/shared';
 
 export const useNotificationsStore = defineStore('notifications', () => {
   const unreadCount = ref(0);
   const notifications = ref<Notification[]>([]);
   const loading = ref(false);
+  const currentPage = ref(1);
+  const totalPages = ref(0);
 
   async function fetchUnreadCount(): Promise<void> {
     try {
@@ -16,17 +22,26 @@ export const useNotificationsStore = defineStore('notifications', () => {
     }
   }
 
-  async function fetchNotifications(): Promise<void> {
+  async function fetchNotifications(page = currentPage.value): Promise<void> {
     loading.value = true;
     try {
-      const res = await api.get<{ notifications: Notification[]; total: number }>('/notifications');
-      notifications.value = res.notifications || [];
+      const res = await api.get<PaginatedNotificationsResponse>('/notifications', { page });
+      notifications.value = res.data;
+      currentPage.value = res.meta.currentPage;
+      totalPages.value = res.meta.totalPages;
       await fetchUnreadCount();
     } catch {
       // Ignore
     } finally {
       loading.value = false;
     }
+  }
+
+  async function goToPage(page: number): Promise<void> {
+    if (loading.value || page < 1 || page > totalPages.value || page === currentPage.value) {
+      return;
+    }
+    await fetchNotifications(page);
   }
 
   async function markAsRead(id: string): Promise<void> {
@@ -56,8 +71,11 @@ export const useNotificationsStore = defineStore('notifications', () => {
     unreadCount,
     notifications,
     loading,
+    currentPage,
+    totalPages,
     fetchUnreadCount,
     fetchNotifications,
+    goToPage,
     markAsRead,
     markAllAsRead,
   };

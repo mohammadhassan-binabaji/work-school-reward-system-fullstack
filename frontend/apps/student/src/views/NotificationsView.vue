@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
-import { Bell, CheckCheck, ChevronRight } from 'lucide-vue-next';
+import { Bell, CheckCheck, ChevronLeft, ChevronRight } from 'lucide-vue-next';
 import { useRouter } from 'vue-router';
 import { useNotificationsStore } from '../stores/notifications';
-import { formatJalaliDateTime } from '@student-reward/shared';
+import { formatJalaliDateTime, toPersianDigits } from '@student-reward/shared';
 
 const router = useRouter();
 const notifStore = useNotificationsStore();
@@ -90,6 +90,33 @@ async function handleItemClick(id: string) {
     <!-- Empty State -->
     <div v-else class="py-16 text-center text-slate-500 text-xs">
       اعلان جدیدی وجود ندارد.
+    </div>
+
+    <div
+      v-if="!notifStore.loading && notifStore.totalPages > 0"
+      class="flex items-center justify-between rounded-2xl border border-slate-800 bg-dark-card p-3"
+    >
+      <button
+        class="flex items-center gap-1 rounded-xl bg-[#161C28] px-3 py-2 text-xs font-bold text-neon-green disabled:opacity-40"
+        :disabled="notifStore.currentPage <= 1 || notifStore.loading"
+        aria-label="صفحه قبلی"
+        @click="notifStore.goToPage(notifStore.currentPage - 1)"
+      >
+        <ChevronRight class="h-4 w-4" />
+        <span>قبلی</span>
+      </button>
+      <span class="text-xs font-semibold text-slate-300">
+        صفحه {{ toPersianDigits(notifStore.currentPage) }} از {{ toPersianDigits(notifStore.totalPages) }}
+      </span>
+      <button
+        class="flex items-center gap-1 rounded-xl bg-[#161C28] px-3 py-2 text-xs font-bold text-neon-green disabled:opacity-40"
+        :disabled="notifStore.currentPage >= notifStore.totalPages || notifStore.loading"
+        aria-label="صفحه بعدی"
+        @click="notifStore.goToPage(notifStore.currentPage + 1)"
+      >
+        <span>بعدی</span>
+        <ChevronLeft class="h-4 w-4" />
+      </button>
     </div>
   </div>
 </template>
