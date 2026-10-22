@@ -3,28 +3,48 @@ export interface FormattedNotification {
   body: string;
 }
 
+function toPersianDigits(value: number): string {
+  return String(value).replace(/[0-9]/g, (digit) =>
+    String.fromCharCode(digit.charCodeAt(0) + 0x06c0),
+  );
+}
+
+function formatPersianDate(value: Date | string): string {
+  const date = value instanceof Date ? value : new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    throw new RangeError('Invalid activity ban expiry date');
+  }
+
+  return new Intl.DateTimeFormat('fa-IR-u-ca-persian-nu-arabext', {
+    dateStyle: 'long',
+    timeStyle: 'short',
+    timeZone: 'Asia/Tehran',
+  }).format(date);
+}
+
 export class NotificationFormatter {
   // EVT-01
   static formatRewardReadyForPickup(rewardName: string): FormattedNotification {
     return {
-      subject: 'Reward Ready for Pickup',
-      body: `Your request for "${rewardName}" is approved and ready for pickup.`,
+      subject: 'جایزه آمادهٔ دریافت است',
+      body: `درخواست شما برای «${rewardName}» تأیید شده و آمادهٔ دریافت است.`,
     };
   }
 
   // EVT-02
   static formatRewardCompleted(rewardName: string): FormattedNotification {
     return {
-      subject: 'Reward Completed',
-      body: `Your request for "${rewardName}" has been handed over and completed.`,
+      subject: 'جایزه تحویل داده شد',
+      body: `جایزه «${rewardName}» به شما تحویل داده شد و درخواست آن تکمیل شده است.`,
     };
   }
 
   // EVT-03
   static formatRewardDeclined(rewardName: string, declineReason: string): FormattedNotification {
     return {
-      subject: 'Reward Request Declined',
-      body: `Your request for "${rewardName}" was declined. Reason: ${declineReason}.`,
+      subject: 'درخواست جایزه رد شد',
+      body: `درخواست شما برای «${rewardName}» رد شد. دلیل: ${declineReason}`,
     };
   }
 
@@ -35,8 +55,8 @@ export class NotificationFormatter {
     priceAtRequest: number,
   ): FormattedNotification {
     return {
-      subject: 'New Reward Request Requires Approval',
-      body: `Student ${studentName} requested reward "${rewardName}" (${priceAtRequest} points) requiring approval.`,
+      subject: 'درخواست جایزه جدید برای بررسی',
+      body: `دانش‌آموز ${studentName} جایزه «${rewardName}» را به قیمت ${toPersianDigits(priceAtRequest)} نوین درخواست کرده است و این درخواست نیاز به تأیید دارد.`,
     };
   }
 
@@ -46,32 +66,32 @@ export class NotificationFormatter {
     proposalDescriptionSummary: string,
   ): FormattedNotification {
     return {
-      subject: 'New Task Proposal Submitted',
-      body: `Student ${studentName} submitted a new task proposal: "${proposalDescriptionSummary}".`,
+      subject: 'پیشنهاد فعالیت جدید',
+      body: `دانش‌آموز ${studentName} پیشنهاد فعالیت جدیدی ثبت کرده است: «${proposalDescriptionSummary}».`,
     };
   }
 
   // EVT-06
   static formatProposalApproved(assignedPointValue: number): FormattedNotification {
     return {
-      subject: 'Task Proposal Approved',
-      body: `Your task proposal has been approved with ${assignedPointValue} points.`,
+      subject: 'پیشنهاد فعالیت تأیید شد',
+      body: `پیشنهاد فعالیت شما با ${toPersianDigits(assignedPointValue)} نوین تأیید شد.`,
     };
   }
 
   // EVT-07
   static formatProposalDeclined(declineReason: string): FormattedNotification {
     return {
-      subject: 'Task Proposal Declined',
-      body: `Your task proposal was declined. Reason: ${declineReason}.`,
+      subject: 'پیشنهاد فعالیت رد شد',
+      body: `پیشنهاد فعالیت شما رد شد. دلیل: ${declineReason}`,
     };
   }
 
   // EVT-08
   static formatProposalCompleted(assignedPointValue: number): FormattedNotification {
     return {
-      subject: 'Task Proposal Completed',
-      body: `Your task proposal has been marked completed and ${assignedPointValue} points have been awarded.`,
+      subject: 'پیشنهاد فعالیت انجام شد',
+      body: `پیشنهاد فعالیت شما تکمیل شد و ${toPersianDigits(assignedPointValue)} نوین به شما تعلق گرفت.`,
     };
   }
 
@@ -81,8 +101,8 @@ export class NotificationFormatter {
     messagePreview: string,
   ): FormattedNotification {
     return {
-      subject: 'New Message on Task Proposal',
-      body: `Admin ${adminName} sent a message: "${messagePreview}".`,
+      subject: 'پیام جدید دربارهٔ پیشنهاد فعالیت',
+      body: `مدیر ${adminName} پیامی فرستاده است: «${messagePreview}».`,
     };
   }
 
@@ -92,8 +112,8 @@ export class NotificationFormatter {
     messagePreview: string,
   ): FormattedNotification {
     return {
-      subject: 'New Student Message on Proposal',
-      body: `Student ${studentName} sent a message on proposal: "${messagePreview}".`,
+      subject: 'پیام جدید دانش‌آموز دربارهٔ پیشنهاد',
+      body: `دانش‌آموز ${studentName} دربارهٔ پیشنهاد پیامی فرستاده است: «${messagePreview}».`,
     };
   }
 
@@ -104,8 +124,8 @@ export class NotificationFormatter {
     activityTitle: string,
   ): FormattedNotification {
     return {
-      subject: 'New Activity Verification Submitted',
-      body: `Student ${studentName} submitted verification for ${activityType} "${activityTitle}".`,
+      subject: 'درخواست تأیید فعالیت جدید',
+      body: `دانش‌آموز ${studentName} درخواست تأیید ${activityType} «${activityTitle}» را ثبت کرده است.`,
     };
   }
 
@@ -116,8 +136,8 @@ export class NotificationFormatter {
     pointValue: number,
   ): FormattedNotification {
     return {
-      subject: 'Verification Approved',
-      body: `Your verification for ${activityType} "${activityTitle}" was approved. You earned ${pointValue} points!`,
+      subject: 'فعالیت تأیید شد',
+      body: `درخواست تأیید ${activityType} «${activityTitle}» پذیرفته شد. شما ${toPersianDigits(pointValue)} نوین دریافت کردید!`,
     };
   }
 
@@ -128,8 +148,8 @@ export class NotificationFormatter {
     rejectionReason: string,
   ): FormattedNotification {
     return {
-      subject: 'Verification Rejected',
-      body: `Your verification for ${activityType} "${activityTitle}" was rejected. Reason: ${rejectionReason}.`,
+      subject: 'درخواست تأیید فعالیت رد شد',
+      body: `درخواست تأیید ${activityType} «${activityTitle}» رد شد. دلیل: ${rejectionReason}`,
     };
   }
 
@@ -138,19 +158,18 @@ export class NotificationFormatter {
     activityTitle: string,
     bannedUntil: Date | string,
   ): FormattedNotification {
-    const bannedUntilDate =
-      bannedUntil instanceof Date ? bannedUntil.toISOString() : bannedUntil;
+    const bannedUntilDate = formatPersianDate(bannedUntil);
     return {
-      subject: 'Activity Submission Ban',
-      body: `You have received 3 rejections for "${activityTitle}". You are temporarily banned from submitting for this activity until ${bannedUntilDate}.`,
+      subject: 'محدودیت موقت ثبت فعالیت',
+      body: `درخواست شما برای فعالیت «${activityTitle}» ۳ بار رد شده است. به همین دلیل، تا ${bannedUntilDate} امکان ثبت درخواست جدید برای این فعالیت را ندارید.`,
     };
   }
 
   // EVT-15
   static formatActivityUnblock(activityTitle: string): FormattedNotification {
     return {
-      subject: 'Activity Eligibility Restored',
-      body: `Your submission eligibility for activity "${activityTitle}" has been restored by an administrator.`,
+      subject: 'امکان ثبت فعالیت دوباره فعال شد',
+      body: `مدیر، امکان ثبت درخواست برای فعالیت «${activityTitle}» را دوباره برای شما فعال کرده است.`,
     };
   }
 
@@ -161,24 +180,24 @@ export class NotificationFormatter {
     taskName: string,
   ): FormattedNotification {
     return {
-      subject: 'Points Awarded',
-      body: `Teacher ${teacherName} awarded you ${amount} points for task "${taskName}".`,
+      subject: 'نوین دریافت کردید',
+      body: `معلم ${teacherName} برای فعالیت «${taskName}» به شما ${toPersianDigits(amount)} نوین داد.`,
     };
   }
 
   // EVT-17
   static formatPointAdjusted(amount: number, reason: string): FormattedNotification {
     return {
-      subject: 'Point Balance Adjusted',
-      body: `An administrator adjusted your balance by ${amount} points. Reason: ${reason}.`,
+      subject: 'موجودی نوین شما تغییر کرد',
+      body: `مدیر موجودی نوین شما را به میزان ${toPersianDigits(amount)} نوین تغییر داد. دلیل: ${reason}`,
     };
   }
 
   // EVT-18
   static formatPointAllocated(amount: number, newBalance: number): FormattedNotification {
     return {
-      subject: 'Point Budget Allocated',
-      body: `An administrator allocated ${amount} points to your award budget. Your new available balance is ${newBalance} points.`,
+      subject: 'نوین به موجودی شما اضافه شد',
+      body: `مدیر ${toPersianDigits(amount)} نوین به بودجهٔ نوین‌دهی شما اختصاص داد. موجودی قابل‌استفادهٔ جدید شما ${toPersianDigits(newBalance)} نوین است.`,
     };
   }
 }
