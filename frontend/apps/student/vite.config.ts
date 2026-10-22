@@ -12,8 +12,8 @@ export default defineConfig({
       injectRegister: null,
       manifest: {
         name: 'سامانه پاداش دانش‌آموزی - پنل دانش‌آموز',
-        short_name: 'ناصر نوین',
-        description: 'سامانه هوشمند پاداش و ماموریت‌های دانش‌آموزی ناصر نوین',
+        short_name: 'نوین من',
+        description: 'سامانه هوشمند پاداش و ماموریت‌های دانش‌آموزی نوین من',
         theme_color: '#0B0E14',
         background_color: '#0B0E14',
         display: 'standalone',
