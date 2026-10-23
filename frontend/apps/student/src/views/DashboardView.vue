@@ -267,9 +267,9 @@ const filteredActivities = computed(() => {
   <div class="space-y-4 pb-24 pt-2">
     <!-- Card 1: Points Card (Dynamic Dual-Tier Themes) -->
     <div
-      class="bg-dark-card rounded-3xl px-5 py-2.5 border-1.5 relative overflow-hidden transition-all duration-500"
+      class="bg-dark-card rounded-3xl px-5 py-2.5 relative overflow-hidden transition-all duration-500"
       :style="{
-        borderColor: currentTierTheme.border,
+        border: `1.5px solid ${currentTierTheme.border}`,
         boxShadow: currentTierTheme.borderGlow,
       }"
     >
@@ -300,18 +300,24 @@ const filteredActivities = computed(() => {
             {{ activeMotivationalMessage }}
           </p>
 
-          <!-- Remaining Points Text (Next Tier Text Light) or Max Tier Celebration -->
+          <!-- Remaining Points Text (Current Tier Color with bold Next Tier Name in Next Tier Color) or Max Tier Celebration -->
           <p
             v-if="nextTier"
             class="text-[11px] mt-1 font-medium transition-colors duration-500"
-            :style="{ color: nextTierTheme.textLight }"
+            :style="{ color: currentTierTheme.textLight }"
           >
-            {{ toPersianDigits(pointsToNextTier) }} نوین دیگر تا ارتقای سطح بعدی
+            <span>{{ toPersianDigits(pointsToNextTier) }} نوین دیگر تا ارتقا به سطح </span>
+            <span
+              class="font-extrabold transition-colors duration-500"
+              :style="{ color: nextTierTheme.textLight }"
+            >
+              {{ nextTier.name }}
+            </span>
           </p>
           <p
             v-else
             class="text-[11px] mt-1 font-medium transition-colors duration-500"
-            :style="{ color: nextTierTheme.textLight }"
+            :style="{ color: currentTierTheme.textLight }"
           >
             شما به بالاترین سطح نوین دست یافته‌اید! 🎉
           </p>
