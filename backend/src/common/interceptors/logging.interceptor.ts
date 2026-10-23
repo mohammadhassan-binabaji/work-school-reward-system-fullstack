@@ -7,9 +7,12 @@ import { RequestWithCorrelation } from '../middleware/correlation.middleware';
 export class LoggingInterceptor implements NestInterceptor {
   private readonly logger = new Logger('HTTP');
 
-  private sanitize(obj: any): any {
+  private sanitize(obj: any, seen = new WeakSet()): any {
     if (!obj || typeof obj !== 'object') return obj;
-    if (Array.isArray(obj)) return obj.map((item) => this.sanitize(item));
+    if (Buffer.isBuffer(obj)) return '[Buffer]';
+    if (seen.has(obj)) return '[Circular]';
+    seen.add(obj);
+    if (Array.isArray(obj)) return obj.map((item) => this.sanitize(item, seen));
 
     const sensitiveKeys = [
       'password',
@@ -25,16 +28,19 @@ export class LoggingInterceptor implements NestInterceptor {
       'cookie',
     ];
 
-    const sanitized = { ...obj };
-    for (const key of Object.keys(sanitized)) {
+    const sanitized: Record<string, any> = {};
+    for (const key of Object.keys(obj)) {
       if (sensitiveKeys.some((s) => key.toLowerCase().includes(s.toLowerCase()))) {
         sanitized[key] = '[REDACTED]';
-      } else if (typeof sanitized[key] === 'object') {
-        sanitized[key] = this.sanitize(sanitized[key]);
+      } else if (typeof obj[key] === 'object' && obj[key] !== null) {
+        sanitized[key] = this.sanitize(obj[key], seen);
+      } else {
+        sanitized[key] = obj[key];
       }
     }
     return sanitized;
   }
+
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const http = context.switchToHttp();

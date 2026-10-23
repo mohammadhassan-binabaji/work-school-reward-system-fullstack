@@ -46,7 +46,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
           ? resObj.message.join(', ')
           : resObj.message || exception.message;
         errorCode = resObj.errorCode || this.mapStatusToErrorCode(status);
-        details = resObj.details || (Array.isArray(resObj.message) ? resObj.message : undefined);
+        details = resObj.details || resObj.errors || (Array.isArray(resObj.message) ? resObj.message : undefined);
       }
     } else if (exception instanceof Error) {
       this.logger.error(`Unhandled Exception: ${exception.message}`, exception.stack);
@@ -63,13 +63,19 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       }
     }
 
-    const errorResponse: ErrorResponseBody = {
+    const customErrors =
+      exception instanceof HttpException &&
+      typeof exception.getResponse() === 'object' &&
+      (exception.getResponse() as any)?.errors;
+
+    const errorResponse: ErrorResponseBody & { errors?: any } = {
       statusCode: status,
       errorCode,
       message,
       correlationId,
       timestamp: new Date().toISOString(),
       ...(details !== undefined ? { details } : {}),
+      ...(customErrors ? { errors: customErrors } : {}),
     };
 
     response.status(status).json(errorResponse);

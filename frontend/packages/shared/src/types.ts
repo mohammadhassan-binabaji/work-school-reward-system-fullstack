@@ -338,6 +338,20 @@ export interface StudentRankingView {
   }[];
 }
 
+export interface BulkImportErrorItem {
+  row: number;
+  field: string;
+  message: string;
+  value?: string;
+}
+
+export interface BulkImportResult {
+  count: number;
+  message: string;
+  importedUsers: User[];
+}
+
+
 export interface StaffRankingView {
   totalActiveStudents: number;
   rankings: RankedStudent[];

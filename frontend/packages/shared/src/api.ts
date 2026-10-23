@@ -2,6 +2,8 @@ export interface ApiError {
   statusCode: number;
   message: string;
   errorCode?: string;
+  details?: any;
+  errors?: any[];
 }
 
 export class ApiClient {
@@ -65,6 +67,8 @@ export class ApiClient {
           statusCode: res.status,
           message: this.translateErrorMessage(msg, data.errorCode, res.status),
           errorCode: data.errorCode,
+          details: data.details,
+          errors: data.errors || data.details,
         };
         throw error;
       }

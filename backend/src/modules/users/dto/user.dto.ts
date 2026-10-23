@@ -106,3 +106,29 @@ export class UserResponseDto {
   @ApiProperty()
   updatedAt: Date;
 }
+
+export class BulkImportErrorItemDto {
+  @ApiProperty({ example: 2, description: '1-based Excel row number' })
+  row: number;
+
+  @ApiProperty({ example: 'nationalId' })
+  field: string;
+
+  @ApiProperty({ example: 'کد ملی باید دقیقاً ۱۰ رقم باشد' })
+  message: string;
+
+  @ApiPropertyOptional({ example: '123' })
+  value?: string;
+}
+
+export class BulkImportResultDto {
+  @ApiProperty({ example: 25 })
+  count: number;
+
+  @ApiProperty({ example: '۲۵ دانش‌آموز با موفقیت ثبت شدند' })
+  message: string;
+
+  @ApiProperty({ type: [UserResponseDto] })
+  importedUsers: UserResponseDto[];
+}
+

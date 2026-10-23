@@ -11,6 +11,11 @@ import {
   Shield,
   GraduationCap,
   Briefcase,
+  FileSpreadsheet,
+  Download,
+  UploadCloud,
+  FileText,
+  X,
 } from 'lucide-vue-next';
 import AdminModal from '../components/AdminModal.vue';
 import {
@@ -20,6 +25,8 @@ import {
   type Role,
   type AccountState,
   type Class,
+  type BulkImportErrorItem,
+  type BulkImportResult,
 } from '@student-reward/shared';
 
 const users = ref<User[]>([]);
@@ -152,6 +159,115 @@ async function handleUpdateState() {
     updatingState.value = false;
   }
 }
+
+// Bulk Import Modal State
+const isBulkImportModalOpen = ref(false);
+const selectedFile = ref<File | null>(null);
+const fileInputRef = ref<HTMLInputElement | null>(null);
+const importing = ref(false);
+const downloadingTemplate = ref(false);
+const bulkImportErrors = ref<BulkImportErrorItem[]>([]);
+const bulkImportErrorMessage = ref<string | null>(null);
+const isDragging = ref(false);
+
+function openBulkImportModal() {
+  selectedFile.value = null;
+  bulkImportErrors.value = [];
+  bulkImportErrorMessage.value = null;
+  isBulkImportModalOpen.value = true;
+}
+
+function triggerFileInput() {
+  fileInputRef.value?.click();
+}
+
+function onFileChange(e: Event) {
+  const target = e.target as HTMLInputElement;
+  if (target.files && target.files.length > 0) {
+    setFile(target.files[0]);
+  }
+}
+
+function onDrop(e: DragEvent) {
+  isDragging.value = false;
+  if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
+    setFile(e.dataTransfer.files[0]);
+  }
+}
+
+function setFile(file: File) {
+  if (!file.name.endsWith('.xlsx')) {
+    bulkImportErrorMessage.value = 'فرمت فایل نامعتبر است. لطفاً فایل با پسوند xlsx. انتخاب نمایید.';
+    selectedFile.value = null;
+    return;
+  }
+  selectedFile.value = file;
+  bulkImportErrors.value = [];
+  bulkImportErrorMessage.value = null;
+}
+
+function removeSelectedFile() {
+  selectedFile.value = null;
+  if (fileInputRef.value) fileInputRef.value.value = '';
+}
+
+async function handleDownloadTemplate() {
+  downloadingTemplate.value = true;
+  try {
+    const blob = await api.downloadFile('/users/import/template');
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'قالب-ثبت-گروهی-دانش‌آموزان.xlsx';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  } catch (err: any) {
+    errorMessage.value = err.message || 'خطا در دریافت قالب اکسل';
+  } finally {
+    downloadingTemplate.value = false;
+  }
+}
+
+function fieldToPersianLabel(field: string): string {
+  const map: Record<string, string> = {
+    nationalId: 'کد ملی',
+    firstName: 'نام',
+    lastName: 'نام خانوادگی',
+    username: 'نام کاربری',
+    password: 'رمز عبور',
+    className: 'نام کلاس',
+  };
+  return map[field] || field;
+}
+
+async function handleBulkImport() {
+  if (!selectedFile.value) {
+    bulkImportErrorMessage.value = 'لطفاً فایل اکسل تکمیل‌شده را انتخاب کنید.';
+    return;
+  }
+
+  importing.value = true;
+  bulkImportErrors.value = [];
+  bulkImportErrorMessage.value = null;
+
+  try {
+    const res = await api.upload<BulkImportResult>('/users/import/excel', selectedFile.value);
+    successMessage.value = res.message || `${res.count} دانش‌آموز با موفقیت ایجاد شدند.`;
+    isBulkImportModalOpen.value = false;
+    selectedFile.value = null;
+    await loadData();
+    setTimeout(() => (successMessage.value = null), 4000);
+  } catch (err: any) {
+    if (err.errors && Array.isArray(err.errors)) {
+      bulkImportErrors.value = err.errors;
+    }
+    bulkImportErrorMessage.value = err.message || 'خطا در بارگذاری و اعتبارسنجی فایل اکسل';
+  } finally {
+    importing.value = false;
+  }
+}
 </script>
 
 <template>
@@ -163,13 +279,23 @@ async function handleUpdateState() {
         <p class="text-xs text-slate-500 mt-0.5">مشاهده، ایجاد و مدیریت وضعیت حساب‌های دانش‌آموزان، معلمان و مدیران</p>
       </div>
 
-      <button
-        class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 self-start sm:self-auto"
-        @click="isCreateModalOpen = true"
-      >
-        <UserPlus class="w-4 h-4" />
-        <span>ایجاد کاربر جدید</span>
-      </button>
+      <div class="flex items-center gap-2 self-start sm:self-auto">
+        <button
+          class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5"
+          @click="openBulkImportModal"
+        >
+          <FileSpreadsheet class="w-4 h-4" />
+          <span>افزودن دسته‌ای (اکسل)</span>
+        </button>
+
+        <button
+          class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5"
+          @click="isCreateModalOpen = true"
+        >
+          <UserPlus class="w-4 h-4" />
+          <span>ایجاد کاربر جدید</span>
+        </button>
+      </div>
     </div>
 
     <!-- Alert notifications -->
@@ -456,6 +582,160 @@ async function handleUpdateState() {
         >
           <RefreshCw v-if="updatingState" class="w-3.5 h-3.5 animate-spin" />
           <span>ثبت تغییر وضعیت</span>
+        </button>
+      </template>
+    </AdminModal>
+
+    <!-- Modal: Bulk Import via Excel -->
+    <AdminModal
+      :is-open="isBulkImportModalOpen"
+      title="افزودن دسته‌ای دانش‌آموزان از طریق اکسل"
+      max-width="max-w-2xl"
+      @close="isBulkImportModalOpen = false"
+    >
+      <div class="space-y-4">
+        <!-- Download Template Banner -->
+        <div class="p-3.5 bg-blue-50 border border-blue-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="space-y-0.5">
+            <h4 class="text-xs font-black text-blue-900 flex items-center gap-1.5">
+              <Download class="w-4 h-4 text-blue-600 shrink-0" />
+              <span>قالب استاندارد اکسل را دانلود کنید</span>
+            </h4>
+            <p class="text-[11px] text-blue-700 font-medium">
+              فایل شامل ستون‌های کد ملی، نام، نام خانوادگی، نام کاربری، رمز عبور و نام کلاس است.
+            </p>
+          </div>
+          <button
+            :disabled="downloadingTemplate"
+            class="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors shrink-0 flex items-center justify-center gap-1.5 disabled:opacity-50"
+            @click="handleDownloadTemplate"
+          >
+            <RefreshCw v-if="downloadingTemplate" class="w-3.5 h-3.5 animate-spin" />
+            <Download v-else class="w-3.5 h-3.5" />
+            <span>دانلود قالب نمونه</span>
+          </button>
+        </div>
+
+        <!-- File Upload Zone -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5">فایل اکسل دانش‌آموزان (.xlsx):</label>
+          <input
+            ref="fileInputRef"
+            type="file"
+            accept=".xlsx"
+            class="hidden"
+            @change="onFileChange"
+          />
+
+          <div
+            v-if="!selectedFile"
+            :class="[
+              'border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-colors',
+              isDragging ? 'border-emerald-500 bg-emerald-50/50' : 'border-slate-300 hover:border-slate-400 bg-slate-50/50'
+            ]"
+            @click="triggerFileInput"
+            @dragover.prevent="isDragging = true"
+            @dragleave.prevent="isDragging = false"
+            @drop.prevent="onDrop"
+          >
+            <UploadCloud class="w-8 h-8 text-slate-400 mx-auto mb-2" />
+            <p class="text-xs font-bold text-slate-700">
+              فایل اکسل را اینجا بکشید یا برای انتخاب <span class="text-blue-600 underline">کلیک کنید</span>
+            </p>
+            <p class="text-[10px] text-slate-400 mt-1">حداکثر حجم مجاز: ۵ مگابایت (تنها فرمت .xlsx)</p>
+          </div>
+
+          <!-- Selected File Card -->
+          <div
+            v-else
+            class="p-3 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between gap-3"
+          >
+            <div class="flex items-center gap-2.5 overflow-hidden">
+              <div class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                <FileSpreadsheet class="w-4 h-4" />
+              </div>
+              <div class="overflow-hidden">
+                <p class="text-xs font-bold text-slate-800 truncate" :title="selectedFile.name">
+                  {{ selectedFile.name }}
+                </p>
+                <p class="text-[10px] text-slate-400 font-medium">
+                  {{ toPersianDigits((selectedFile.size / 1024).toFixed(1)) }} کیلوبایت
+                </p>
+              </div>
+            </div>
+            <button
+              class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+              title="حذف فایل"
+              @click="removeSelectedFile"
+            >
+              <X class="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        <!-- Bulk Error Alert Message -->
+        <div
+          v-if="bulkImportErrorMessage"
+          class="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold flex items-start gap-2"
+        >
+          <AlertCircle class="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+          <span>{{ bulkImportErrorMessage }}</span>
+        </div>
+
+        <!-- Row-by-Row Errors Table -->
+        <div v-if="bulkImportErrors.length > 0" class="space-y-1.5">
+          <p class="text-[11px] font-bold text-rose-700 flex items-center justify-between">
+            <span>جزئیات خطاهای فایل اکسل (هیچ کاربری ثبت نشد):</span>
+            <span class="text-[10px] bg-rose-100 px-2 py-0.5 rounded-full font-mono">
+              {{ toPersianDigits(bulkImportErrors.length) }} خطا
+            </span>
+          </p>
+          <div class="max-h-48 overflow-y-auto rounded-xl border border-rose-200 bg-white">
+            <table class="w-full text-right text-xs">
+              <thead class="bg-rose-50 text-rose-800 font-bold sticky top-0 border-b border-rose-100 text-[10px]">
+                <tr>
+                  <th class="p-2 pr-3">سطر</th>
+                  <th class="p-2">فیلد</th>
+                  <th class="p-2">مقدار ارسالی</th>
+                  <th class="p-2 pl-3">علت خطا</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-rose-50 text-[11px]">
+                <tr v-for="(err, idx) in bulkImportErrors" :key="idx" class="hover:bg-rose-50/40">
+                  <td class="p-2 pr-3 font-mono font-bold text-slate-700">
+                    سطر {{ toPersianDigits(err.row) }}
+                  </td>
+                  <td class="p-2 text-slate-800 font-medium">
+                    {{ fieldToPersianLabel(err.field) }}
+                  </td>
+                  <td class="p-2 text-slate-500 font-mono text-[10px] truncate max-w-[120px]" :title="err.value">
+                    {{ err.value || '—' }}
+                  </td>
+                  <td class="p-2 pl-3 text-rose-700 font-medium">
+                    {{ err.message }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <template #footer>
+        <button
+          class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-200"
+          @click="isBulkImportModalOpen = false"
+        >
+          انصراف
+        </button>
+        <button
+          :disabled="importing || !selectedFile"
+          class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-xs disabled:opacity-50 flex items-center gap-1.5"
+          @click="handleBulkImport"
+        >
+          <RefreshCw v-if="importing" class="w-3.5 h-3.5 animate-spin" />
+          <UploadCloud v-else class="w-3.5 h-3.5" />
+          <span>شروع ثبت دسته‌ای</span>
         </button>
       </template>
     </AdminModal>

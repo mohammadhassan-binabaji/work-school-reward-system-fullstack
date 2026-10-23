@@ -1,6 +1,8 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
+import * as ExcelJS from 'exceljs';
 import { createTestingApp } from '../helpers/test-app.helper';
+
 import { cleanDatabase, cleanRedis, seedBaselineTiers, seedSystemPool } from '../helpers/test-db.helper';
 import { loginUser } from '../helpers/auth.helper';
 import { PrismaService } from '../../src/common/prisma/prisma.service';
@@ -109,5 +111,72 @@ describe('Auth & Users Contract Tests (e2e)', () => {
       .send({ accountState: 'INVALID_STATE' })
       .expect(400);
   });
+
+  it('GET /api/v1/users/import/template returns downloadable excel template', async () => {
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/users/import/template')
+      .set('Cookie', adminCookie)
+      .expect(200);
+
+    expect(res.headers['content-type']).toContain('spreadsheetml.sheet');
+    expect(res.headers['content-disposition']).toContain('students-import-template.xlsx');
+  });
+
+  it('POST /api/v1/users/import/excel successfully imports valid students in an atomic transaction', async () => {
+    const cls = await prisma.class.create({
+      data: { name: 'Class 701' },
+    });
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Students');
+    worksheet.addRow(['کد ملی', 'نام', 'نام خانوادگی', 'نام کاربری', 'رمز عبور', 'نام کلاس']);
+    worksheet.addRow(['0123456789', 'علی', 'احمدی', 'ali.ahmadi', 'StudentPass123!', cls.name]);
+    worksheet.addRow(['0987654321', 'رضا', 'محمدی', 'reza.mohammadi', 'StudentPass123!', cls.name]);
+
+    const buffer = Buffer.from(await workbook.xlsx.writeBuffer());
+
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/users/import/excel')
+      .set('Cookie', adminCookie)
+      .attach('file', buffer, 'students.xlsx')
+      .expect(201);
+
+    expect(res.body.count).toBe(2);
+
+    const user1 = await prisma.user.findUnique({
+      where: { nationalId: '0123456789' },
+      include: { studentProfile: true },
+    });
+    expect(user1).toBeDefined();
+    expect(user1?.role).toBe('STUDENT');
+    expect(user1?.studentProfile?.classId).toBe(cls.id);
+    expect(user1?.studentProfile?.currentBalance).toBe(0);
+
+    const user2 = await prisma.user.findUnique({
+      where: { nationalId: '0987654321' },
+    });
+    expect(user2).toBeDefined();
+  });
+
+  it('POST /api/v1/users/import/excel returns 422 with row-level errors on validation/class failure and rolls back', async () => {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Students');
+    worksheet.addRow(['کد ملی', 'نام', 'نام خانوادگی', 'نام کاربری', 'رمز عبور', 'نام کلاس']);
+    worksheet.addRow(['123', 'نامعتبر', 'تست', 'invalid.user', '123', 'NonExistentClass']);
+
+    const buffer = Buffer.from(await workbook.xlsx.writeBuffer());
+
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/users/import/excel')
+      .set('Cookie', adminCookie)
+      .attach('file', buffer, 'students.xlsx')
+      .expect(422);
+
+    expect(res.body.errorCode).toBe('BULK_IMPORT_VALIDATION_FAILED');
+    expect(Array.isArray(res.body.errors)).toBe(true);
+    expect(res.body.errors.some((e: any) => e.field === 'nationalId')).toBe(true);
+    expect(res.body.errors.some((e: any) => e.field === 'className')).toBe(true);
+  });
 });
+
 
