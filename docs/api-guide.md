@@ -64,7 +64,8 @@ This guide describes the core API endpoints and verification flows for the Stude
 - `GET /api/v1/rankings/school` - School-wide standard competition ranking.
 - `GET /api/v1/rankings/students/:id/snapshot-history` - Student daily snapshot history (balance + school/class ranks) for charts.
 - `GET /api/v1/rankings/students/:id/balance-history?limit=14&beforeDate=...` - Student daily balance snapshot history for interactive line charts (chronological LTR, cursor-based pagination).
-- `GET/PUT /api/v1/tiers` - Configure exactly 5 student tiers.
+- `GET /api/v1/tiers` - Get all 5 student tier configurations, including assigned `themeId` and `motivationalMessages`.
+- `PUT /api/v1/tiers` - Update all 5 student tier configurations (tier name, `minPointsThreshold`, `themeId`, and `motivationalMessages`). Automatically re-evaluates active students' tiers.
 
 ### 9. Point Flow Audit & Reporting (`/api/v1/reports`)
 - `GET /api/v1/reports/point-flow` - Query role-scoped immutable audit log records. Transfer amounts are positive magnitudes between debited `sourceType` and credited `recipientType`. Optional `reasonDetail` contains the task name for `TEACHER_AWARD_STUDENT` or user-supplied reason for `ADMIN_ADJUST_STUDENT` (`null` for other action types).

@@ -539,6 +539,90 @@ components:
         declineReason:
           type: string
 
+    TierConfigurationDto:
+      type: object
+      required:
+        - id
+        - tierNumber
+        - name
+        - minPointsThreshold
+      properties:
+        id:
+          type: string
+          format: uuid
+        tierNumber:
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 1
+        name:
+          type: string
+          example: "برنز"
+        minPointsThreshold:
+          type: integer
+          minimum: 0
+          example: 0
+        themeId:
+          type: string
+          example: "bronze_ember"
+          description: "Pre-defined color theme ID (one of the 10 supported semantic themes)"
+        motivationalMessages:
+          type: array
+          items:
+            type: string
+          description: "Custom motivational sentences for this tier"
+          example: ["آغاز یک مسیر درخشان! به تلاشت ادامه بده..."]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    TierItemDto:
+      type: object
+      required:
+        - tierNumber
+        - name
+        - minPointsThreshold
+      properties:
+        tierNumber:
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 1
+        name:
+          type: string
+          maxLength: 100
+          example: "برنز"
+        minPointsThreshold:
+          type: integer
+          minimum: 0
+          example: 0
+        themeId:
+          type: string
+          maxLength: 50
+          example: "bronze_ember"
+          description: "Pre-defined color theme ID"
+        motivationalMessages:
+          type: array
+          items:
+            type: string
+          description: "List of motivational messages for this tier"
+
+    UpdateTierConfigurationsDto:
+      type: object
+      required:
+        - tiers
+      properties:
+        tiers:
+          type: array
+          minItems: 5
+          maxItems: 5
+          items:
+            $ref: '#/components/schemas/TierItemDto'
+          description: "Must provide exactly 5 tiers (tierNumber 1 to 5)"
+
     UpdateGuidanceCardDto:
       type: object
       properties:
@@ -2371,6 +2455,7 @@ paths:
   /tiers:
     get:
       summary: List Tier Configurations
+      description: Returns all 5 tier configurations with their assigned color theme and motivational messages.
       security:
         - SessionAuth: []
       responses:
@@ -2381,14 +2466,10 @@ paths:
               schema:
                 type: array
                 items:
-                  type: object
-                  properties:
-                    id: { type: string, format: uuid }
-                    tierNumber: { type: integer, example: 1 }
-                    name: { type: string, example: "Bronze" }
-                    minPointsThreshold: { type: integer, example: 0 }
+                  $ref: '#/components/schemas/TierConfigurationDto'
     put:
       summary: Update Tier Configurations (Admin only, exactly 5 tiers)
+      description: Updates names, minimum point thresholds, color themes, and motivational messages for all 5 tiers.
       security:
         - SessionAuth: []
       requestBody:
@@ -2399,6 +2480,12 @@ paths:
       responses:
         '200':
           description: Tiers updated (FR-060)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TierConfigurationDto'
 
   # ==========================================
   # GUIDANCE CARDS

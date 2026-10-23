@@ -47,9 +47,12 @@
 - The student's highest current-point balance is stored separately from the current balance.
 - There are exactly five student tiers.
 - Tier membership is determined by current points, not highest historical points.
-- Administrators exclusively manage tier names and minimum point thresholds.
+- Administrators exclusively manage tier names, minimum point thresholds, color themes, and motivational messages.
 - Students move between tiers automatically when their current points cross tier thresholds.
-- Tiers have no reward, privilege, or theme behavior in the current phase.
+- Each tier is mapped to one of 10 predefined color themes, defining 6 semantic tokens (Primary, Text Light, Border, Border Glow, Ambient Blob, Ring Track, and Ring Fill).
+- The student points card on the dashboard dynamically applies a dual Current Tier vs. Next Tier visual styling: Current Tier governs container border, glow, ambient blob, point unit label, and background gauge ring; Next Tier governs the active progress arc and countdown text.
+- When reaching the maximum tier, progress displays at 100%, Next Tier tokens fall back to the Current Tier theme, and a congratulatory milestone message replaces the countdown text.
+- A motivational message is selected randomly from the student's current tier list upon each dashboard page load, with a default fallback if none are configured.
 - Student weekly history records the current balance at the end of each day.
 - Historical student balance snapshot records may be panned and queried lazily across multi-week timelines with non-negative scale bounds ($y \ge 0$).
 - Challenge and mission activity can produce student point awards.

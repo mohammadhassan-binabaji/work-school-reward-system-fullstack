@@ -19,7 +19,7 @@
 - As a school administrator, I want complete point-flow audit history and filtered reports so that I can review and manage the school's point economy.
 - As a school administrator, I want to filter reports by date range, student, teacher, class, subject, action type, and reward and export them as CSV, Excel, or PDF so that I can analyze and share point activity.
 - As a school administrator, I want to view current student points in tables and diagrams so that I can understand point distribution.
-- As a school administrator, I want to define and change five student tiers and their minimum point thresholds so that student standing is categorized by current points.
+- As a school administrator, I want to define and change five student tiers, their minimum point thresholds, pre-defined color themes, and custom motivational messages so that student standing and gamification can be configured.
 - As a school administrator, I want to filter reports by student tier so that I can analyze point activity by tier.
 - As a school administrator, I want to see school-wide and class top-student boards so that I can identify students with the highest current points.
 - As a school administrator, I want inactive, deactivated, and departed students excluded from rankings so that rankings represent active students.
@@ -61,6 +61,7 @@
 - As a student, I want a report of my point activity so that I can understand points received, reserved, returned, and spent.
 - As a student, I want to see my current rank in my class and across the school so that I can understand my standing.
 - As a student, I want to see my current tier based on my points so that I can understand my current-point category.
+- As a student, I want my points card on the dashboard to reflect my current tier and next tier colors and show inspiring motivational messages and countdowns so that I am motivated to reach higher tiers.
 - As a student, I want students tied on current points to share a rank so that rankings reflect equal standings.
 - As a student, I want to view school-wide and class top-student boards so that I can compare current-point standings.
 - As a student, I want to see my own rank and points and the names, ranks, and points of top students so that I can understand the leading standings without viewing every student's data.

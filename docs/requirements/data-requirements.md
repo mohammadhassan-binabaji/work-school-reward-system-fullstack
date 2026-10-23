@@ -236,12 +236,14 @@ Only administrators can create, edit, and delete guidance cards. Cards are displ
 
 The system must store exactly five tiers. Each tier must have:
 
-- Tier name, such as Bronze, Silver, or Gold
+- Tier number (1 through 5)
+- Tier name, such as Bronze, Silver, or Gold (Persian title)
 - Minimum current-point threshold
-- Display information for the tier
-- Active configuration state, if needed while editing
+- Selected color theme identifier (`themeId`) chosen from 10 pre-defined semantic color themes
+- List of custom motivational messages (`motivationalMessages`) specific to the tier
+- Creation and update timestamps
 
-Only administrators define and change tier names and thresholds. Tier membership is calculated from current points and is informational and reportable in the current phase.
+Only administrators define and change tier configurations. Tier membership is calculated dynamically from current points. The student points card on the dashboard view uses the current tier and next tier configurations to apply dynamic dual-theme styling and display motivational/progress messaging.
 
 ## Ranking and Top-Student Data
 

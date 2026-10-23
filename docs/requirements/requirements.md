@@ -110,12 +110,14 @@ The system enables teachers to award points to students for actions such as comp
 - Administrators shall define and change the names and minimum required current-point thresholds for the five tiers.
 - The number of tiers shall be fixed at exactly five.
 - Tier names may use labels such as Bronze, Silver, and Gold.
+- Each tier shall support assigning one of 10 predefined dark-mode color themes (with 6 semantic color token roles: Primary, Text Light, Border, Border Glow, Ambient Blob, Ring Track, and Ring Fill) and custom Persian motivational messages.
+- The student dashboard shall feature a points card styling components with dual current-tier and next-tier semantic color tokens (Current Tier for card border, glow, ambient blob, point unit label, and progress gauge background track/inner fill; Next Tier for progress arc, arc glow, and countdown target).
+- The student dashboard shall display a randomly selected motivational message from the current tier's configured motivational message list (with a fallback message if empty).
+- The countdown text shall dynamically display the next tier name (e.g., "X نوین دیگر تا ارتقا به سطح [نام سطح بعدی]") styled with the current tier text color and bold next tier target color; at max tier, it shall display a congratulatory max-level milestone message.
 - The system shall assign each student to a tier based on the student's current points and the configured minimum thresholds.
 - A student's tier shall change automatically when the student's current points move across a configured threshold.
 - The current student tier shall be displayed to the student, teachers, and administrators where student current-point information is shown.
 - Teachers and administrators shall be able to filter point reports by student tier.
-- In the current phase, tiers shall be informational and used for display and reporting only.
-- Future tier-based rewards, privileges, and visual themes are outside the current phase.
 
 ### Challenges and missions
 

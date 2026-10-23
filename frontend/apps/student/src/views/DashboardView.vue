@@ -303,7 +303,7 @@ const filteredActivities = computed(() => {
           <!-- Remaining Points Text (Current Tier Color with bold Next Tier Name in Next Tier Color) or Max Tier Celebration -->
           <p
             v-if="nextTier"
-            class="text-[11px] mt-1 font-medium transition-colors duration-500"
+            class="text-[11px] mt-2 font-medium transition-colors duration-500"
             :style="{ color: currentTierTheme.textLight }"
           >
             <span>{{ toPersianDigits(pointsToNextTier) }} نوین دیگر تا ارتقا به سطح </span>
@@ -316,7 +316,7 @@ const filteredActivities = computed(() => {
           </p>
           <p
             v-else
-            class="text-[11px] mt-1 font-medium transition-colors duration-500"
+            class="text-[11px] mt-2 font-medium transition-colors duration-500"
             :style="{ color: currentTierTheme.textLight }"
           >
             شما به بالاترین سطح نوین دست یافته‌اید! 🎉
@@ -325,14 +325,14 @@ const filteredActivities = computed(() => {
 
         <!-- Mascot & Circular Progress Gauge -->
         <div class="relative flex items-center justify-center shrink-0">
-          <svg class="w-36 h-36 transform -rotate-90" viewBox="0 0 120 120">
+          <svg class="w-40 h-40 transform -rotate-90" viewBox="0 0 120 120">
             <!-- Background Ring Track & Inner Ring Fill (Current Tier) -->
             <circle
               cx="60"
               cy="60"
-              r="50"
+              r="52"
               :stroke="currentTierTheme.ringTrack"
-              stroke-width="8"
+              stroke-width="5"
               :fill="currentTierTheme.ringFill"
               class="transition-colors duration-500"
             />
@@ -340,13 +340,13 @@ const filteredActivities = computed(() => {
             <circle
               cx="60"
               cy="60"
-              r="50"
+              r="52"
               :stroke="nextTierTheme.primary"
-              stroke-width="8"
+              stroke-width="5"
               stroke-linecap="round"
               fill="transparent"
-              :stroke-dasharray="314.16"
-              :stroke-dashoffset="314.16 - (314.16 * progressPercent) / 100"
+              :stroke-dasharray="326.73"
+              :stroke-dashoffset="326.73 - (326.73 * progressPercent) / 100"
               :style="{
                 filter: `drop-shadow(0 0 6px ${nextTierTheme.border})`,
               }"
@@ -355,7 +355,7 @@ const filteredActivities = computed(() => {
           </svg>
 
           <!-- Center Mascot -->
-          <div class="absolute inset-0 flex items-center justify-center">
+          <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
             <OwlMascot size="sm" variant="cheering" />
           </div>
         </div>
