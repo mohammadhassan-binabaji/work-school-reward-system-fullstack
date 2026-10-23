@@ -6,6 +6,7 @@ import {
   IsString,
   MaxLength,
   IsArray,
+  IsOptional,
   ValidateNested,
   ArrayMinSize,
   ArrayMaxSize,
@@ -32,6 +33,22 @@ export class TierItemDto {
   @IsInt()
   @Min(0)
   minPointsThreshold: number;
+
+  @ApiPropertyOptional({ example: 'bronze_ember', description: 'Pre-defined theme ID' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  themeId?: string;
+
+  @ApiPropertyOptional({
+    example: ['فوق‌العاده‌ای! به تلاشت ادامه بده...'],
+    description: 'Custom motivational messages for this tier',
+    type: [String],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  motivationalMessages?: string[];
 }
 
 export class UpdateTierConfigurationsDto {

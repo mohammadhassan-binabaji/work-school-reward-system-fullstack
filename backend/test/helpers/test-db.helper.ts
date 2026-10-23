@@ -69,17 +69,52 @@ export async function cleanRedis(redis: RedisService): Promise<void> {
 
 export async function seedBaselineTiers(prisma: PrismaService): Promise<void> {
   const tiers = [
-    { tierNumber: 1, name: 'Bronze', minPointsThreshold: 0 },
-    { tierNumber: 2, name: 'Silver', minPointsThreshold: 100 },
-    { tierNumber: 3, name: 'Gold', minPointsThreshold: 250 },
-    { tierNumber: 4, name: 'Platinum', minPointsThreshold: 500 },
-    { tierNumber: 5, name: 'Diamond', minPointsThreshold: 1000 },
+    {
+      tierNumber: 1,
+      name: 'Bronze',
+      minPointsThreshold: 0,
+      themeId: 'bronze_ember',
+      motivationalMessages: ['آغاز یک مسیر درخشان! به تلاشت ادامه بده...'],
+    },
+    {
+      tierNumber: 2,
+      name: 'Silver',
+      minPointsThreshold: 100,
+      themeId: 'silver_cyber',
+      motivationalMessages: ['پیشرفت فوق‌العاده‌ای داشتی! ادامه بده...'],
+    },
+    {
+      tierNumber: 3,
+      name: 'Gold',
+      minPointsThreshold: 250,
+      themeId: 'gold_aurelian',
+      motivationalMessages: ['درخشش پادشاهی! عملکردت عالی بوده...'],
+    },
+    {
+      tierNumber: 4,
+      name: 'Platinum',
+      minPointsThreshold: 500,
+      themeId: 'platinum_bioglaze',
+      motivationalMessages: ['مهارت و استمرار فوق‌العاده! پیش به سوی الماس!'],
+    },
+    {
+      tierNumber: 5,
+      name: 'Diamond',
+      minPointsThreshold: 1000,
+      themeId: 'diamond_aether',
+      motivationalMessages: ['شما به بالاترین قله افتخار نوین دست یافته‌اید!'],
+    },
   ];
 
   for (const tier of tiers) {
     await prisma.tierConfiguration.upsert({
       where: { tierNumber: tier.tierNumber },
-      update: { name: tier.name, minPointsThreshold: tier.minPointsThreshold },
+      update: {
+        name: tier.name,
+        minPointsThreshold: tier.minPointsThreshold,
+        themeId: tier.themeId,
+        motivationalMessages: tier.motivationalMessages,
+      },
       create: tier,
     });
   }

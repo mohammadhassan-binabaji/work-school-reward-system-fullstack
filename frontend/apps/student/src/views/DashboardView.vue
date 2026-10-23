@@ -23,6 +23,7 @@ import {
   formatJalaliDate,
   formatAuditLogDescription,
   resolveStudentPointDelta,
+  getTierTheme,
   type DailySnapshot,
   type PointAuditLog,
   type StudentRankingView,
@@ -80,6 +81,29 @@ const progressPercent = computed(() => {
 const pointsToNextTier = computed(() => {
   if (!tier.value || !nextTier.value) return 0;
   return Math.max(0, nextTier.value.minPointsThreshold - currentPoints.value);
+});
+
+// Tier Themes & Visual Tokens
+const currentTierTheme = computed(() => {
+  return getTierTheme(tier.value?.themeId, tier.value?.tierNumber || 1);
+});
+
+const nextTierTheme = computed(() => {
+  if (!nextTier.value) {
+    // If student is at max tier, fallback to current tier theme
+    return currentTierTheme.value;
+  }
+  return getTierTheme(nextTier.value.themeId, nextTier.value.tierNumber);
+});
+
+// Motivational Message for Current Tier (Random on page load with fallback)
+const activeMotivationalMessage = computed(() => {
+  const messages = tier.value?.motivationalMessages;
+  if (messages && messages.length > 0) {
+    const randomIndex = Math.floor(Math.random() * messages.length);
+    return messages[randomIndex];
+  }
+  return 'فوق‌العاده‌ای! به تلاشت ادامه بده...';
 });
 
 // Latest snapshot for rank
@@ -241,13 +265,20 @@ const filteredActivities = computed(() => {
 
 <template>
   <div class="space-y-4 pb-24 pt-2">
-    <!-- Card 1: Points Card (Red Neon Glow) -->
+    <!-- Card 1: Points Card (Dynamic Dual-Tier Themes) -->
     <div
-      class="bg-dark-card rounded-3xl px-5 py-2.5 border-1.5 neon-border-red relative overflow-hidden transition-all duration-300"
+      class="bg-dark-card rounded-3xl px-5 py-2.5 border-1.5 relative overflow-hidden transition-all duration-500"
+      :style="{
+        borderColor: currentTierTheme.border,
+        boxShadow: currentTierTheme.borderGlow,
+      }"
     >
-      <!-- Background Ambient Glow -->
+      <!-- Background Ambient Glow (Current Tier Ambient Blob) -->
       <div
-        class="absolute -top-16 -right-16 w-36 h-36 bg-neon-red/15 rounded-full blur-2xl pointer-events-none"
+        class="absolute -top-16 -right-16 w-36 h-36 rounded-full blur-2xl pointer-events-none transition-colors duration-500"
+        :style="{
+          backgroundColor: currentTierTheme.ambientBlob,
+        }"
       ></div>
 
       <div class="flex items-center justify-between">
@@ -258,40 +289,61 @@ const filteredActivities = computed(() => {
             <span class="text-4xl font-extrabold text-white tracking-tight">
               {{ toPersianDigits(currentPoints) }}
             </span>
-            <span class="text-base font-bold text-neon-red">نوین</span>
+            <span
+              class="text-base font-bold transition-colors duration-500"
+              :style="{ color: currentTierTheme.primary }"
+            >نوین</span>
           </div>
 
-          <!-- Motivational note -->
+          <!-- Motivational note (Neutral text-slate-300) -->
           <p class="text-xs text-slate-300 mt-2 font-medium">
-            فوق‌العاده‌ای! به تلاشت ادامه بده...
+            {{ activeMotivationalMessage }}
           </p>
 
-          <p v-if="pointsToNextTier > 0" class="text-[11px] text-neon-red/90 mt-1">
+          <!-- Remaining Points Text (Next Tier Text Light) or Max Tier Celebration -->
+          <p
+            v-if="nextTier"
+            class="text-[11px] mt-1 font-medium transition-colors duration-500"
+            :style="{ color: nextTierTheme.textLight }"
+          >
             {{ toPersianDigits(pointsToNextTier) }} نوین دیگر تا ارتقای سطح بعدی
+          </p>
+          <p
+            v-else
+            class="text-[11px] mt-1 font-medium transition-colors duration-500"
+            :style="{ color: nextTierTheme.textLight }"
+          >
+            شما به بالاترین سطح نوین دست یافته‌اید! 🎉
           </p>
         </div>
 
         <!-- Mascot & Circular Progress Gauge -->
         <div class="relative flex items-center justify-center shrink-0">
           <svg class="w-36 h-36 transform -rotate-90" viewBox="0 0 120 120">
+            <!-- Background Ring Track & Inner Ring Fill (Current Tier) -->
             <circle
               cx="60"
               cy="60"
               r="50"
-              stroke="#1E293B"
+              :stroke="currentTierTheme.ringTrack"
               stroke-width="8"
-              fill="transparent"
+              :fill="currentTierTheme.ringFill"
+              class="transition-colors duration-500"
             />
+            <!-- Active Progress Arc (Next Tier Primary & Glow Drop-Shadow) -->
             <circle
               cx="60"
               cy="60"
               r="50"
-              stroke="#FF3D00"
+              :stroke="nextTierTheme.primary"
               stroke-width="8"
               stroke-linecap="round"
               fill="transparent"
               :stroke-dasharray="314.16"
               :stroke-dashoffset="314.16 - (314.16 * progressPercent) / 100"
+              :style="{
+                filter: `drop-shadow(0 0 6px ${nextTierTheme.border})`,
+              }"
               class="transition-all duration-1000 ease-out"
             />
           </svg>

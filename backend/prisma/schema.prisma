@@ -393,12 +393,14 @@ model TaskProposalMessage {
 }
 
 model TierConfiguration {
-  id                 String   @id @default(uuid()) @db.Uuid
-  tierNumber         Int      @unique @map("tier_number")
-  name               String   @db.VarChar(100)
-  minPointsThreshold Int      @map("min_points_threshold")
-  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt          DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+  id                   String   @id @default(uuid()) @db.Uuid
+  tierNumber           Int      @unique @map("tier_number")
+  name                 String   @db.VarChar(100)
+  minPointsThreshold   Int      @map("min_points_threshold")
+  themeId              String   @default("bronze_ember") @map("theme_id") @db.VarChar(50)
+  motivationalMessages String[] @default([]) @map("motivational_messages")
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
   studentProfiles StudentProfile[]
 

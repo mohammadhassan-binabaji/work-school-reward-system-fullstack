@@ -8,17 +8,67 @@ async function main() {
 
   // 1. Seed 5 Tier Configurations
   const tiers = [
-    { tierNumber: 1, name: 'Bronze', minPointsThreshold: 0 },
-    { tierNumber: 2, name: 'Silver', minPointsThreshold: 100 },
-    { tierNumber: 3, name: 'Gold', minPointsThreshold: 250 },
-    { tierNumber: 4, name: 'Platinum', minPointsThreshold: 500 },
-    { tierNumber: 5, name: 'Diamond', minPointsThreshold: 1000 },
+    {
+      tierNumber: 1,
+      name: 'برنز',
+      minPointsThreshold: 0,
+      themeId: 'bronze_ember',
+      motivationalMessages: [
+        'آغاز یک مسیر درخشان! به تلاشت ادامه بده...',
+        'هر قدم کوچک، تو را به هدف‌های بزرگ‌تر نزدیک می‌کند.',
+      ],
+    },
+    {
+      tierNumber: 2,
+      name: 'نقره‌ای',
+      minPointsThreshold: 100,
+      themeId: 'silver_cyber',
+      motivationalMessages: [
+        'پیشرفت فوق‌العاده‌ای داشتی! ادامه بده...',
+        'تلاش امروزت، موفقیت فردای توست.',
+      ],
+    },
+    {
+      tierNumber: 3,
+      name: 'طلایی',
+      minPointsThreshold: 250,
+      themeId: 'gold_aurelian',
+      motivationalMessages: [
+        'درخشش پادشاهی! عملکردت عالی بوده...',
+        'تو جزو بهترین‌ها هستی، به اوج نزدیک شدی!',
+      ],
+    },
+    {
+      tierNumber: 4,
+      name: 'پلاتین',
+      minPointsThreshold: 500,
+      themeId: 'platinum_bioglaze',
+      motivationalMessages: [
+        'مهارت و استمرار فوق‌العاده! پیش به سوی الماس!',
+        'انرژی و هوش بالای تو الهام‌بخش بقیه دانش‌آموزان است.',
+      ],
+    },
+    {
+      tierNumber: 5,
+      name: 'الماس',
+      minPointsThreshold: 1000,
+      themeId: 'diamond_aether',
+      motivationalMessages: [
+        'شما به بالاترین قله افتخار نوین دست یافته‌اید!',
+        'اسطوره نوین! درخشش ابدی تو ستودنی است.',
+      ],
+    },
   ];
 
   for (const tier of tiers) {
     await prisma.tierConfiguration.upsert({
       where: { tierNumber: tier.tierNumber },
-      update: { name: tier.name, minPointsThreshold: tier.minPointsThreshold },
+      update: {
+        name: tier.name,
+        minPointsThreshold: tier.minPointsThreshold,
+        themeId: tier.themeId,
+        motivationalMessages: tier.motivationalMessages,
+      },
       create: tier,
     });
   }

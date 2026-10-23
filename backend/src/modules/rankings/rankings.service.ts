@@ -103,6 +103,17 @@ export class RankingsService {
   }
 
   // Tier Configurations CRUD & Dynamic Evaluation (FR-060, FR-061, FR-092)
+  private getDefaultThemeForTier(tierNumber: number): string {
+    const defaults: Record<number, string> = {
+      1: 'bronze_ember',
+      2: 'silver_cyber',
+      3: 'gold_aurelian',
+      4: 'platinum_bioglaze',
+      5: 'diamond_aether',
+    };
+    return defaults[tierNumber] || 'bronze_ember';
+  }
+
   async getTierConfigurations() {
     const tiers = await this.prisma.tierConfiguration.findMany({
       orderBy: { tierNumber: 'asc' },
@@ -111,11 +122,41 @@ export class RankingsService {
     if (tiers.length === 0) {
       // Return default 5 tiers if not yet seeded
       const defaults = [
-        { tierNumber: 1, name: 'Bronze', minPointsThreshold: 0 },
-        { tierNumber: 2, name: 'Silver', minPointsThreshold: 100 },
-        { tierNumber: 3, name: 'Gold', minPointsThreshold: 250 },
-        { tierNumber: 4, name: 'Platinum', minPointsThreshold: 500 },
-        { tierNumber: 5, name: 'Diamond', minPointsThreshold: 1000 },
+        {
+          tierNumber: 1,
+          name: 'برنز',
+          minPointsThreshold: 0,
+          themeId: 'bronze_ember',
+          motivationalMessages: ['آغاز یک مسیر درخشان! به تلاشت ادامه بده...'],
+        },
+        {
+          tierNumber: 2,
+          name: 'نقره‌ای',
+          minPointsThreshold: 100,
+          themeId: 'silver_cyber',
+          motivationalMessages: ['پیشرفت فوق‌العاده‌ای داشتی! ادامه بده...'],
+        },
+        {
+          tierNumber: 3,
+          name: 'طلایی',
+          minPointsThreshold: 250,
+          themeId: 'gold_aurelian',
+          motivationalMessages: ['درخشش پادشاهی! عملکردت عالی بوده...'],
+        },
+        {
+          tierNumber: 4,
+          name: 'پلاتین',
+          minPointsThreshold: 500,
+          themeId: 'platinum_bioglaze',
+          motivationalMessages: ['مهارت و استمرار فوق‌العاده! پیش به سوی الماس!'],
+        },
+        {
+          tierNumber: 5,
+          name: 'الماس',
+          minPointsThreshold: 1000,
+          themeId: 'diamond_aether',
+          motivationalMessages: ['شما به بالاترین قله افتخار نوین دست یافته‌اید!'],
+        },
       ];
       for (const t of defaults) {
         await this.prisma.tierConfiguration.create({ data: t });
@@ -141,16 +182,23 @@ export class RankingsService {
 
     return this.prisma.$transaction(async (tx) => {
       for (const tierDto of dto.tiers) {
+        const themeId = tierDto.themeId || this.getDefaultThemeForTier(tierDto.tierNumber);
+        const motivationalMessages = tierDto.motivationalMessages ?? [];
+
         await tx.tierConfiguration.upsert({
           where: { tierNumber: tierDto.tierNumber },
           create: {
             tierNumber: tierDto.tierNumber,
             name: tierDto.name,
             minPointsThreshold: tierDto.minPointsThreshold,
+            themeId,
+            motivationalMessages,
           },
           update: {
             name: tierDto.name,
             minPointsThreshold: tierDto.minPointsThreshold,
+            themeId,
+            motivationalMessages,
           },
         });
       }

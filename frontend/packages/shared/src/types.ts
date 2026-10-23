@@ -105,6 +105,8 @@ export interface TierConfiguration {
   tierNumber: number;
   name: string;
   minPointsThreshold: number;
+  themeId?: string;
+  motivationalMessages?: string[];
   createdAt?: string;
   updatedAt?: string;
 }

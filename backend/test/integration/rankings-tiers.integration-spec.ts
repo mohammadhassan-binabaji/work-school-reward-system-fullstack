@@ -245,6 +245,64 @@ describe('Rankings & Tiers Integration Tests', () => {
       include: { currentTier: true },
     });
     expect(profile?.currentTier?.name).toBe('Adept');
+
+    // Verify updating tiers with themeId and motivationalMessages
+    const themedTiers = [
+      {
+        tierNumber: 1,
+        name: 'برنز',
+        minPointsThreshold: 0,
+        themeId: 'bronze_ember',
+        motivationalMessages: ['پیام برنز'],
+      },
+      {
+        tierNumber: 2,
+        name: 'نقره‌ای',
+        minPointsThreshold: 50,
+        themeId: 'silver_cyber',
+        motivationalMessages: ['پیام نقره‌ای'],
+      },
+      {
+        tierNumber: 3,
+        name: 'طلایی',
+        minPointsThreshold: 150,
+        themeId: 'gold_aurelian',
+        motivationalMessages: ['پیام طلایی'],
+      },
+      {
+        tierNumber: 4,
+        name: 'پلاتین',
+        minPointsThreshold: 300,
+        themeId: 'platinum_bioglaze',
+        motivationalMessages: ['پیام پلاتین'],
+      },
+      {
+        tierNumber: 5,
+        name: 'الماس',
+        minPointsThreshold: 600,
+        themeId: 'diamond_aether',
+        motivationalMessages: ['پیام الماس'],
+      },
+    ];
+
+    const putRes = await request(app.getHttpServer())
+      .put('/api/v1/tiers')
+      .set('Cookie', adminCookie)
+      .send({ tiers: themedTiers })
+      .expect(200);
+
+    expect(putRes.body[0].themeId).toBe('bronze_ember');
+    expect(putRes.body[0].motivationalMessages).toEqual(['پیام برنز']);
+    expect(putRes.body[4].themeId).toBe('diamond_aether');
+    expect(putRes.body[4].motivationalMessages).toEqual(['پیام الماس']);
+
+    const getRes = await request(app.getHttpServer())
+      .get('/api/v1/tiers')
+      .set('Cookie', adminCookie)
+      .expect(200);
+
+    expect(getRes.body[2].themeId).toBe('gold_aurelian');
+    expect(getRes.body[2].motivationalMessages).toEqual(['پیام طلایی']);
   });
 
   it('triggers midnight snapshot and queries snapshot history with ranks (FR-062)', async () => {
