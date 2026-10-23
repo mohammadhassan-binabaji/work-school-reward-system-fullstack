@@ -213,10 +213,7 @@ export class RewardsService {
         studentId,
         rewardId: dto.rewardId,
         status: {
-          in: [
-            RewardRequestStatus.PENDING_TO_APPROVE,
-            RewardRequestStatus.PENDING_TO_RECEIVE,
-          ],
+          in: [RewardRequestStatus.PENDING_TO_APPROVE, RewardRequestStatus.PENDING_TO_RECEIVE],
         },
       },
     });

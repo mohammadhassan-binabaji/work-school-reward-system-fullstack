@@ -75,7 +75,9 @@ export class NotificationsService {
     });
 
     if (!notification || notification.recipientId !== userId) {
-      this.logger.warn(`Notification ${notificationId} not found or access denied for user ${userId}`);
+      this.logger.warn(
+        `Notification ${notificationId} not found or access denied for user ${userId}`,
+      );
       throw new NotFoundException('Notification not found');
     }
 
@@ -109,4 +111,3 @@ export class NotificationsService {
     return { updatedCount: result.count };
   }
 }
-

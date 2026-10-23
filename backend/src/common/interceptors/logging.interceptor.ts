@@ -41,7 +41,6 @@ export class LoggingInterceptor implements NestInterceptor {
     return sanitized;
   }
 
-
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const http = context.switchToHttp();
     const req = http.getRequest<RequestWithCorrelation>();

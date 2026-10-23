@@ -3,7 +3,12 @@ import request from 'supertest';
 import * as ExcelJS from 'exceljs';
 import { createTestingApp } from '../helpers/test-app.helper';
 
-import { cleanDatabase, cleanRedis, seedBaselineTiers, seedSystemPool } from '../helpers/test-db.helper';
+import {
+  cleanDatabase,
+  cleanRedis,
+  seedBaselineTiers,
+  seedSystemPool,
+} from '../helpers/test-db.helper';
 import { loginUser } from '../helpers/auth.helper';
 import { PrismaService } from '../../src/common/prisma/prisma.service';
 import { RedisService } from '../../src/common/redis/redis.service';
@@ -178,5 +183,3 @@ describe('Auth & Users Contract Tests (e2e)', () => {
     expect(res.body.errors.some((e: any) => e.field === 'className')).toBe(true);
   });
 });
-
-

@@ -1,7 +1,12 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { createTestingApp } from '../helpers/test-app.helper';
-import { cleanDatabase, cleanRedis, seedBaselineTiers, seedSystemPool } from '../helpers/test-db.helper';
+import {
+  cleanDatabase,
+  cleanRedis,
+  seedBaselineTiers,
+  seedSystemPool,
+} from '../helpers/test-db.helper';
 import { loginUser } from '../helpers/auth.helper';
 import { PrismaService } from '../../src/common/prisma/prisma.service';
 import { RedisService } from '../../src/common/redis/redis.service';
@@ -162,4 +167,3 @@ describe('Activities Ban Integration Tests', () => {
       .expect(201);
   });
 });
-

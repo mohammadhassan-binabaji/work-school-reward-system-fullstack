@@ -65,7 +65,11 @@ export class VerificationsController {
     if (dto.action === 'ACCEPT') {
       return this.activitiesService.acceptVerification(id, adminId, req.correlationId || '');
     } else {
-      return this.activitiesService.rejectVerification(id, { rejectionReason: dto.rejectionReason }, adminId);
+      return this.activitiesService.rejectVerification(
+        id,
+        { rejectionReason: dto.rejectionReason },
+        adminId,
+      );
     }
   }
 

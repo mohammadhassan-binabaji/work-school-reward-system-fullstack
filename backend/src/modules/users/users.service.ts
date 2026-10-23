@@ -45,7 +45,6 @@ function getCellStringValue(cell: ExcelJS.Cell): string {
   return String(cell.value).trim();
 }
 
-
 @Injectable()
 export class UsersService {
   constructor(
@@ -328,14 +327,13 @@ export class UsersService {
       });
     }
 
-    const normalizeHeader = (h: string) => toAsciiDigits(h).toLowerCase().replace(/[\s_\-–—()]/g, '');
-    const HEADER_MAP: Record<string, string[]> = {
-      nationalId: ['کدملی', 'nationalid', 'کدملی کاربر', 'nationalcode', 'کدملی۱۰رقم', 'کدملی10رقم', 'کدشناسایی'],
-      firstName: ['نام', 'firstname', 'نام کوچک', 'first'],
-      lastName: ['نام خانوادگی', 'lastname', 'فامیلی', 'فامیل', 'نام خانواده', 'last'],
-      username: ['نام کاربری', 'username', 'نامکاربر', 'یوزرنیم'],
-      password: ['رمزعبور', 'گذر واژه', 'رمز', 'password', 'pass', 'کلمه عبور'],
-      className: ['نام کلاس', 'کلاس', 'classname', 'class'],
+    const TEMPLATE_HEADERS: Record<string, string> = {
+      'کد ملی': 'nationalId',
+      نام: 'firstName',
+      'نام خانوادگی': 'lastName',
+      'نام کاربری': 'username',
+      'رمز عبور': 'password',
+      'نام کلاس': 'className',
     };
 
     const headerRow = worksheet.getRow(1);
@@ -343,23 +341,22 @@ export class UsersService {
     const foundFields = new Set<string>();
 
     headerRow.eachCell((cell, colNumber) => {
-      const headerText = normalizeHeader(getCellStringValue(cell));
-      for (const [field, aliases] of Object.entries(HEADER_MAP)) {
-        if (aliases.includes(headerText)) {
-          colIndexToField[colNumber] = field;
-          foundFields.add(field);
-          break;
-        }
+      const headerText = getCellStringValue(cell).trim();
+      const field = TEMPLATE_HEADERS[headerText];
+      if (field) {
+        colIndexToField[colNumber] = field;
+        foundFields.add(field);
       }
     });
 
-    const requiredFields = ['nationalId', 'firstName', 'lastName', 'username', 'password', 'className'];
-    const missingHeaders = requiredFields.filter((f) => !foundFields.has(f));
+    const missingHeaders = Object.keys(TEMPLATE_HEADERS).filter(
+      (header) => !foundFields.has(TEMPLATE_HEADERS[header]),
+    );
     if (missingHeaders.length > 0) {
       throw new BadRequestException({
         statusCode: 400,
         errorCode: 'MISSING_EXCEL_COLUMNS',
-        message: `ستون‌های الزامی در فایل اکسل یافت نشدند: ${missingHeaders.join(', ')}`,
+        message: `ستون‌های الزامی در فایل اکسل یافت نشدند: ${missingHeaders.join('، ')}`,
       });
     }
 
@@ -421,19 +418,32 @@ export class UsersService {
       if (!rawFirstName) {
         errors.push({ row: rowNumber, field: 'firstName', message: 'نام الزامی است' });
       } else if (rawFirstName.length > 100) {
-        errors.push({ row: rowNumber, field: 'firstName', message: 'نام نمی‌تواند بیش از ۱۰۰ کاراکتر باشد' });
+        errors.push({
+          row: rowNumber,
+          field: 'firstName',
+          message: 'نام نمی‌تواند بیش از ۱۰۰ کاراکتر باشد',
+        });
       }
 
       if (!rawLastName) {
         errors.push({ row: rowNumber, field: 'lastName', message: 'نام خانوادگی الزامی است' });
       } else if (rawLastName.length > 100) {
-        errors.push({ row: rowNumber, field: 'lastName', message: 'نام خانوادگی نمی‌تواند بیش از ۱۰۰ کاراکتر باشد' });
+        errors.push({
+          row: rowNumber,
+          field: 'lastName',
+          message: 'نام خانوادگی نمی‌تواند بیش از ۱۰۰ کاراکتر باشد',
+        });
       }
 
       if (!rawUsername) {
         errors.push({ row: rowNumber, field: 'username', message: 'نام کاربری الزامی است' });
       } else if (rawUsername.length < 3 || rawUsername.length > 50) {
-        errors.push({ row: rowNumber, field: 'username', message: 'نام کاربری باید بین ۳ تا ۵۰ کاراکتر باشد', value: rawUsername });
+        errors.push({
+          row: rowNumber,
+          field: 'username',
+          message: 'نام کاربری باید بین ۳ تا ۵۰ کاراکتر باشد',
+          value: rawUsername,
+        });
       } else if (!/^[a-zA-Z0-9._-]+$/.test(rawUsername)) {
         errors.push({
           row: rowNumber,
@@ -446,7 +456,11 @@ export class UsersService {
       if (!rawPassword) {
         errors.push({ row: rowNumber, field: 'password', message: 'رمز عبور الزامی است' });
       } else if (rawPassword.length < 8) {
-        errors.push({ row: rowNumber, field: 'password', message: 'رمز عبور باید حداقل ۸ کاراکتر باشد' });
+        errors.push({
+          row: rowNumber,
+          field: 'password',
+          message: 'رمز عبور باید حداقل ۸ کاراکتر باشد',
+        });
       }
 
       if (!rawClassName) {
@@ -500,7 +514,9 @@ export class UsersService {
     }
 
     // Check database classes existence
-    const distinctClassNames = Array.from(new Set(parsedRows.map((r) => r.className).filter(Boolean)));
+    const distinctClassNames = Array.from(
+      new Set(parsedRows.map((r) => r.className).filter(Boolean)),
+    );
     const existingClasses = await this.prisma.class.findMany({
       where: { name: { in: distinctClassNames } },
       select: { id: true, name: true, isActive: true },
@@ -522,15 +538,14 @@ export class UsersService {
     }
 
     // Check database existing users
-    const validNationalIds = Array.from(new Set(parsedRows.map((r) => r.nationalId).filter((id) => /^[0-9]{10}$/.test(id))));
+    const validNationalIds = Array.from(
+      new Set(parsedRows.map((r) => r.nationalId).filter((id) => /^[0-9]{10}$/.test(id))),
+    );
     const validUsernames = Array.from(new Set(parsedRows.map((r) => r.username).filter(Boolean)));
 
     const existingUsers = await this.prisma.user.findMany({
       where: {
-        OR: [
-          { nationalId: { in: validNationalIds } },
-          { username: { in: validUsernames } },
-        ],
+        OR: [{ nationalId: { in: validNationalIds } }, { username: { in: validUsernames } }],
       },
       select: { nationalId: true, username: true },
     });
@@ -620,4 +635,3 @@ export class UsersService {
     });
   }
 }
-

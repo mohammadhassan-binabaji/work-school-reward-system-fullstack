@@ -59,11 +59,7 @@ export class FilesController {
     if (!file) {
       throw new BadRequestException('File is required');
     }
-    const url = await this.storageService.uploadFile(
-      file.buffer,
-      file.originalname,
-      file.mimetype,
-    );
+    const url = await this.storageService.uploadFile(file.buffer, file.originalname, file.mimetype);
     return { url };
   }
 }

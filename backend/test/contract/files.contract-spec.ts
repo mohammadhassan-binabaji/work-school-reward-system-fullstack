@@ -1,7 +1,12 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { createTestingApp } from '../helpers/test-app.helper';
-import { cleanDatabase, cleanRedis, seedBaselineTiers, seedSystemPool } from '../helpers/test-db.helper';
+import {
+  cleanDatabase,
+  cleanRedis,
+  seedBaselineTiers,
+  seedSystemPool,
+} from '../helpers/test-db.helper';
 import { loginUser } from '../helpers/auth.helper';
 import { PrismaService } from '../../src/common/prisma/prisma.service';
 import { RedisService } from '../../src/common/redis/redis.service';
@@ -46,8 +51,7 @@ describe('Files Contract Tests (e2e)', () => {
   });
 
   it('POST /api/v1/files/upload returns 401 Unauthorized when unauthenticated', async () => {
-    const res = await request(app.getHttpServer())
-      .post('/api/v1/files/upload');
+    const res = await request(app.getHttpServer()).post('/api/v1/files/upload');
 
     expect(res.status).toBe(401);
   });

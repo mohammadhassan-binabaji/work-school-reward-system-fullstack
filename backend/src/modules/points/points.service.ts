@@ -480,7 +480,8 @@ export class PointsService {
           reasonDetail: dto.reason,
           metadata: { adminName },
           resultingSourceBalance: dto.amount < 0 ? updatedStudent.currentBalance : null,
-          resultingRecipientBalance: dto.amount > 0 ? updatedStudent.currentBalance : updatedStudent.currentBalance,
+          resultingRecipientBalance:
+            dto.amount > 0 ? updatedStudent.currentBalance : updatedStudent.currentBalance,
         },
         tx,
       );

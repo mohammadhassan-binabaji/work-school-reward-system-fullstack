@@ -595,11 +595,7 @@ export class ActivitiesService {
 
     await this.eventEmitter.emitAsync(
       'activity.unblock',
-      new ActivityUnblockEvent(
-        dto.activityId,
-        studentId,
-        progress.activity?.title || 'Activity',
-      ),
+      new ActivityUnblockEvent(dto.activityId, studentId, progress.activity?.title || 'Activity'),
     );
 
     return updated;

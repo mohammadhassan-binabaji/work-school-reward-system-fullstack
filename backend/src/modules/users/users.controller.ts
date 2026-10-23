@@ -68,7 +68,10 @@ export class UsersController {
     description: 'Excel template file (.xlsx)',
     headers: {
       'Content-Type': {
-        schema: { type: 'string', example: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+        schema: {
+          type: 'string',
+          example: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        },
       },
     },
   })
@@ -78,10 +81,7 @@ export class UsersController {
       'Content-Type',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     );
-    res.setHeader(
-      'Content-Disposition',
-      'attachment; filename="students-import-template.xlsx"',
-    );
+    res.setHeader('Content-Disposition', 'attachment; filename="students-import-template.xlsx"');
     res.send(buffer);
   }
 
@@ -101,7 +101,11 @@ export class UsersController {
       },
     },
   })
-  @ApiResponse({ status: 201, description: 'Students imported successfully', type: BulkImportResultDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Students imported successfully',
+    type: BulkImportResultDto,
+  })
   @ApiResponse({ status: 400, description: 'Invalid or empty Excel file' })
   @ApiResponse({ status: 422, description: 'Row-level validation errors in Excel file' })
   @UseInterceptors(FileInterceptor('file'))
@@ -138,7 +142,6 @@ export class UsersController {
   async findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.usersService.findOne(id);
   }
-
 
   @Patch(':id/state')
   @ApiOperation({ summary: 'Update user account state (Admin only)' })

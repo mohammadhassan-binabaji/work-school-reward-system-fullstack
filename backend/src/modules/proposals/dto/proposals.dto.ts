@@ -2,7 +2,10 @@ import { IsNotEmpty, IsString, IsInt, Min, IsOptional } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateProposalDto {
-  @ApiPropertyOptional({ example: 'Organize class library', description: 'Subject or title of voluntary task proposal' })
+  @ApiPropertyOptional({
+    example: 'Organize class library',
+    description: 'Subject or title of voluntary task proposal',
+  })
   @IsOptional()
   @IsString()
   title?: string;

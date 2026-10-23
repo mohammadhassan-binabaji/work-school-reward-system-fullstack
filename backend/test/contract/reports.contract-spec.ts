@@ -1,7 +1,12 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { createTestingApp } from '../helpers/test-app.helper';
-import { cleanDatabase, cleanRedis, seedBaselineTiers, seedSystemPool } from '../helpers/test-db.helper';
+import {
+  cleanDatabase,
+  cleanRedis,
+  seedBaselineTiers,
+  seedSystemPool,
+} from '../helpers/test-db.helper';
 import { loginUser } from '../helpers/auth.helper';
 import { PrismaService } from '../../src/common/prisma/prisma.service';
 import { RedisService } from '../../src/common/redis/redis.service';
@@ -74,7 +79,9 @@ describe('Reports Contract Tests (e2e)', () => {
 
   it('GET /api/v1/reports/point-flow rejects identical actionType and excludeActionType', async () => {
     const res = await request(app.getHttpServer())
-      .get('/api/v1/reports/point-flow?actionType=POOL_FUND_TEACHER&excludeActionType=POOL_FUND_TEACHER')
+      .get(
+        '/api/v1/reports/point-flow?actionType=POOL_FUND_TEACHER&excludeActionType=POOL_FUND_TEACHER',
+      )
       .set('Cookie', adminCookie);
     expect(res.status).toBe(400);
     expect(res.body.message).toContain('actionType and excludeActionType cannot be identical');
@@ -116,4 +123,3 @@ describe('Reports Contract Tests (e2e)', () => {
     expect(resFiltered.body.data[0].actionType).toBe(ActionType.POOL_FUND_TEACHER);
   });
 });
-

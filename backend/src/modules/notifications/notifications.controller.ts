@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Get,
-  Patch,
-  Param,
-  Query,
-  ParseUUIDPipe,
-} from '@nestjs/common';
+import { Controller, Get, Patch, Param, Query, ParseUUIDPipe } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -85,4 +78,3 @@ export class NotificationsController {
     return this.notificationsService.markAsRead(userId, id);
   }
 }
-

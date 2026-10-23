@@ -481,9 +481,7 @@ export class ProposalsService {
       where: { id: sender.id },
     });
 
-    const senderName = senderUser
-      ? `${senderUser.firstName} ${senderUser.lastName}`
-      : 'User';
+    const senderName = senderUser ? `${senderUser.firstName} ${senderUser.lastName}` : 'User';
 
     const message = await this.prisma.taskProposalMessage.create({
       data: {

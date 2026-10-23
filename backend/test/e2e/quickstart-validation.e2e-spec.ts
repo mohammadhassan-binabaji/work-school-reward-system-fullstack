@@ -1,7 +1,12 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { createTestingApp } from '../helpers/test-app.helper';
-import { cleanDatabase, cleanRedis, seedBaselineTiers, seedSystemPool } from '../helpers/test-db.helper';
+import {
+  cleanDatabase,
+  cleanRedis,
+  seedBaselineTiers,
+  seedSystemPool,
+} from '../helpers/test-db.helper';
 import { loginUser } from '../helpers/auth.helper';
 import { PrismaService } from '../../src/common/prisma/prisma.service';
 import { RedisService } from '../../src/common/redis/redis.service';
@@ -971,7 +976,9 @@ describe('Quickstart End-to-End Validation Suite (All 8 Scenarios)', () => {
         .expect(200);
 
       expect(unreadRes.body.data.length).toBe(4);
-      expect(unreadRes.body.data.every((n: any) => n.readStatus === 'UNREAD' && n.readAt === null)).toBe(true);
+      expect(
+        unreadRes.body.data.every((n: any) => n.readStatus === 'UNREAD' && n.readAt === null),
+      ).toBe(true);
 
       // Query filtered READ
       const readRes = await request(app.getHttpServer())
@@ -980,7 +987,9 @@ describe('Quickstart End-to-End Validation Suite (All 8 Scenarios)', () => {
         .expect(200);
 
       expect(readRes.body.data.length).toBe(2);
-      expect(readRes.body.data.every((n: any) => n.readStatus === 'READ' && n.readAt !== null)).toBe(true);
+      expect(
+        readRes.body.data.every((n: any) => n.readStatus === 'READ' && n.readAt !== null),
+      ).toBe(true);
 
       // Query unread count
       const countRes = await request(app.getHttpServer())
@@ -1123,7 +1132,8 @@ describe('Quickstart End-to-End Validation Suite (All 8 Scenarios)', () => {
         .expect(200);
 
       const propAlert = adminInbox1.body.data.find(
-        (n: any) => n.originatingEntityId === proposalId && n.subject === 'New Task Proposal Submitted',
+        (n: any) =>
+          n.originatingEntityId === proposalId && n.subject === 'New Task Proposal Submitted',
       );
       expect(propAlert).toBeDefined();
 
@@ -1164,5 +1174,3 @@ describe('Quickstart End-to-End Validation Suite (All 8 Scenarios)', () => {
     });
   });
 });
-
-

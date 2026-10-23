@@ -42,9 +42,7 @@ export class DailySnapshotService {
 
     const schoolRanked = RankingUtil.computeStandardCompetitionRanking(schoolScores);
     // Build quick lookup: studentId → schoolRank
-    const schoolRankMap = new Map<string, number>(
-      schoolRanked.map((r) => [r.studentId, r.rank]),
-    );
+    const schoolRankMap = new Map<string, number>(schoolRanked.map((r) => [r.studentId, r.rank]));
 
     // ── Compute class ranks ────────────────────────────────────────────────
     // Group students by classId (students without a class are skipped)

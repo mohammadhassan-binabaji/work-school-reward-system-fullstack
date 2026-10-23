@@ -131,4 +131,3 @@ export class BulkImportResultDto {
   @ApiProperty({ type: [UserResponseDto] })
   importedUsers: UserResponseDto[];
 }
-

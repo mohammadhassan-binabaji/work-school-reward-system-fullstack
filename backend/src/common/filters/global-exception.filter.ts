@@ -46,7 +46,10 @@ export class GlobalExceptionFilter implements ExceptionFilter {
           ? resObj.message.join(', ')
           : resObj.message || exception.message;
         errorCode = resObj.errorCode || this.mapStatusToErrorCode(status);
-        details = resObj.details || resObj.errors || (Array.isArray(resObj.message) ? resObj.message : undefined);
+        details =
+          resObj.details ||
+          resObj.errors ||
+          (Array.isArray(resObj.message) ? resObj.message : undefined);
       }
     } else if (exception instanceof Error) {
       this.logger.error(`Unhandled Exception: ${exception.message}`, exception.stack);

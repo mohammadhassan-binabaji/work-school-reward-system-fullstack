@@ -71,11 +71,15 @@ export class DailyStudentSnapshotDto {
   @ApiProperty({ description: 'Point balance at snapshot time', example: 250 })
   balance: number;
 
-  @ApiProperty({ description: 'School-wide rank at snapshot time (standard competition ranking)', example: 3 })
+  @ApiProperty({
+    description: 'School-wide rank at snapshot time (standard competition ranking)',
+    example: 3,
+  })
   schoolRank: number;
 
   @ApiPropertyOptional({
-    description: 'Rank within the student\'s class at snapshot time. Null if student has no class assigned.',
+    description:
+      "Rank within the student's class at snapshot time. Null if student has no class assigned.",
     example: 1,
     nullable: true,
   })

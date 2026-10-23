@@ -24,13 +24,25 @@ export class ReportsController {
     @Query('classId') classId?: string,
     @Query('subjectId') subjectId?: string,
     @Query('actionType', new ParseEnumPipe(ActionType, { optional: true })) actionType?: ActionType,
-    @Query('excludeActionType', new ParseEnumPipe(ActionType, { optional: true })) excludeActionType?: ActionType,
+    @Query('excludeActionType', new ParseEnumPipe(ActionType, { optional: true }))
+    excludeActionType?: ActionType,
     @Query('limit') limit?: number,
     @Query('offset') offset?: number,
     @CurrentUser() user?: { id: string; role: Role },
   ) {
     return this.reportsService.getPointFlowReport(
-      { startDate, endDate, studentId, teacherId, classId, subjectId, actionType, excludeActionType, limit, offset },
+      {
+        startDate,
+        endDate,
+        studentId,
+        teacherId,
+        classId,
+        subjectId,
+        actionType,
+        excludeActionType,
+        limit,
+        offset,
+      },
       user!,
     );
   }
@@ -47,7 +59,8 @@ export class ReportsController {
     @Query('classId') classId?: string,
     @Query('subjectId') subjectId?: string,
     @Query('actionType', new ParseEnumPipe(ActionType, { optional: true })) actionType?: ActionType,
-    @Query('excludeActionType', new ParseEnumPipe(ActionType, { optional: true })) excludeActionType?: ActionType,
+    @Query('excludeActionType', new ParseEnumPipe(ActionType, { optional: true }))
+    excludeActionType?: ActionType,
     @CurrentUser() user?: { id: string; role: Role },
     @Res() res?: Response,
   ) {
@@ -56,7 +69,16 @@ export class ReportsController {
     }
 
     const result = await this.reportsService.exportPointFlowReport(
-      { startDate, endDate, studentId, teacherId, classId, subjectId, actionType, excludeActionType },
+      {
+        startDate,
+        endDate,
+        studentId,
+        teacherId,
+        classId,
+        subjectId,
+        actionType,
+        excludeActionType,
+      },
       user!,
       format,
     );

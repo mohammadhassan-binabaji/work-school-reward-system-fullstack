@@ -109,10 +109,7 @@ export class AuditLogService {
       });
       const studentIds = classStudents.map((s) => s.id);
       andConditions.push({
-        OR: [
-          { recipientId: { in: studentIds } },
-          { sourceId: { in: studentIds } },
-        ],
+        OR: [{ recipientId: { in: studentIds } }, { sourceId: { in: studentIds } }],
       });
     }
 

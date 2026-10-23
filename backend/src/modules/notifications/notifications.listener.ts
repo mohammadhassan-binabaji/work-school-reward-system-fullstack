@@ -9,20 +9,13 @@ import {
   Role,
   VerificationStatus,
 } from '@prisma/client';
-import {
-  RewardStatusChangedEvent,
-  RewardRequiresApprovalEvent,
-} from './events/reward-events';
+import { RewardStatusChangedEvent, RewardRequiresApprovalEvent } from './events/reward-events';
 import {
   ProposalStatusChangedEvent,
   ProposalSubmittedEvent,
   ProposalMessageEvent,
 } from './events/proposal-events';
-import {
-  PointAwardedEvent,
-  PointAdjustedEvent,
-  PointAllocatedEvent,
-} from './events/point-events';
+import { PointAwardedEvent, PointAdjustedEvent, PointAllocatedEvent } from './events/point-events';
 import {
   VerificationReviewedEvent,
   VerificationSubmittedEvent,
@@ -74,7 +67,9 @@ export class NotificationsListener {
       return;
     }
 
-    this.logger.log(`Creating reward status notification for student ${event.studentId}: ${formatted.subject}`);
+    this.logger.log(
+      `Creating reward status notification for student ${event.studentId}: ${formatted.subject}`,
+    );
     await this.prisma.notification.create({
       data: {
         recipientId: event.studentId,
@@ -97,7 +92,9 @@ export class NotificationsListener {
       event.priceAtRequest,
     );
 
-    this.logger.log(`Broadcasting reward approval review alert to ${adminIds.length} administrators for request ${event.requestId}`);
+    this.logger.log(
+      `Broadcasting reward approval review alert to ${adminIds.length} administrators for request ${event.requestId}`,
+    );
     await this.prisma.notification.createMany({
       data: adminIds.map((adminId) => ({
         recipientId: adminId,
@@ -115,17 +112,13 @@ export class NotificationsListener {
 
     let formatted = { subject: '', body: '' };
     if (event.newStatus === ProposalStatus.READY_TO_DO) {
-      formatted = NotificationFormatter.formatProposalApproved(
-        event.assignedPointValue ?? 0,
-      );
+      formatted = NotificationFormatter.formatProposalApproved(event.assignedPointValue ?? 0);
     } else if (event.newStatus === ProposalStatus.DECLINED) {
       formatted = NotificationFormatter.formatProposalDeclined(
         event.declineReason || 'Declined by administrator',
       );
     } else if (event.newStatus === ProposalStatus.COMPLETED) {
-      formatted = NotificationFormatter.formatProposalCompleted(
-        event.assignedPointValue ?? 0,
-      );
+      formatted = NotificationFormatter.formatProposalCompleted(event.assignedPointValue ?? 0);
     } else {
       return;
     }
@@ -282,9 +275,7 @@ export class NotificationsListener {
   async handleActivityUnblock(event: ActivityUnblockEvent) {
     if (!(await this.isRecipientActive(event.studentId))) return;
 
-    const formatted = NotificationFormatter.formatActivityUnblock(
-      event.activityTitle,
-    );
+    const formatted = NotificationFormatter.formatActivityUnblock(event.activityTitle);
 
     await this.prisma.notification.create({
       data: {
@@ -322,10 +313,7 @@ export class NotificationsListener {
   async handlePointAdjusted(event: PointAdjustedEvent) {
     if (!(await this.isRecipientActive(event.studentId))) return;
 
-    const formatted = NotificationFormatter.formatPointAdjusted(
-      event.amount,
-      event.reason,
-    );
+    const formatted = NotificationFormatter.formatPointAdjusted(event.amount, event.reason);
 
     await this.prisma.notification.create({
       data: {
@@ -342,10 +330,7 @@ export class NotificationsListener {
   async handlePointAllocated(event: PointAllocatedEvent) {
     if (!(await this.isRecipientActive(event.teacherId))) return;
 
-    const formatted = NotificationFormatter.formatPointAllocated(
-      event.amount,
-      event.newBalance,
-    );
+    const formatted = NotificationFormatter.formatPointAllocated(event.amount, event.newBalance);
 
     await this.prisma.notification.create({
       data: {
@@ -358,4 +343,3 @@ export class NotificationsListener {
     });
   }
 }
-

@@ -19,7 +19,9 @@ export async function loginUser(
     .expect(200);
 
   const sessionId = res.body.sessionId;
-  const cookie = res.headers['set-cookie'] ? res.headers['set-cookie'][0] : `sessionId=${sessionId}`;
+  const cookie = res.headers['set-cookie']
+    ? res.headers['set-cookie'][0]
+    : `sessionId=${sessionId}`;
 
   return {
     user: res.body.user,
@@ -51,9 +53,7 @@ export async function createInitialAdmin(
     password: data?.password || 'AdminPassword123!',
   };
 
-  const res = await request(app.getHttpServer())
-    .post('/api/v1/auth/initial-admin')
-    .send(adminData);
+  const res = await request(app.getHttpServer()).post('/api/v1/auth/initial-admin').send(adminData);
 
   if (res.status !== 201 && res.status !== 409) {
     throw new Error(`Failed to create initial admin: ${JSON.stringify(res.body)}`);

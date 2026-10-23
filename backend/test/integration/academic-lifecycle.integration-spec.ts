@@ -1,7 +1,12 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { createTestingApp } from '../helpers/test-app.helper';
-import { cleanDatabase, cleanRedis, seedBaselineTiers, seedSystemPool } from '../helpers/test-db.helper';
+import {
+  cleanDatabase,
+  cleanRedis,
+  seedBaselineTiers,
+  seedSystemPool,
+} from '../helpers/test-db.helper';
 import { loginUser } from '../helpers/auth.helper';
 import { PrismaService } from '../../src/common/prisma/prisma.service';
 import { RedisService } from '../../src/common/redis/redis.service';
@@ -168,7 +173,9 @@ describe('Academic Lifecycle Integration Tests', () => {
     const activeReq = await prisma.rewardRequest.findUnique({ where: { id: reqRes.body.id } });
     expect(activeReq?.status).toBe('PENDING_TO_APPROVE');
 
-    const activeProp = await prisma.studentTaskProposal.findUnique({ where: { id: propRes.body.id } });
+    const activeProp = await prisma.studentTaskProposal.findUnique({
+      where: { id: propRes.body.id },
+    });
     expect(activeProp?.status).toBe('PENDING_TO_APPROVE');
   });
 
@@ -282,4 +289,3 @@ describe('Academic Lifecycle Integration Tests', () => {
     expect(tProfile?.pointBalance).toBe(0);
   });
 });
-

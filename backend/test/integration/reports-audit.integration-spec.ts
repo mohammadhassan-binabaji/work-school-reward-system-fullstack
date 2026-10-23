@@ -1,7 +1,12 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { createTestingApp } from '../helpers/test-app.helper';
-import { cleanDatabase, cleanRedis, seedBaselineTiers, seedSystemPool } from '../helpers/test-db.helper';
+import {
+  cleanDatabase,
+  cleanRedis,
+  seedBaselineTiers,
+  seedSystemPool,
+} from '../helpers/test-db.helper';
 import { loginUser } from '../helpers/auth.helper';
 import { PrismaService } from '../../src/common/prisma/prisma.service';
 import { RedisService } from '../../src/common/redis/redis.service';
@@ -148,7 +153,11 @@ describe('Reports & Audit Integration Tests', () => {
       .set('Cookie', aliceAuth.cookie)
       .expect(200);
 
-    expect(aliceReport.body.data.every((r: any) => r.recipientId === alice.body.id || r.sourceId === alice.body.id)).toBe(true);
+    expect(
+      aliceReport.body.data.every(
+        (r: any) => r.recipientId === alice.body.id || r.sourceId === alice.body.id,
+      ),
+    ).toBe(true);
 
     // 7. Teacher queries report -> only sees assigned class students (Alice)
     const teacherReport = await request(app.getHttpServer())
@@ -206,4 +215,3 @@ describe('Reports & Audit Integration Tests', () => {
     expect(pdfRes.headers['content-type']).toContain('application/pdf');
   });
 });
-
