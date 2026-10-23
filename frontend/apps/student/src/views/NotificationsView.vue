@@ -1,20 +1,34 @@
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { onBeforeUnmount, onMounted, type Directive } from 'vue';
 import { Bell, CheckCheck, ChevronLeft, ChevronRight } from 'lucide-vue-next';
 import { useRouter } from 'vue-router';
 import { useNotificationsStore } from '../stores/notifications';
-import { formatJalaliDateTime, toPersianDigits } from '@student-reward/shared';
+import {
+  formatJalaliDateTime,
+  NotificationVisibilityTracker,
+  toPersianDigits,
+} from '@student-reward/shared';
 
 const router = useRouter();
 const notifStore = useNotificationsStore();
+const visibilityTracker = new NotificationVisibilityTracker((id) => notifStore.markAsRead(id));
+const vAutoRead: Directive<HTMLElement, { id: string; unread: boolean }> = {
+  mounted(element, binding) {
+    visibilityTracker.observe(element, binding.value.id, binding.value.unread);
+  },
+  updated(element, binding) {
+    visibilityTracker.observe(element, binding.value.id, binding.value.unread);
+  },
+  unmounted(element) {
+    visibilityTracker.unobserve(element);
+  },
+};
 
 onMounted(async () => {
   await notifStore.fetchNotifications();
 });
 
-async function handleItemClick(id: string) {
-  await notifStore.markAsRead(id);
-}
+onBeforeUnmount(() => visibilityTracker.disconnect());
 </script>
 
 <template>
@@ -61,12 +75,12 @@ async function handleItemClick(id: string) {
         v-for="item in notifStore.notifications"
         :key="item.id"
         :class="[
-          'p-4 rounded-3xl border transition-all cursor-pointer',
+          'p-4 rounded-3xl border transition-all',
           item.readStatus === 'UNREAD'
             ? 'bg-[#151D2C] border-neon-green/40 shadow-[0_0_12px_rgba(100,221,23,0.15)]'
             : 'bg-dark-card border-slate-800 opacity-75',
         ]"
-        @click="handleItemClick(item.id)"
+        v-auto-read="{ id: item.id, unread: item.readStatus === 'UNREAD' }"
       >
         <div class="flex items-center justify-between gap-2">
           <h4 class="text-xs font-extrabold text-white flex items-center gap-2">

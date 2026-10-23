@@ -45,9 +45,9 @@ export const useNotificationsStore = defineStore('teacherNotifications', () => {
   }
 
   async function markAsRead(id: string): Promise<void> {
+    const item = notifications.value.find((n) => n.id === id);
     try {
       await api.patch(`/notifications/${id}/read`);
-      const item = notifications.value.find((n) => n.id === id);
       if (item && item.readStatus === 'UNREAD') {
         item.readStatus = 'READ';
         unreadCount.value = Math.max(0, unreadCount.value - 1);

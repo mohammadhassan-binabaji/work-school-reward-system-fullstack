@@ -41,19 +41,21 @@ As an authenticated user (student, teacher, or school administrator), I need to 
 
 ### User Story 2 - Marking Notifications as Read (Individual & Bulk) (Priority: P1)
 
-As an authenticated user, I need to mark an individual notification as read when I open/inspect it and mark all my unread notifications as read with a single action, so that my unread count updates accurately and my inbox remains organized.
+As an authenticated user, I need an individual notification to be marked as read after I view it and to mark all my unread notifications as read with a single action, so that my unread count updates accurately and my inbox remains organized.
 
 **Why this priority**: Immediate state transition from unread to read is necessary to keep notification badges and inbox state meaningful and actionable.
 
-**Independent Test**: Can be tested by selecting an unread notification, marking it as read, observing its status transition and timestamp capture, verifying the unread count decrement, executing the mark-all-as-read action, and verifying all unread items transition to `Read` with unread count becoming zero.
+**Independent Test**: Can be tested by keeping an unread notification card at least 50% visible for 1 second, observing its status transition and timestamp capture, verifying the unread count decrement, executing the mark-all-as-read action, and verifying all unread items transition to `Read` with unread count becoming zero.
 
 **Acceptance Scenarios**:
 
-1. **Given** an authenticated user with an unread notification in their inbox, **When** the user marks that notification as read (or opens it), **Then** the system updates that notification's status from `Unread` to `Read`, records the current read timestamp, and decrements the user's unread notification count by 1.
-2. **Given** an authenticated user with a notification already marked as `Read`, **When** the user attempts to mark that notification as read again, **Then** the operation succeeds idempotently without modifying the original read timestamp or altering the unread count.
-3. **Given** an authenticated user with multiple unread notifications, **When** the user triggers the mark-all-as-read action, **Then** the system updates all unread notifications addressed to that user across their entire inbox to `Read` status, sets their read timestamp to the current time, and resets the user's unread notification count to 0.
-4. **Given** an authenticated user with zero unread notifications, **When** the user triggers the mark-all-as-read action, **Then** the system completes successfully with no state change and an unread count of 0.
-5. **Given** User A and User B, **When** User A attempts to mark User B's notification as read by identifier, **Then** the system rejects the operation with an authorization/access denial error and does not modify User B's notification.
+1. **Given** an authenticated user with an unread notification in their inbox, **When** at least 50% of its card remains visible in the viewport continuously for 1 second, **Then** the system updates that notification's status from `Unread` to `Read`, records the current read timestamp, and decrements the user's unread notification count by 1.
+2. **Given** an authenticated user with an unread notification in their inbox, **When** the notification page loads but less than 50% of its card is visible, or the visibility threshold is not sustained for 1 second, **Then** the notification remains `Unread`.
+3. **Given** an authenticated user who navigates to another inbox page, **When** at least 50% of a notification card on that page remains visible in the viewport continuously for 1 second, **Then** that notification is marked as read under the same rule, while notifications that do not meet the visibility rule remain `Unread`.
+4. **Given** an authenticated user with a notification already marked as `Read`, **When** the user attempts to mark that notification as read again, **Then** the operation succeeds idempotently without modifying the original read timestamp or altering the unread count.
+5. **Given** an authenticated user with multiple unread notifications, **When** the user triggers the mark-all-as-read action, **Then** the system updates all unread notifications addressed to that user across their entire inbox to `Read` status, sets their read timestamp to the current time, and resets the user's unread notification count to 0.
+6. **Given** an authenticated user with zero unread notifications, **When** the user triggers the mark-all-as-read action, **Then** the system completes successfully with no state change and an unread count of 0.
+7. **Given** User A and User B, **When** User A attempts to mark User B's notification as read by identifier, **Then** the system rejects the operation with an authorization/access denial error and does not modify User B's notification.
 
 ---
 

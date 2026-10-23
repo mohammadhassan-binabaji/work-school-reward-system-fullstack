@@ -179,7 +179,7 @@ The system enables teachers to award points to students for actions such as comp
 - Users shall be able to view their notifications.
 - Users shall be able to filter notifications by status (`All`, `Unread`, `Read`).
 - The system shall provide an unread notification count indicator for each user.
-- Opening an unread notification shall mark it as read.
+- An unread notification shall be marked as read when at least 50% of its card is visible in the user's viewport continuously for 1 second; merely loading the page shall not mark it as read.
 - Users shall be able to mark all their unread notifications as read through a single action.
 - Notifications shall not be deleted by users and shall remain in the inbox with their read status.
 - Notification retrieval and status updates shall be provided through in-app REST endpoints.
