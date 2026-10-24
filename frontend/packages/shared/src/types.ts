@@ -31,6 +31,7 @@ export interface User {
   username: string;
   role: Role;
   accountState: AccountState;
+  imageUrl?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -321,6 +322,7 @@ export interface RankedStudent {
   studentId: string;
   studentName: string;
   username: string;
+  imageUrl?: string | null;
   points: number;
 }
 
@@ -329,11 +331,13 @@ export interface StudentRankingView {
   selfRank?: {
     rank: number;
     studentName: string;
+    imageUrl?: string | null;
     points: number;
   };
   topStudents: {
     rank: number;
     studentName: string;
+    imageUrl?: string | null;
     points: number;
   }[];
 }

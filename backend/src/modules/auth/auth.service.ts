@@ -139,6 +139,7 @@ export class AuthService {
         username: true,
         role: true,
         accountState: true,
+        imageUrl: true,
         teacherProfile: true,
         studentProfile: true,
         createdAt: true,

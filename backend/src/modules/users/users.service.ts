@@ -1,15 +1,19 @@
 import {
   Injectable,
+  Inject,
   ConflictException,
   NotFoundException,
   BadRequestException,
   UnprocessableEntityException,
 } from '@nestjs/common';
 import * as ExcelJS from 'exceljs';
+import AdmZip from 'adm-zip';
+import * as path from 'path';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { RedisService } from '../../common/redis/redis.service';
 import { PasswordService } from '../auth/password.service';
 import { AcademicService } from '../academic/academic.service';
+import { StorageService } from '../storage/storage.service';
 import {
   CreateUserDto,
   UpdateUserStateDto,
@@ -52,9 +56,15 @@ export class UsersService {
     private redisService: RedisService,
     private passwordService: PasswordService,
     private academicService: AcademicService,
+    @Inject('STORAGE_SERVICE')
+    private storageService: StorageService,
   ) {}
 
-  async createUser(dto: CreateUserDto) {
+  async uploadUserImage(buffer: Buffer, originalname: string, mimetype: string): Promise<string> {
+    return this.storageService.uploadFile(buffer, originalname, mimetype);
+  }
+
+  async createUser(dto: CreateUserDto, imageUrl?: string | null) {
     const existing = await this.prisma.user.findFirst({
       where: {
         OR: [{ nationalId: dto.nationalId }, { username: dto.username }],
@@ -101,6 +111,7 @@ export class UsersService {
           passwordHash: hashedPassword,
           role: dto.role,
           accountState: dto.accountState || AccountState.ACTIVE,
+          imageUrl: imageUrl || null,
         },
       });
 
@@ -138,6 +149,7 @@ export class UsersService {
           username: true,
           role: true,
           accountState: true,
+          imageUrl: true,
           teacherProfile: true,
           studentProfile: {
             include: {
@@ -167,6 +179,7 @@ export class UsersService {
         username: true,
         role: true,
         accountState: true,
+        imageUrl: true,
         teacherProfile: true,
         studentProfile: {
           include: {
@@ -192,6 +205,7 @@ export class UsersService {
         username: true,
         role: true,
         accountState: true,
+        imageUrl: true,
         teacherProfile: true,
         studentProfile: {
           include: {
@@ -253,6 +267,7 @@ export class UsersService {
         username: true,
         role: true,
         accountState: true,
+        imageUrl: true,
         updatedAt: true,
       },
     });
@@ -278,6 +293,7 @@ export class UsersService {
       { header: 'نام کاربری', key: 'username', width: 20 },
       { header: 'رمز عبور', key: 'password', width: 20 },
       { header: 'نام کلاس', key: 'className', width: 22 },
+      { header: 'نام فایل تصویر', key: 'imageFilename', width: 22 },
     ];
 
     const headerRow = worksheet.getRow(1);
@@ -297,6 +313,7 @@ export class UsersService {
       username: 'ali.mohammadi',
       password: 'InitialPassword123!',
       className: sampleClassName,
+      imageFilename: 'ali.jpg',
     });
     sampleRow.alignment = { horizontal: 'center', vertical: 'middle' };
 
@@ -306,7 +323,10 @@ export class UsersService {
     return Buffer.from(buffer);
   }
 
-  async importStudentsFromExcel(buffer: Buffer): Promise<BulkImportResultDto> {
+  async importStudentsFromExcel(
+    buffer: Buffer,
+    imagesZipBuffer?: Buffer,
+  ): Promise<BulkImportResultDto> {
     const workbook = new ExcelJS.Workbook();
     try {
       await workbook.xlsx.load(buffer as any);
@@ -327,7 +347,7 @@ export class UsersService {
       });
     }
 
-    const TEMPLATE_HEADERS: Record<string, string> = {
+    const REQUIRED_HEADERS: Record<string, string> = {
       'کد ملی': 'nationalId',
       نام: 'firstName',
       'نام خانوادگی': 'lastName',
@@ -336,28 +356,65 @@ export class UsersService {
       'نام کلاس': 'className',
     };
 
+    const OPTIONAL_HEADERS: Record<string, string> = {
+      'نام فایل تصویر': 'imageFilename',
+    };
+
+    const ALL_HEADERS = { ...REQUIRED_HEADERS, ...OPTIONAL_HEADERS };
+
     const headerRow = worksheet.getRow(1);
     const colIndexToField: Record<number, string> = {};
     const foundFields = new Set<string>();
 
     headerRow.eachCell((cell, colNumber) => {
       const headerText = getCellStringValue(cell).trim();
-      const field = TEMPLATE_HEADERS[headerText];
+      const field = ALL_HEADERS[headerText];
       if (field) {
         colIndexToField[colNumber] = field;
         foundFields.add(field);
       }
     });
 
-    const missingHeaders = Object.keys(TEMPLATE_HEADERS).filter(
-      (header) => !foundFields.has(TEMPLATE_HEADERS[header]),
+    const missingRequiredHeaders = Object.keys(REQUIRED_HEADERS).filter(
+      (header) => !foundFields.has(REQUIRED_HEADERS[header]),
     );
-    if (missingHeaders.length > 0) {
+    if (missingRequiredHeaders.length > 0) {
       throw new BadRequestException({
         statusCode: 400,
         errorCode: 'MISSING_EXCEL_COLUMNS',
-        message: `ستون‌های الزامی در فایل اکسل یافت نشدند: ${missingHeaders.join('، ')}`,
+        message: `ستون‌های الزامی در فایل اکسل یافت نشدند: ${missingRequiredHeaders.join('، ')}`,
       });
+    }
+
+    // Process ZIP if provided
+    const zipEntries = new Map<string, { buffer: Buffer; mime: string }>();
+    if (imagesZipBuffer && imagesZipBuffer.length > 0) {
+      try {
+        const zip = new AdmZip(imagesZipBuffer);
+        const entries = zip.getEntries();
+        for (const entry of entries) {
+          if (entry.isDirectory) continue;
+          const entryName = path.basename(entry.entryName).trim();
+          const ext = path.extname(entryName).toLowerCase();
+          let mime = '';
+          if (ext === '.jpg' || ext === '.jpeg') mime = 'image/jpeg';
+          else if (ext === '.png') mime = 'image/png';
+          else if (ext === '.webp') mime = 'image/webp';
+
+          if (mime) {
+            zipEntries.set(entryName.toLowerCase(), {
+              buffer: entry.getData(),
+              mime,
+            });
+          }
+        }
+      } catch {
+        throw new BadRequestException({
+          statusCode: 400,
+          errorCode: 'INVALID_ZIP_FILE',
+          message: 'فایل فشرده (ZIP) ارسالی نامعتبر یا آسیب‌دیده است.',
+        });
+      }
     }
 
     interface ParsedRow {
@@ -368,6 +425,7 @@ export class UsersService {
       username: string;
       password: string;
       className: string;
+      imageFilename?: string;
     }
 
     const parsedRows: ParsedRow[] = [];
@@ -402,6 +460,7 @@ export class UsersService {
       const rawUsername = (rowData.username || '').trim();
       const rawPassword = rowData.password || '';
       const rawClassName = (rowData.className || '').trim();
+      const rawImageFilename = (rowData.imageFilename || '').trim();
 
       // Field level validations
       if (!rawNationalId) {
@@ -467,6 +526,35 @@ export class UsersService {
         errors.push({ row: rowNumber, field: 'className', message: 'نام کلاس الزامی است' });
       }
 
+      // Image filename validation
+      if (rawImageFilename) {
+        if (!imagesZipBuffer || imagesZipBuffer.length === 0) {
+          errors.push({
+            row: rowNumber,
+            field: 'imageFilename',
+            message: `فایل تصویری «${rawImageFilename}» مشخص شده است ولی هیچ فایل فشرده‌ای (ZIP) ارسال نشده است`,
+            value: rawImageFilename,
+          });
+        } else {
+          const matchedEntry = zipEntries.get(rawImageFilename.toLowerCase());
+          if (!matchedEntry) {
+            errors.push({
+              row: rowNumber,
+              field: 'imageFilename',
+              message: `تصویر «${rawImageFilename}» در فایل فشرده (ZIP) یافت نشد یا فرمت آن مجاز نیست (فقط JPG/PNG/WebP)`,
+              value: rawImageFilename,
+            });
+          } else if (matchedEntry.buffer.length > 5 * 1024 * 1024) {
+            errors.push({
+              row: rowNumber,
+              field: 'imageFilename',
+              message: `حجم تصویر «${rawImageFilename}» نباید بیش از ۵ مگابایت باشد`,
+              value: rawImageFilename,
+            });
+          }
+        }
+      }
+
       // Check intra-file duplicates
       if (rawNationalId && /^[0-9]{10}$/.test(rawNationalId)) {
         if (seenNationalIds.has(rawNationalId)) {
@@ -502,6 +590,7 @@ export class UsersService {
         username: rawUsername,
         password: rawPassword,
         className: rawClassName,
+        imageFilename: rawImageFilename || undefined,
       });
     }
 
@@ -593,6 +682,22 @@ export class UsersService {
       parsedRows.map((r) => this.passwordService.hash(r.password)),
     );
 
+    // Upload matched images in parallel before database transaction
+    const rowImageUrls = new Map<number, string>();
+    for (const row of parsedRows) {
+      if (row.imageFilename) {
+        const entry = zipEntries.get(row.imageFilename.toLowerCase());
+        if (entry) {
+          const uploadedUrl = await this.storageService.uploadFile(
+            entry.buffer,
+            row.imageFilename,
+            entry.mime,
+          );
+          rowImageUrls.set(row.rowNumber, uploadedUrl);
+        }
+      }
+    }
+
     // Atomically create users
     return this.prisma.$transaction(async (tx) => {
       const createdUsers: any[] = [];
@@ -600,6 +705,7 @@ export class UsersService {
         const row = parsedRows[i];
         const passwordHash = hashedPasswords[i];
         const classId = classNameToId.get(row.className)!;
+        const imageUrl = rowImageUrls.get(row.rowNumber) || null;
 
         const user = await tx.user.create({
           data: {
@@ -610,6 +716,7 @@ export class UsersService {
             passwordHash,
             role: Role.STUDENT,
             accountState: AccountState.ACTIVE,
+            imageUrl,
           },
         });
 

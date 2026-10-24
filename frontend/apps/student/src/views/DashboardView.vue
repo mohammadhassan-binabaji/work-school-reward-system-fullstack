@@ -519,8 +519,21 @@ const filteredActivities = computed(() => {
               v-if="(leaderboardTab === 'school' ? schoolRankings : classRankings)?.topStudents[1]"
               class="flex flex-col items-center flex-1 max-w-[95px]"
             >
-              <div class="w-10 h-10 rounded-full bg-slate-300 text-slate-900 font-extrabold flex items-center justify-center text-sm shadow-md mb-2">
-                ۲
+              <div class="relative mb-2">
+                <div class="w-12 h-12 rounded-full ring-2 ring-slate-400 bg-slate-700 overflow-hidden shadow-md flex items-center justify-center">
+                  <img
+                    v-if="(leaderboardTab === 'school' ? schoolRankings : classRankings)?.topStudents[1].imageUrl"
+                    :src="(leaderboardTab === 'school' ? schoolRankings : classRankings)?.topStudents[1].imageUrl"
+                    :alt="(leaderboardTab === 'school' ? schoolRankings : classRankings)?.topStudents[1].studentName"
+                    class="w-full h-full object-cover"
+                  />
+                  <span v-else class="font-extrabold text-slate-200 text-sm">
+                    {{ (leaderboardTab === 'school' ? schoolRankings : classRankings)?.topStudents[1].studentName?.[0] || '۲' }}
+                  </span>
+                </div>
+                <span class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-slate-300 text-slate-900 font-black text-[10px] flex items-center justify-center shadow-xs">
+                  ۲
+                </span>
               </div>
               <span class="text-[11px] font-bold text-white text-center line-clamp-1">
                 {{ (leaderboardTab === 'school' ? schoolRankings : classRankings)?.topStudents[1].studentName }}
@@ -538,8 +551,24 @@ const filteredActivities = computed(() => {
               v-if="(leaderboardTab === 'school' ? schoolRankings : classRankings)?.topStudents[0]"
               class="flex flex-col items-center flex-1 max-w-[105px]"
             >
-              <div class="w-12 h-12 rounded-full bg-amber-400 text-amber-950 font-black flex items-center justify-center text-base shadow-neon-gold mb-2 ring-2 ring-amber-300">
-                <Crown class="w-6 h-6" />
+              <div class="relative mb-2">
+                <div class="w-14 h-14 rounded-full ring-2 ring-amber-300 bg-amber-950 overflow-hidden shadow-neon-gold flex items-center justify-center">
+                  <img
+                    v-if="(leaderboardTab === 'school' ? schoolRankings : classRankings)?.topStudents[0].imageUrl"
+                    :src="(leaderboardTab === 'school' ? schoolRankings : classRankings)?.topStudents[0].imageUrl"
+                    :alt="(leaderboardTab === 'school' ? schoolRankings : classRankings)?.topStudents[0].studentName"
+                    class="w-full h-full object-cover"
+                  />
+                  <span v-else class="font-black text-amber-300 text-base">
+                    {{ (leaderboardTab === 'school' ? schoolRankings : classRankings)?.topStudents[0].studentName?.[0] || '۱' }}
+                  </span>
+                </div>
+                <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 text-amber-400 drop-shadow-[0_2px_4px_rgba(251,191,36,0.5)]">
+                  <Crown class="w-5 h-5" />
+                </div>
+                <span class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-amber-400 text-amber-950 font-black text-[10px] flex items-center justify-center shadow-xs">
+                  ۱
+                </span>
               </div>
               <span class="text-xs font-extrabold text-white text-center line-clamp-1">
                 {{ (leaderboardTab === 'school' ? schoolRankings : classRankings)?.topStudents[0].studentName }}
@@ -557,8 +586,21 @@ const filteredActivities = computed(() => {
               v-if="(leaderboardTab === 'school' ? schoolRankings : classRankings)?.topStudents[2]"
               class="flex flex-col items-center flex-1 max-w-[95px]"
             >
-              <div class="w-10 h-10 rounded-full bg-amber-700 text-amber-100 font-extrabold flex items-center justify-center text-sm shadow-md mb-2">
-                ۳
+              <div class="relative mb-2">
+                <div class="w-12 h-12 rounded-full ring-2 ring-amber-700 bg-amber-950 overflow-hidden shadow-md flex items-center justify-center">
+                  <img
+                    v-if="(leaderboardTab === 'school' ? schoolRankings : classRankings)?.topStudents[2].imageUrl"
+                    :src="(leaderboardTab === 'school' ? schoolRankings : classRankings)?.topStudents[2].imageUrl"
+                    :alt="(leaderboardTab === 'school' ? schoolRankings : classRankings)?.topStudents[2].studentName"
+                    class="w-full h-full object-cover"
+                  />
+                  <span v-else class="font-extrabold text-amber-200 text-sm">
+                    {{ (leaderboardTab === 'school' ? schoolRankings : classRankings)?.topStudents[2].studentName?.[0] || '۳' }}
+                  </span>
+                </div>
+                <span class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-amber-700 text-amber-100 font-black text-[10px] flex items-center justify-center shadow-xs">
+                  ۳
+                </span>
               </div>
               <span class="text-[11px] font-bold text-white text-center line-clamp-1">
                 {{ (leaderboardTab === 'school' ? schoolRankings : classRankings)?.topStudents[2].studentName }}

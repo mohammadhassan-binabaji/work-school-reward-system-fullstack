@@ -213,6 +213,37 @@ export class ApiClient {
     return this.handleResponse<T>(res);
   }
 
+  public async uploadFormData<T>(path: string, formData: FormData): Promise<T> {
+    const url = `${this.baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
+    const headers = this.getHeaders(true);
+    const res = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: formData,
+      credentials: 'include',
+    });
+    return this.handleResponse<T>(res);
+  }
+
+  public async uploadMulti<T>(path: string, files: Record<string, File | null | undefined>): Promise<T> {
+    const url = `${this.baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
+    const formData = new FormData();
+    Object.entries(files).forEach(([fieldName, file]) => {
+      if (file) {
+        formData.append(fieldName, file);
+      }
+    });
+
+    const headers = this.getHeaders(true);
+    const res = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: formData,
+      credentials: 'include',
+    });
+    return this.handleResponse<T>(res);
+  }
+
   public async downloadFile(path: string, params?: Record<string, any>): Promise<Blob> {
     let url = `${this.baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
     if (params) {

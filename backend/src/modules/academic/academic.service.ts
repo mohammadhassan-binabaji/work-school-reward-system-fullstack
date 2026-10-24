@@ -80,6 +80,7 @@ export class AcademicService {
                 lastName: true,
                 username: true,
                 accountState: true,
+                imageUrl: true,
               },
             },
             currentTier: true,

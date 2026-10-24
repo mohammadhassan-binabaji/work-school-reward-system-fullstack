@@ -16,6 +16,8 @@ import {
   UploadCloud,
   FileText,
   X,
+  Camera,
+  Archive,
 } from 'lucide-vue-next';
 import AdminModal from '../components/AdminModal.vue';
 import {
@@ -47,6 +49,9 @@ const newUsername = ref('');
 const newPassword = ref('');
 const newRole = ref<Role>('STUDENT');
 const newClassId = ref('');
+const selectedImage = ref<File | null>(null);
+const imagePreview = ref<string | null>(null);
+const imageInputRef = ref<HTMLInputElement | null>(null);
 const creatingUser = ref(false);
 
 // Change State Modal
@@ -84,6 +89,30 @@ async function loadData() {
   }
 }
 
+function onImageChange(e: Event) {
+  const target = e.target as HTMLInputElement;
+  if (target.files && target.files.length > 0) {
+    const file = target.files[0];
+    if (file.size > 5 * 1024 * 1024) {
+      errorMessage.value = 'حجم تصویر نباید بیش از ۵ مگابایت باشد.';
+      return;
+    }
+    selectedImage.value = file;
+    imagePreview.value = URL.createObjectURL(file);
+  }
+}
+
+function removeSelectedImage() {
+  selectedImage.value = null;
+  if (imagePreview.value) {
+    URL.revokeObjectURL(imagePreview.value);
+    imagePreview.value = null;
+  }
+  if (imageInputRef.value) {
+    imageInputRef.value.value = '';
+  }
+}
+
 async function handleCreateUser() {
   if (
     !newNationalId.value.trim() ||
@@ -100,15 +129,21 @@ async function handleCreateUser() {
   errorMessage.value = null;
 
   try {
-    await api.post('/users', {
-      nationalId: newNationalId.value.trim(),
-      firstName: newFirstName.value.trim(),
-      lastName: newLastName.value.trim(),
-      username: newUsername.value.trim(),
-      password: newPassword.value,
-      role: newRole.value,
-      classId: newRole.value === 'STUDENT' && newClassId.value ? newClassId.value : undefined,
-    });
+    const formData = new FormData();
+    formData.append('nationalId', newNationalId.value.trim());
+    formData.append('firstName', newFirstName.value.trim());
+    formData.append('lastName', newLastName.value.trim());
+    formData.append('username', newUsername.value.trim());
+    formData.append('password', newPassword.value);
+    formData.append('role', newRole.value);
+    if (newRole.value === 'STUDENT' && newClassId.value) {
+      formData.append('classId', newClassId.value);
+    }
+    if (selectedImage.value) {
+      formData.append('image', selectedImage.value);
+    }
+
+    await api.uploadFormData('/users', formData);
 
     successMessage.value = 'کاربر جدید با موفقیت ایجاد شد.';
     isCreateModalOpen.value = false;
@@ -130,6 +165,7 @@ function resetCreateForm() {
   newPassword.value = '';
   newRole.value = 'STUDENT';
   newClassId.value = '';
+  removeSelectedImage();
 }
 
 function openChangeState(u: User) {
@@ -163,7 +199,9 @@ async function handleUpdateState() {
 // Bulk Import Modal State
 const isBulkImportModalOpen = ref(false);
 const selectedFile = ref<File | null>(null);
+const selectedZipFile = ref<File | null>(null);
 const fileInputRef = ref<HTMLInputElement | null>(null);
+const zipInputRef = ref<HTMLInputElement | null>(null);
 const importing = ref(false);
 const downloadingTemplate = ref(false);
 const bulkImportErrors = ref<BulkImportErrorItem[]>([]);
@@ -172,6 +210,7 @@ const isDragging = ref(false);
 
 function openBulkImportModal() {
   selectedFile.value = null;
+  selectedZipFile.value = null;
   bulkImportErrors.value = [];
   bulkImportErrorMessage.value = null;
   isBulkImportModalOpen.value = true;
@@ -238,8 +277,30 @@ function fieldToPersianLabel(field: string): string {
     username: 'نام کاربری',
     password: 'رمز عبور',
     className: 'نام کلاس',
+    imageFilename: 'فایل تصویر',
   };
   return map[field] || field;
+}
+
+function onZipFileChange(e: Event) {
+  const target = e.target as HTMLInputElement;
+  if (target.files && target.files.length > 0) {
+    setZipFile(target.files[0]);
+  }
+}
+
+function setZipFile(file: File) {
+  if (!file.name.endsWith('.zip')) {
+    bulkImportErrorMessage.value = 'فرمت فایل فشرده نامعتبر است. لطفاً فایل با پسوند zip. انتخاب نمایید.';
+    selectedZipFile.value = null;
+    return;
+  }
+  selectedZipFile.value = file;
+}
+
+function removeSelectedZipFile() {
+  selectedZipFile.value = null;
+  if (zipInputRef.value) zipInputRef.value.value = '';
 }
 
 async function handleBulkImport() {
@@ -253,10 +314,14 @@ async function handleBulkImport() {
   bulkImportErrorMessage.value = null;
 
   try {
-    const res = await api.upload<BulkImportResult>('/users/import/excel', selectedFile.value);
+    const res = await api.uploadMulti<BulkImportResult>('/users/import/excel', {
+      file: selectedFile.value,
+      imagesZip: selectedZipFile.value,
+    });
     successMessage.value = res.message || `${res.count} دانش‌آموز با موفقیت ایجاد شدند.`;
     isBulkImportModalOpen.value = false;
     selectedFile.value = null;
+    selectedZipFile.value = null;
     await loadData();
     setTimeout(() => (successMessage.value = null), 4000);
   } catch (err: any) {
@@ -387,7 +452,29 @@ async function handleBulkImport() {
             <template v-else-if="users.length > 0">
               <tr v-for="u in users" :key="u.id" class="hover:bg-slate-50/80 transition-colors">
                 <td class="p-3.5 pr-5 font-bold text-slate-800">
-                  {{ u.firstName }} {{ u.lastName }}
+                  <div class="flex items-center gap-3">
+                    <div
+                      class="w-8 h-8 rounded-full overflow-hidden shrink-0 flex items-center justify-center font-bold text-xs ring-1 ring-slate-200/60"
+                      :class="[
+                        u.role === 'ADMIN'
+                          ? 'bg-purple-100 text-purple-700'
+                          : u.role === 'TEACHER'
+                          ? 'bg-blue-100 text-blue-700'
+                          : 'bg-emerald-100 text-emerald-700'
+                      ]"
+                    >
+                      <img
+                        v-if="u.imageUrl"
+                        :src="u.imageUrl"
+                        :alt="u.firstName"
+                        class="w-full h-full object-cover"
+                      />
+                      <span v-else>
+                        {{ u.firstName?.[0] || '—' }}
+                      </span>
+                    </div>
+                    <span>{{ u.firstName }} {{ u.lastName }}</span>
+                  </div>
                 </td>
                 <td class="p-3.5 text-slate-600">
                   {{ toPersianDigits(u.nationalId) }}
@@ -527,6 +614,42 @@ async function handleBulkImport() {
             </option>
           </select>
         </div>
+
+        <!-- Optional User Image -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">تصویر پروفایل (اختیاری):</label>
+          <input
+            ref="imageInputRef"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            class="hidden"
+            @change="onImageChange"
+          />
+          <div v-if="!imagePreview" class="flex items-center gap-2">
+            <button
+              type="button"
+              class="px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-bold flex items-center gap-1.5 transition-colors"
+              @click="imageInputRef?.click()"
+            >
+              <Camera class="w-4 h-4 text-slate-500" />
+              <span>انتخاب تصویر</span>
+            </button>
+            <span class="text-[10px] text-slate-400">JPG، PNG یا WebP تا ۵ مگابایت</span>
+          </div>
+          <div v-else class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-xl overflow-hidden border border-slate-200 bg-slate-100 shrink-0">
+              <img :src="imagePreview" alt="پیش‌نمایش" class="w-full h-full object-cover" />
+            </div>
+            <button
+              type="button"
+              class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+              title="حذف تصویر"
+              @click="removeSelectedImage"
+            >
+              <X class="w-4 h-4" />
+            </button>
+          </div>
+        </div>
       </div>
 
       <template #footer>
@@ -602,7 +725,7 @@ async function handleBulkImport() {
               <span>قالب استاندارد اکسل را دانلود کنید</span>
             </h4>
             <p class="text-[11px] text-blue-700 font-medium">
-              فایل شامل ستون‌های کد ملی، نام، نام خانوادگی، نام کاربری، رمز عبور و نام کلاس است.
+              فایل شامل ستون‌های کد ملی، نام، نام خانوادگی، نام کاربری، رمز عبور، نام کلاس و نام فایل تصویر است.
             </p>
           </div>
           <button
@@ -667,6 +790,53 @@ async function handleBulkImport() {
               class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
               title="حذف فایل"
               @click="removeSelectedFile"
+            >
+              <X class="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        <!-- Optional ZIP Upload for Images -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5">فایل فشرده تصاویر (.zip) - اختیاری:</label>
+          <input
+            ref="zipInputRef"
+            type="file"
+            accept=".zip"
+            class="hidden"
+            @change="onZipFileChange"
+          />
+
+          <div
+            v-if="!selectedZipFile"
+            class="border border-dashed border-slate-300 hover:border-slate-400 rounded-xl p-3 text-center cursor-pointer bg-slate-50/50 transition-colors flex items-center justify-center gap-2"
+            @click="zipInputRef?.click()"
+          >
+            <Archive class="w-4 h-4 text-slate-400" />
+            <span class="text-xs font-bold text-slate-600">
+              انتخاب فایل فشرده حاوی تصاویر دانش‌آموزان (.zip)
+            </span>
+          </div>
+
+          <div
+            v-else
+            class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-2"
+          >
+            <div class="flex items-center gap-2 overflow-hidden">
+              <Archive class="w-4 h-4 text-amber-600 shrink-0" />
+              <div class="overflow-hidden">
+                <p class="text-xs font-bold text-slate-800 truncate" :title="selectedZipFile.name">
+                  {{ selectedZipFile.name }}
+                </p>
+                <p class="text-[10px] text-slate-400">
+                  {{ toPersianDigits((selectedZipFile.size / (1024 * 1024)).toFixed(1)) }} مگابایت
+                </p>
+              </div>
+            </div>
+            <button
+              class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+              title="حذف فایل فشرده"
+              @click="removeSelectedZipFile"
             >
               <X class="w-4 h-4" />
             </button>

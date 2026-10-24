@@ -86,6 +86,9 @@ export class UserResponseDto {
   @ApiProperty({ enum: AccountState })
   accountState: AccountState;
 
+  @ApiPropertyOptional({ example: '/uploads/avatar.png' })
+  imageUrl?: string | null;
+
   @ApiPropertyOptional()
   teacherProfile?: {
     pointBalance: number;

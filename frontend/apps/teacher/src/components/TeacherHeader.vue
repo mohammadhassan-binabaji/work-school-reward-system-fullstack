@@ -28,9 +28,16 @@ async function handleLogout() {
     <!-- Right side: Teacher Info -->
     <div class="flex items-center gap-2.5">
       <div
-        class="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-600 to-indigo-400 p-[2px] shadow-xs"
+        class="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-600 to-indigo-400 p-[2px] shadow-xs overflow-hidden"
       >
+        <img
+          v-if="authStore.user?.imageUrl"
+          :src="authStore.user.imageUrl"
+          :alt="teacherName"
+          class="w-full h-full rounded-full object-cover"
+        />
         <div
+          v-else
           class="w-full h-full rounded-full bg-indigo-50 flex items-center justify-center font-bold text-sm text-indigo-700"
         >
           {{ authStore.user?.firstName?.[0] || 'م' }}

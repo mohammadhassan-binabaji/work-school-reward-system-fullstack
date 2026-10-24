@@ -13,10 +13,11 @@ import {
   Res,
   UseInterceptors,
   UploadedFile,
+  UploadedFiles,
   BadRequestException,
 } from '@nestjs/common';
 import { Response } from 'express';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor, FileFieldsInterceptor } from '@nestjs/platform-express';
 import {
   ApiTags,
   ApiOperation,
@@ -38,12 +39,14 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequestWithCorrelation } from '../../common/middleware/correlation.middleware';
 import { Role, AccountState } from '@prisma/client';
 
-export interface UploadedExcelFile {
+export interface UploadedFilePayload {
   buffer: Buffer;
   originalname: string;
   mimetype: string;
   size: number;
 }
+
+export type UploadedExcelFile = UploadedFilePayload;
 
 @ApiTags('users')
 @ApiBearerAuth()
@@ -56,9 +59,37 @@ export class UsersController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create user account (Admin only)' })
+  @ApiConsumes('multipart/form-data', 'application/json')
   @ApiResponse({ status: 201, description: 'User created successfully', type: UserResponseDto })
-  async create(@Body() dto: CreateUserDto) {
-    return this.usersService.createUser(dto);
+  @UseInterceptors(FileInterceptor('image'))
+  async create(
+    @Body() dto: CreateUserDto,
+    @UploadedFile() image?: UploadedFilePayload,
+  ) {
+    let imageUrl: string | undefined;
+
+    if (image && image.buffer && image.buffer.length > 0) {
+      const allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
+      if (!allowedMimes.includes(image.mimetype)) {
+        throw new BadRequestException({
+          statusCode: 400,
+          errorCode: 'INVALID_IMAGE_TYPE',
+          message: 'تصویر ارسالی باید با فرمت JPEG، PNG یا WebP باشد.',
+        });
+      }
+
+      if (image.size > 5 * 1024 * 1024) {
+        throw new BadRequestException({
+          statusCode: 400,
+          errorCode: 'IMAGE_TOO_LARGE',
+          message: 'حجم تصویر نباید بیش از ۵ مگابایت باشد.',
+        });
+      }
+
+      imageUrl = await this.usersService.uploadUserImage(image.buffer, image.originalname, image.mimetype);
+    }
+
+    return this.usersService.createUser(dto, imageUrl);
   }
 
   @Get('import/template')
@@ -87,7 +118,7 @@ export class UsersController {
 
   @Post('import/excel')
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Bulk import student accounts via Excel spreadsheet (Admin only)' })
+  @ApiOperation({ summary: 'Bulk import student accounts via Excel spreadsheet + optional images ZIP (Admin only)' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -97,6 +128,12 @@ export class UsersController {
         file: {
           type: 'string',
           format: 'binary',
+          description: 'فایل اکسل دانش‌آموزان (.xlsx)',
+        },
+        imagesZip: {
+          type: 'string',
+          format: 'binary',
+          description: 'فایل فشرده حاوی تصاویر دانش‌آموزان (.zip) - اختیاری',
         },
       },
     },
@@ -108,9 +145,23 @@ export class UsersController {
   })
   @ApiResponse({ status: 400, description: 'Invalid or empty Excel file' })
   @ApiResponse({ status: 422, description: 'Row-level validation errors in Excel file' })
-  @UseInterceptors(FileInterceptor('file'))
-  async importStudentsFromExcel(@UploadedFile() file?: UploadedExcelFile) {
-    if (!file || !file.buffer) {
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'file', maxCount: 1 },
+      { name: 'imagesZip', maxCount: 1 },
+    ]),
+  )
+  async importStudentsFromExcel(
+    @UploadedFiles()
+    files?: {
+      file?: UploadedExcelFile[];
+      imagesZip?: UploadedExcelFile[];
+    },
+  ) {
+    const excelFile = files?.file?.[0];
+    const zipFile = files?.imagesZip?.[0];
+
+    if (!excelFile || !excelFile.buffer) {
       throw new BadRequestException({
         statusCode: 400,
         errorCode: 'FILE_REQUIRED',
@@ -118,15 +169,23 @@ export class UsersController {
       });
     }
 
-    if (file.size > 5 * 1024 * 1024) {
+    if (excelFile.size > 5 * 1024 * 1024) {
       throw new BadRequestException({
         statusCode: 400,
         errorCode: 'FILE_TOO_LARGE',
-        message: 'حجم فایل نباید بیش از ۵ مگابایت باشد.',
+        message: 'حجم فایل اکسل نباید بیش از ۵ مگابایت باشد.',
       });
     }
 
-    return this.usersService.importStudentsFromExcel(file.buffer);
+    if (zipFile && zipFile.size > 50 * 1024 * 1024) {
+      throw new BadRequestException({
+        statusCode: 400,
+        errorCode: 'ZIP_TOO_LARGE',
+        message: 'حجم فایل فشرده تصاویر نباید بیش از ۵۰ مگابایت باشد.',
+      });
+    }
+
+    return this.usersService.importStudentsFromExcel(excelFile.buffer, zipFile?.buffer);
   }
 
   @Get()

@@ -34,9 +34,16 @@ async function handleLogout() {
     <!-- Right side: Student Profile Avatar & Info -->
     <div class="flex items-center gap-3">
       <div
-        class="w-10 h-10 rounded-full bg-gradient-to-tr from-cyan-500 to-emerald-400 p-[2px] shadow-sm"
+        class="w-10 h-10 rounded-full bg-gradient-to-tr from-cyan-500 to-emerald-400 p-[2px] shadow-sm overflow-hidden"
       >
+        <img
+          v-if="authStore.user?.imageUrl"
+          :src="authStore.user.imageUrl"
+          :alt="studentName"
+          class="w-full h-full rounded-full object-cover"
+        />
         <div
+          v-else
           class="w-full h-full rounded-full bg-[#131822] flex items-center justify-center font-bold text-sm text-cyan-300"
         >
           {{ authStore.user?.firstName?.[0] || 'د' }}

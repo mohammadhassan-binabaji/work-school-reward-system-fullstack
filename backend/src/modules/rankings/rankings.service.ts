@@ -54,6 +54,7 @@ export class RankingsService {
       firstName: s.user.firstName,
       lastName: s.user.lastName,
       username: s.user.username,
+      imageUrl: s.user.imageUrl,
       points: s.currentBalance,
     }));
 
@@ -87,6 +88,7 @@ export class RankingsService {
       firstName: s.user.firstName,
       lastName: s.user.lastName,
       username: s.user.username,
+      imageUrl: s.user.imageUrl,
       points: s.currentBalance,
     }));
 

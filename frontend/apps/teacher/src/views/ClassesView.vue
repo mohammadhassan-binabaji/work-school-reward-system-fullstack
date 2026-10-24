@@ -136,8 +136,23 @@ function quickAward(assignmentId: string, studentId: string) {
               :key="s.id"
               class="p-3 rounded-2xl bg-white border border-slate-200 flex items-center justify-between shadow-2xs"
             >
-              <div>
-                <span class="text-xs font-bold text-slate-800 block">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-indigo-300 p-[1.5px] shadow-xs shrink-0 overflow-hidden">
+                  <img
+                    v-if="s.user.imageUrl"
+                    :src="s.user.imageUrl"
+                    :alt="s.user.firstName"
+                    class="w-full h-full rounded-full object-cover"
+                  />
+                  <div
+                    v-else
+                    class="w-full h-full rounded-full bg-indigo-50 flex items-center justify-center font-bold text-xs text-indigo-700"
+                  >
+                    {{ s.user.firstName?.[0] || 'د' }}
+                  </div>
+                </div>
+                <div>
+                  <span class="text-xs font-bold text-slate-800 block">
                   {{ s.user.firstName }} {{ s.user.lastName }}
                 </span>
                 <div class="flex items-center gap-2 mt-1">
@@ -149,6 +164,7 @@ function quickAward(assignmentId: string, studentId: string) {
                   <span class="text-[11px] font-bold text-indigo-700">
                     {{ formatNovin(s.currentBalance) }}
                   </span>
+                  </div>
                 </div>
               </div>
 

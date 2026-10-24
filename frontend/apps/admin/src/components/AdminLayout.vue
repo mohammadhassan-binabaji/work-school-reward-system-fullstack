@@ -164,8 +164,16 @@ async function handleLogout() {
         <!-- Admin Profile & Quick Logout -->
         <div class="p-4 border-t border-slate-800 bg-slate-950/60 flex items-center justify-between">
           <div class="flex items-center gap-2.5 overflow-hidden">
-            <div class="w-9 h-9 rounded-xl bg-blue-700 text-white flex items-center justify-center text-xs font-black shrink-0">
-              {{ authStore.user?.firstName?.[0] || 'م' }}
+            <div class="w-9 h-9 rounded-xl bg-blue-700 text-white flex items-center justify-center text-xs font-black shrink-0 overflow-hidden">
+              <img
+                v-if="authStore.user?.imageUrl"
+                :src="authStore.user.imageUrl"
+                :alt="authStore.user.firstName"
+                class="w-full h-full object-cover"
+              />
+              <span v-else>
+                {{ authStore.user?.firstName?.[0] || 'م' }}
+              </span>
             </div>
             <div class="truncate">
               <span class="text-xs font-bold text-white block truncate">

@@ -4,6 +4,7 @@ export interface RawStudentScore {
   firstName: string;
   lastName: string;
   username: string;
+  imageUrl?: string | null;
   points: number;
 }
 
@@ -12,6 +13,7 @@ export interface RankedStudent {
   studentId: string;
   studentName: string;
   username: string;
+  imageUrl?: string | null;
   points: number;
 }
 
@@ -20,11 +22,13 @@ export interface StudentRankingView {
   selfRank?: {
     rank: number;
     studentName: string;
+    imageUrl?: string | null;
     points: number;
   };
   topStudents: {
     rank: number;
     studentName: string;
+    imageUrl?: string | null;
     points: number;
   }[];
 }
@@ -59,6 +63,7 @@ export class RankingUtil {
         studentId: student.studentId,
         studentName: `${student.firstName} ${student.lastName}`,
         username: student.username,
+        imageUrl: student.imageUrl,
         points: student.points,
       });
 
@@ -84,6 +89,7 @@ export class RankingUtil {
       .map((s) => ({
         rank: s.rank,
         studentName: s.studentName,
+        imageUrl: s.imageUrl,
         points: s.points,
       }));
 
@@ -95,6 +101,7 @@ export class RankingUtil {
         ? {
             rank: self.rank,
             studentName: self.studentName,
+            imageUrl: self.imageUrl,
             points: self.points,
           }
         : undefined,
