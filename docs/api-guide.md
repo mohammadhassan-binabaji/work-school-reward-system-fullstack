@@ -17,9 +17,11 @@ This guide describes the core API endpoints and verification flows for the Stude
 - `GET /api/v1/auth/me` - Get profile of the current authenticated user.
 
 ### 2. User Management (`/api/v1/users`) [Admin only]
-- `POST /api/v1/users` - Create administrator, teacher, or student accounts.
-- `GET /api/v1/users` - List users with optional role and accountState filtering.
-- `GET /api/v1/users/:id` - Get user details.
+- `POST /api/v1/users` - Create user account (supports multipart/form-data with optional profile image file up to 5MB, JPG/PNG/WebP).
+- `GET /api/v1/users/import/template` - Download student bulk import Excel template with optional image filename column.
+- `POST /api/v1/users/import/excel` - Bulk import students from Excel file and optional ZIP archive containing photos matching filenames in spreadsheet.
+- `GET /api/v1/users` - List users with optional role and accountState filtering (includes `imageUrl`).
+- `GET /api/v1/users/:id` - Get user details (includes `imageUrl`).
 - `PATCH /api/v1/users/:id/state` - Update user account state (`ACTIVE`, `INACTIVE`, `DEACTIVATED`, `DEPARTED`).
 
 ### 3. Academic Structure (`/api/v1/classes`, `/api/v1/subjects`, `/api/v1/assignments`)
