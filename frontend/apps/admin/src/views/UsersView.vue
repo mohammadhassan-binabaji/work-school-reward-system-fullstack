@@ -18,8 +18,11 @@ import {
   X,
   Camera,
   Archive,
+  Pencil,
+  Trash2,
 } from 'lucide-vue-next';
 import AdminModal from '../components/AdminModal.vue';
+import ConfirmDialog from '../components/ConfirmDialog.vue';
 import {
   api,
   toPersianDigits,
@@ -54,11 +57,24 @@ const imagePreview = ref<string | null>(null);
 const imageInputRef = ref<HTMLInputElement | null>(null);
 const creatingUser = ref(false);
 
-// Change State Modal
-const isStateModalOpen = ref(false);
-const selectedUser = ref<User | null>(null);
-const updatedState = ref<AccountState>('ACTIVE');
-const updatingState = ref(false);
+// Edit User Modal
+const isEditModalOpen = ref(false);
+const editingUser = ref<User | null>(null);
+const editFirstName = ref('');
+const editLastName = ref('');
+const editPassword = ref('');
+const editAccountState = ref<AccountState>('ACTIVE');
+const editClassId = ref('');
+const editSelectedImage = ref<File | null>(null);
+const editImagePreview = ref<string | null>(null);
+const editRemoveCurrentImage = ref(false);
+const editImageInputRef = ref<HTMLInputElement | null>(null);
+const updatingUser = ref(false);
+
+// Delete User Dialog
+const isDeleteDialogOpen = ref(false);
+const deleteTargetUser = ref<User | null>(null);
+const deletingUser = ref(false);
 
 // Messages
 const successMessage = ref<string | null>(null);
@@ -168,31 +184,121 @@ function resetCreateForm() {
   removeSelectedImage();
 }
 
-function openChangeState(u: User) {
-  selectedUser.value = u;
-  updatedState.value = u.accountState;
-  isStateModalOpen.value = true;
+// Edit Modal Functions
+function openEditModal(u: User) {
+  editingUser.value = u;
+  editFirstName.value = u.firstName;
+  editLastName.value = u.lastName;
+  editPassword.value = '';
+  editAccountState.value = u.accountState;
+  editClassId.value = u.studentProfile?.classId || '';
+  editSelectedImage.value = null;
+  editImagePreview.value = null;
+  editRemoveCurrentImage.value = false;
+  isEditModalOpen.value = true;
 }
 
-async function handleUpdateState() {
-  if (!selectedUser.value) return;
+function onEditImageChange(e: Event) {
+  const target = e.target as HTMLInputElement;
+  if (target.files && target.files.length > 0) {
+    const file = target.files[0];
+    if (file.size > 5 * 1024 * 1024) {
+      errorMessage.value = 'حجم تصویر نباید بیش از ۵ مگابایت باشد.';
+      return;
+    }
+    editSelectedImage.value = file;
+    editImagePreview.value = URL.createObjectURL(file);
+    editRemoveCurrentImage.value = false;
+  }
+}
 
-  updatingState.value = true;
+function removeEditSelectedImage() {
+  editSelectedImage.value = null;
+  if (editImagePreview.value) {
+    URL.revokeObjectURL(editImagePreview.value);
+    editImagePreview.value = null;
+  }
+  if (editImageInputRef.value) {
+    editImageInputRef.value.value = '';
+  }
+}
+
+function removeCurrentEditImage() {
+  removeEditSelectedImage();
+  editRemoveCurrentImage.value = true;
+}
+
+async function handleUpdateUser() {
+  if (!editingUser.value) return;
+
+  if (!editFirstName.value.trim() || !editLastName.value.trim()) {
+    errorMessage.value = 'نام و نام خانوادگی نمی‌تواند خالی باشد.';
+    return;
+  }
+
+  if (editPassword.value && editPassword.value.length < 8) {
+    errorMessage.value = 'رمز عبور باید حداقل ۸ کاراکتر باشد.';
+    return;
+  }
+
+  updatingUser.value = true;
   errorMessage.value = null;
 
   try {
-    await api.patch(`/users/${selectedUser.value.id}/state`, {
-      accountState: updatedState.value,
-    });
+    const formData = new FormData();
+    formData.append('firstName', editFirstName.value.trim());
+    formData.append('lastName', editLastName.value.trim());
+    formData.append('accountState', editAccountState.value);
 
-    successMessage.value = `وضعیت حساب کاربر به ${updatedState.value} تغییر یافت.`;
-    isStateModalOpen.value = false;
+    if (editPassword.value) {
+      formData.append('password', editPassword.value);
+    }
+
+    if (editingUser.value.role === 'STUDENT') {
+      formData.append('classId', editClassId.value || '');
+    }
+
+    if (editSelectedImage.value) {
+      formData.append('image', editSelectedImage.value);
+    } else if (editRemoveCurrentImage.value) {
+      formData.append('removeImage', 'true');
+    }
+
+    await api.patchFormData(`/users/${editingUser.value.id}`, formData);
+
+    successMessage.value = `اطلاعات کاربر «${editFirstName.value} ${editLastName.value}» با موفقیت به‌روزرسانی شد.`;
+    isEditModalOpen.value = false;
     await loadData();
     setTimeout(() => (successMessage.value = null), 3000);
   } catch (err: any) {
-    errorMessage.value = err.message || 'خطا در تغییر وضعیت حساب کاربر';
+    errorMessage.value = err.message || 'خطا در ویرایش اطلاعات کاربر';
   } finally {
-    updatingState.value = false;
+    updatingUser.value = false;
+  }
+}
+
+// Delete User Functions
+function openDeleteDialog(u: User) {
+  deleteTargetUser.value = u;
+  isDeleteDialogOpen.value = true;
+}
+
+async function handleDeleteUser() {
+  if (!deleteTargetUser.value) return;
+
+  deletingUser.value = true;
+  errorMessage.value = null;
+
+  try {
+    await api.delete(`/users/${deleteTargetUser.value.id}`);
+    successMessage.value = `کاربر «${deleteTargetUser.value.firstName} ${deleteTargetUser.value.lastName}» با موفقیت حذف شد.`;
+    isDeleteDialogOpen.value = false;
+    await loadData();
+    setTimeout(() => (successMessage.value = null), 3000);
+  } catch (err: any) {
+    errorMessage.value = err.message || 'خطا در حذف کاربر';
+  } finally {
+    deletingUser.value = false;
   }
 }
 
@@ -509,12 +615,23 @@ async function handleBulkImport() {
                   </span>
                 </td>
                 <td class="p-3.5 pl-5 text-left">
-                  <button
-                    class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors"
-                    @click="openChangeState(u)"
-                  >
-                    تغییر وضعیت
-                  </button>
+                  <div class="flex items-center justify-end gap-1.5">
+                    <button
+                      class="px-2.5 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold transition-colors flex items-center gap-1"
+                      title="ویرایش کاربر"
+                      @click="openEditModal(u)"
+                    >
+                      <Pencil class="w-3.5 h-3.5" />
+                      <span>ویرایش</span>
+                    </button>
+                    <button
+                      class="p-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 transition-colors flex items-center justify-center"
+                      title="حذف کاربر"
+                      @click="openDeleteDialog(u)"
+                    >
+                      <Trash2 class="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </td>
               </tr>
             </template>
@@ -670,18 +787,78 @@ async function handleBulkImport() {
       </template>
     </AdminModal>
 
-    <!-- Modal: Change Account State -->
+    <!-- Modal: Edit User -->
     <AdminModal
-      :is-open="isStateModalOpen"
-      :title="`تغییر وضعیت حساب: ${selectedUser?.firstName} ${selectedUser?.lastName}`"
-      @close="isStateModalOpen = false"
+      :is-open="isEditModalOpen"
+      :title="`ویرایش کاربر: ${editingUser?.firstName} ${editingUser?.lastName}`"
+      max-width="max-w-md"
+      @close="isEditModalOpen = false"
     >
-      <div class="space-y-4">
+      <div v-if="editingUser" class="space-y-3.5">
+        <!-- Read-only Account Info -->
+        <div class="p-3 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between text-xs">
+          <div>
+            <span class="text-slate-400 font-medium">کد ملی: </span>
+            <span class="font-bold text-slate-700 font-sans">{{ toPersianDigits(editingUser.nationalId) }}</span>
+          </div>
+          <div>
+            <span class="text-slate-400 font-medium">نام کاربری: </span>
+            <span class="font-bold text-slate-700 font-mono">{{ editingUser.username }}</span>
+          </div>
+          <div>
+            <span
+              :class="[
+                'px-2 py-0.5 rounded-full text-[10px] font-bold',
+                editingUser.role === 'ADMIN'
+                  ? 'bg-purple-100 text-purple-700'
+                  : editingUser.role === 'TEACHER'
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'bg-emerald-100 text-emerald-700'
+              ]"
+            >
+              {{ editingUser.role === 'ADMIN' ? 'مدیر' : editingUser.role === 'TEACHER' ? 'معلم' : 'دانش‌آموز' }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Editable Names -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">نام:</label>
+            <input
+              v-model="editFirstName"
+              type="text"
+              class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800"
+            />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">نام خانوادگی:</label>
+            <input
+              v-model="editLastName"
+              type="text"
+              class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800"
+            />
+          </div>
+        </div>
+
+        <!-- Optional New Password -->
         <div>
-          <label class="block text-xs font-bold text-slate-700 mb-1.5">وضعیت جدید حساب کاربری:</label>
+          <label class="block text-xs font-bold text-slate-700 mb-1">تغییر رمز عبور (اختیاری):</label>
+          <input
+            v-model="editPassword"
+            type="password"
+            placeholder="خالی بگذارید اگر تغییری ندارد"
+            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800"
+          />
+          <p class="text-[10px] text-slate-400 mt-1">حداقل ۸ کاراکتر در صورت ورود</p>
+        </div>
+
+        <!-- Account State Dropdown -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">وضعیت حساب کاربری:</label>
           <select
-            v-model="updatedState"
-            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 font-bold"
+            v-model="editAccountState"
+            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 font-bold"
           >
             <option value="ACTIVE">فعال (ACTIVE)</option>
             <option value="INACTIVE">غیرفعال (INACTIVE)</option>
@@ -689,22 +866,116 @@ async function handleBulkImport() {
             <option value="DEPARTED">ترک مدرسه / خدمت (DEPARTED)</option>
           </select>
         </div>
+
+        <!-- Class Selection for Students -->
+        <div v-if="editingUser.role === 'STUDENT'">
+          <label class="block text-xs font-bold text-slate-700 mb-1">کلاس تحصیلی:</label>
+          <select
+            v-model="editClassId"
+            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800"
+          >
+            <option value="">بدون انتساب</option>
+            <option v-for="c in classes" :key="c.id" :value="c.id">
+              {{ c.name }} ({{ c.gradeLevel || 'پایه نامشخص' }})
+            </option>
+          </select>
+        </div>
+
+        <!-- Image Upload/Update/Removal -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">تصویر پروفایل:</label>
+          <input
+            ref="editImageInputRef"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            class="hidden"
+            @change="onEditImageChange"
+          />
+
+          <!-- Preview new selected image -->
+          <div v-if="editImagePreview" class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-xl overflow-hidden border border-slate-200 bg-slate-100 shrink-0">
+              <img :src="editImagePreview" alt="تصویر جدید" class="w-full h-full object-cover" />
+            </div>
+            <div class="space-y-1">
+              <span class="text-[10px] text-emerald-600 font-bold block">تصویر جدید انتخاب شد</span>
+              <button
+                type="button"
+                class="text-xs text-rose-600 hover:text-rose-700 font-medium flex items-center gap-1"
+                @click="removeEditSelectedImage"
+              >
+                <X class="w-3.5 h-3.5" />
+                <span>انصراف از تصویر جدید</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Existing image without new upload and not marked for removal -->
+          <div v-else-if="editingUser.imageUrl && !editRemoveCurrentImage" class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-xl overflow-hidden border border-slate-200 bg-slate-100 shrink-0">
+              <img :src="editingUser.imageUrl" alt="تصویر فعلی" class="w-full h-full object-cover" />
+            </div>
+            <div class="flex items-center gap-2">
+              <button
+                type="button"
+                class="px-2.5 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-bold flex items-center gap-1 transition-colors"
+                @click="editImageInputRef?.click()"
+              >
+                <Camera class="w-3.5 h-3.5 text-slate-500" />
+                <span>تغییر تصویر</span>
+              </button>
+              <button
+                type="button"
+                class="px-2.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold flex items-center gap-1 transition-colors"
+                @click="removeCurrentEditImage"
+              >
+                <Trash2 class="w-3.5 h-3.5" />
+                <span>حذف تصویر</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Existing image marked for removal -->
+          <div v-else-if="editRemoveCurrentImage" class="p-2.5 bg-rose-50 border border-rose-200 rounded-xl flex items-center justify-between">
+            <span class="text-xs text-rose-700 font-medium">تصویر پروفایل حذف خواهد شد</span>
+            <button
+              type="button"
+              class="text-xs text-slate-600 hover:text-slate-800 font-bold"
+              @click="editRemoveCurrentImage = false"
+            >
+              انصراف
+            </button>
+          </div>
+
+          <!-- No image at all -->
+          <div v-else class="flex items-center gap-2">
+            <button
+              type="button"
+              class="px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-bold flex items-center gap-1.5 transition-colors"
+              @click="editImageInputRef?.click()"
+            >
+              <Camera class="w-4 h-4 text-slate-500" />
+              <span>انتخاب تصویر</span>
+            </button>
+            <span class="text-[10px] text-slate-400">JPG، PNG یا WebP تا ۵ مگابایت</span>
+          </div>
+        </div>
       </div>
 
       <template #footer>
         <button
           class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-200"
-          @click="isStateModalOpen = false"
+          @click="isEditModalOpen = false"
         >
           انصراف
         </button>
         <button
-          :disabled="updatingState"
+          :disabled="updatingUser"
           class="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-xs disabled:opacity-50 flex items-center gap-1.5"
-          @click="handleUpdateState"
+          @click="handleUpdateUser"
         >
-          <RefreshCw v-if="updatingState" class="w-3.5 h-3.5 animate-spin" />
-          <span>ثبت تغییر وضعیت</span>
+          <RefreshCw v-if="updatingUser" class="w-3.5 h-3.5 animate-spin" />
+          <span>ذخیره تغییرات</span>
         </button>
       </template>
     </AdminModal>
@@ -909,5 +1180,17 @@ async function handleBulkImport() {
         </button>
       </template>
     </AdminModal>
+
+    <!-- Confirm Dialog: Delete User -->
+    <ConfirmDialog
+      :is-open="isDeleteDialogOpen"
+      title="حذف کاربر"
+      :message="`آیا از حذف دائمی کاربر «${deleteTargetUser?.firstName} ${deleteTargetUser?.lastName}» اطمینان دارید؟ این عملیات غیرقابل بازگشت است.`"
+      confirm-label="حذف دائمی"
+      :is-destructive="true"
+      :loading="deletingUser"
+      @confirm="handleDeleteUser"
+      @cancel="isDeleteDialogOpen = false"
+    />
   </div>
 </template>

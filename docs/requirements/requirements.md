@@ -16,9 +16,19 @@ The system enables teachers to award points to students for actions such as comp
 
 - The first school administrator shall be added manually.
 - An administrator shall be able to create additional administrator, teacher, and student accounts.
-- Accounts shall store a first name, last name, username, and password.
+- Accounts shall store a first name, last name, username, password, and an optional profile image.
 - A user's identifier shall be a 10-digit national ID.
 - Administrators, teachers, and students shall sign in using their national ID and password.
+- Profile images shall support JPEG, PNG, and WebP formats up to 5 MB.
+- When an account has no profile image, the user interface shall display an initials-based fallback placeholder.
+- Administrators shall be able to upload an optional profile image when creating a single user account.
+- Administrators shall be able to bulk import student accounts via an Excel spreadsheet with an optional accompanying ZIP archive containing student images matched by filename specified in the spreadsheet.
+- If an Excel row specifies an image filename that does not exist in the uploaded ZIP file, validation shall fail for that row.
+- User profile images shall be displayed in the following designated views:
+  - In the top header/profile section of each app for the logged-in user.
+  - In the administrator user management table (/users) beside the user name.
+  - In the teacher class management view (/classes) beside student names in expanded class rosters.
+  - On the student gamified leaderboard podium on the dashboard for the top 3 students.
 - No additional non-functional requirements are specified beyond the functional requirements in this package.
 
 ## Functional Requirements

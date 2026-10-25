@@ -3,6 +3,7 @@ import {
   Post,
   Get,
   Patch,
+  Delete,
   Body,
   Param,
   Query,
@@ -31,6 +32,7 @@ import { UsersService } from './users.service';
 import {
   CreateUserDto,
   UpdateUserStateDto,
+  UpdateUserDto,
   UserResponseDto,
   BulkImportResultDto,
 } from './dto/user.dto';
@@ -212,5 +214,51 @@ export class UsersController {
     @Req() req: RequestWithCorrelation,
   ) {
     return this.usersService.updateUserState(id, dto, adminId, req.correlationId);
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: 'Update user profile and account details (Admin only)' })
+  @ApiConsumes('multipart/form-data', 'application/json')
+  @ApiResponse({ status: 200, description: 'User updated successfully', type: UserResponseDto })
+  @UseInterceptors(FileInterceptor('image'))
+  async update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateUserDto,
+    @CurrentUser('id') adminId: string,
+    @Req() req: RequestWithCorrelation,
+    @UploadedFile() image?: UploadedFilePayload,
+  ) {
+    if (image && image.buffer && image.buffer.length > 0) {
+      const allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
+      if (!allowedMimes.includes(image.mimetype)) {
+        throw new BadRequestException({
+          statusCode: 400,
+          errorCode: 'INVALID_IMAGE_TYPE',
+          message: 'تصویر ارسالی باید با فرمت JPEG، PNG یا WebP باشد.',
+        });
+      }
+
+      if (image.size > 5 * 1024 * 1024) {
+        throw new BadRequestException({
+          statusCode: 400,
+          errorCode: 'IMAGE_TOO_LARGE',
+          message: 'حجم تصویر نباید بیش از ۵ مگابایت باشد.',
+        });
+      }
+    }
+
+    return this.usersService.updateUser(id, dto, adminId, req.correlationId, image);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Hard delete a user (Admin only)' })
+  @ApiResponse({ status: 204, description: 'User deleted successfully' })
+  async remove(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser('id') adminId: string,
+    @Req() req: RequestWithCorrelation,
+  ) {
+    return this.usersService.deleteUser(id, adminId, req.correlationId);
   }
 }

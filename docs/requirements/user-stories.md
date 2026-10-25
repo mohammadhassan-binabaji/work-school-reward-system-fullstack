@@ -3,7 +3,11 @@
 ## Administrator
 
 - As the initial system owner, I want the first administrator account added manually so that the school can begin using the system.
-- As a school administrator, I want to create administrator, teacher, and student accounts with names, usernames, and passwords so that users can access the system.
+- As a school administrator, I want to create administrator, teacher, and student accounts with names, usernames, passwords, and optional profile images so that users can access the system with visual identification.
+- As a school administrator, I want to bulk import students via Excel with an optional ZIP archive of photos so that multiple accounts and their avatars can be created at once.
+- As a school administrator, I want to see user avatars in the users table so that I can easily recognize users visually.
+- As a teacher, I want to see student avatars in my class rosters on the classes page so that I can visually identify students when reviewing progress or awarding points.
+- As a student, I want to see the profile images of the top 3 students on the leaderboard podium so that top achievers are prominently recognized.
 - As a school administrator, I want to sign in with my national ID and password so that I can access administrative functions.
 - As a school administrator, I want to create classes so that the school structure is represented in the system.
 - As a school administrator, I want to assign each student to a class so that membership is managed centrally.

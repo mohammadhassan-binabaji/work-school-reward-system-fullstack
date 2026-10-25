@@ -32,6 +32,8 @@ export interface User {
   role: Role;
   accountState: AccountState;
   imageUrl?: string | null;
+  teacherProfile?: TeacherProfile | null;
+  studentProfile?: StudentProfile | null;
   createdAt: string;
   updatedAt: string;
 }

@@ -182,4 +182,94 @@ describe('Auth & Users Contract Tests (e2e)', () => {
     expect(res.body.errors.some((e: any) => e.field === 'nationalId')).toBe(true);
     expect(res.body.errors.some((e: any) => e.field === 'className')).toBe(true);
   });
+
+  it('PATCH /api/v1/users/:id updates user fields and returns updated user', async () => {
+    const createRes = await request(app.getHttpServer())
+      .post('/api/v1/users')
+      .set('Cookie', adminCookie)
+      .send({
+        nationalId: '3333333333',
+        firstName: 'OldName',
+        lastName: 'OldLast',
+        username: 'updatetest',
+        password: 'Password123!',
+        role: 'TEACHER',
+      })
+      .expect(201);
+
+    const userId = createRes.body.id;
+
+    const patchRes = await request(app.getHttpServer())
+      .patch(`/api/v1/users/${userId}`)
+      .set('Cookie', adminCookie)
+      .send({
+        firstName: 'NewName',
+        lastName: 'NewLast',
+        accountState: 'INACTIVE',
+      })
+      .expect(200);
+
+    expect(patchRes.body.firstName).toBe('NewName');
+    expect(patchRes.body.lastName).toBe('NewLast');
+    expect(patchRes.body.accountState).toBe('INACTIVE');
+
+    const dbUser = await prisma.user.findUnique({ where: { id: userId } });
+    expect(dbUser?.firstName).toBe('NewName');
+    expect(dbUser?.accountState).toBe('INACTIVE');
+  });
+
+  it('PATCH /api/v1/users/:id rejects password shorter than 8 characters', async () => {
+    const createRes = await request(app.getHttpServer())
+      .post('/api/v1/users')
+      .set('Cookie', adminCookie)
+      .send({
+        nationalId: '4444444444',
+        firstName: 'Pass',
+        lastName: 'Test',
+        username: 'passtest',
+        password: 'Password123!',
+        role: 'STUDENT',
+      })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/users/${createRes.body.id}`)
+      .set('Cookie', adminCookie)
+      .send({
+        password: 'short',
+      })
+      .expect(400);
+  });
+
+  it('DELETE /api/v1/users/:id deletes user and returns 204', async () => {
+    const createRes = await request(app.getHttpServer())
+      .post('/api/v1/users')
+      .set('Cookie', adminCookie)
+      .send({
+        nationalId: '5555555555',
+        firstName: 'Delete',
+        lastName: 'Me',
+        username: 'deleteme',
+        password: 'Password123!',
+        role: 'STUDENT',
+      })
+      .expect(201);
+
+    const userId = createRes.body.id;
+
+    await request(app.getHttpServer())
+      .delete(`/api/v1/users/${userId}`)
+      .set('Cookie', adminCookie)
+      .expect(204);
+
+    const dbUser = await prisma.user.findUnique({ where: { id: userId } });
+    expect(dbUser).toBeNull();
+  });
+
+  it('DELETE /api/v1/users/:id returns 404 for nonexistent user', async () => {
+    await request(app.getHttpServer())
+      .delete('/api/v1/users/00000000-0000-0000-0000-000000000000')
+      .set('Cookie', adminCookie)
+      .expect(404);
+  });
 });

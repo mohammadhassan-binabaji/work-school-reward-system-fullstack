@@ -18,6 +18,7 @@ The system must store or display:
 - National ID
 - Account state, including active or inactive status
 - Administrator role
+- Optional profile image URL
 
 The first administrator is provisioned manually. Administrators can create additional administrator, teacher, and student accounts.
 
@@ -31,6 +32,7 @@ The system must store or display:
 - Account state, including active, deactivated, or departed state
 - Teacher point balance used as an award budget
 - Assigned classes and subjects
+- Optional profile image URL
 
 The system must preserve a deactivated teacher's balance and assignments while preventing actions. When a teacher leaves the school, the balance, assignments, and relationships are removed. Removing one class assignment must not change the teacher balance.
 
@@ -49,6 +51,7 @@ The system must store or display:
 - Current class rank and school rank
 - Ranking population counts, such as `15 of 32`
 - Weekly end-of-day current-balance history
+- Optional profile image URL
 
 When a student changes class, the balance and reward requests remain unchanged. When a student leaves the school, the balance and active requests are removed. Inactive, deactivated, and departed students are excluded from rankings.
 

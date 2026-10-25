@@ -7,7 +7,9 @@ import {
   MaxLength,
   MinLength,
   IsUUID,
+  IsBoolean,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Role, AccountState } from '@prisma/client';
 
@@ -62,6 +64,42 @@ export class UpdateUserStateDto {
   @IsNotEmpty()
   @IsEnum(AccountState)
   accountState: AccountState;
+}
+
+export class UpdateUserDto {
+  @ApiPropertyOptional({ example: 'Alice' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  firstName?: string;
+
+  @ApiPropertyOptional({ example: 'Smith' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  lastName?: string;
+
+  @ApiPropertyOptional({ example: 'NewPassword123!' })
+  @IsOptional()
+  @IsString()
+  @MinLength(8)
+  password?: string;
+
+  @ApiPropertyOptional({ enum: AccountState, example: AccountState.ACTIVE })
+  @IsOptional()
+  @IsEnum(AccountState)
+  accountState?: AccountState;
+
+  @ApiPropertyOptional({ description: 'Class ID if student', format: 'uuid' })
+  @IsOptional()
+  @IsUUID()
+  classId?: string;
+
+  @ApiPropertyOptional({ description: 'Set to true to remove existing profile image' })
+  @IsOptional()
+  @Transform(({ value }) => value === true || value === 'true')
+  @IsBoolean()
+  removeImage?: boolean;
 }
 
 export class UserResponseDto {

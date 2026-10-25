@@ -2,11 +2,12 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as fs from 'fs';
 import * as path from 'path';
-import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 
 export interface StorageService {
   uploadFile(fileBuffer: Buffer, fileName: string, mimeType: string): Promise<string>;
   getFile(fileKey: string): Promise<Buffer>;
+  deleteFile(fileKey: string): Promise<void>;
 }
 
 @Injectable()
@@ -32,6 +33,18 @@ export class LocalStorageService implements StorageService {
     const cleanKey = fileKey.replace(/^\/uploads\//, '');
     const filePath = path.join(this.uploadDir, cleanKey);
     return fs.promises.readFile(filePath);
+  }
+
+  async deleteFile(fileKey: string): Promise<void> {
+    try {
+      const cleanKey = fileKey.replace(/^\/uploads\//, '');
+      const filePath = path.join(this.uploadDir, cleanKey);
+      await fs.promises.unlink(filePath);
+    } catch (err: any) {
+      if (err.code !== 'ENOENT') {
+        this.logger.warn(`Failed to delete file ${fileKey}: ${err.message}`);
+      }
+    }
   }
 }
 
@@ -85,5 +98,19 @@ export class MinioS3StorageService implements StorageService {
     );
     const byteArray = await response.Body?.transformToByteArray();
     return Buffer.from(byteArray || []);
+  }
+
+  async deleteFile(fileKey: string): Promise<void> {
+    try {
+      const cleanKey = fileKey.replace(new RegExp(`^/${this.bucket}/`), '');
+      await this.s3Client.send(
+        new DeleteObjectCommand({
+          Bucket: this.bucket,
+          Key: cleanKey,
+        }),
+      );
+    } catch (err: any) {
+      this.logger.warn(`Failed to delete S3 object ${fileKey}: ${err.message}`);
+    }
   }
 }

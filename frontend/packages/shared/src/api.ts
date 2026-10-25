@@ -102,6 +102,12 @@ export class ApiClient {
     if (code === 'USER_NOT_FOUND') {
       return 'کاربر یافت نشد.';
     }
+    if (code === 'CANNOT_DELETE_SELF') {
+      return 'مدیر نمی‌تواند حساب خود را حذف کند.';
+    }
+    if (code === 'CANNOT_MODIFY_OWN_STATE') {
+      return 'مدیر نمی‌تواند وضعیت حساب خود را به حالت غیرفعال تغییر دهد.';
+    }
     if (code === 'INSUFFICIENT_POOL_BALANCE') {
       return 'موجودی استخر نوین سیستم کافی نیست.';
     }
@@ -218,6 +224,18 @@ export class ApiClient {
     const headers = this.getHeaders(true);
     const res = await fetch(url, {
       method: 'POST',
+      headers,
+      body: formData,
+      credentials: 'include',
+    });
+    return this.handleResponse<T>(res);
+  }
+
+  public async patchFormData<T>(path: string, formData: FormData): Promise<T> {
+    const url = `${this.baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
+    const headers = this.getHeaders(true);
+    const res = await fetch(url, {
+      method: 'PATCH',
       headers,
       body: formData,
       credentials: 'include',

@@ -17,6 +17,7 @@ import { StorageService } from '../storage/storage.service';
 import {
   CreateUserDto,
   UpdateUserStateDto,
+  UpdateUserDto,
   BulkImportErrorItemDto,
   BulkImportResultDto,
 } from './dto/user.dto';
@@ -270,6 +271,193 @@ export class UsersService {
         imageUrl: true,
         updatedAt: true,
       },
+    });
+  }
+
+  async updateUser(
+    id: string,
+    dto: UpdateUserDto,
+    adminId?: string,
+    correlationId?: string,
+    imageFile?: { buffer: Buffer; originalname: string; mimetype: string },
+  ) {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      include: {
+        studentProfile: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException({
+        statusCode: 404,
+        errorCode: 'USER_NOT_FOUND',
+        message: `User with ID ${id} not found`,
+      });
+    }
+
+    // Prevent self-deactivation/departure for admin
+    if (
+      dto.accountState &&
+      dto.accountState !== AccountState.ACTIVE &&
+      adminId &&
+      id === adminId
+    ) {
+      throw new BadRequestException({
+        statusCode: 400,
+        errorCode: 'CANNOT_MODIFY_OWN_STATE',
+        message: 'مدیر نمی‌تواند وضعیت حساب خود را به حالت غیرفعال تغییر دهد.',
+      });
+    }
+
+    // Departure lifecycle if state is changing to DEPARTED
+    if (
+      dto.accountState === AccountState.DEPARTED &&
+      user.accountState !== AccountState.DEPARTED
+    ) {
+      if (user.role === Role.STUDENT) {
+        await this.academicService.handleStudentDeparture(id, adminId, correlationId);
+      } else if (user.role === Role.TEACHER) {
+        await this.academicService.handleTeacherDeparture(id, adminId, correlationId);
+      }
+    }
+
+    // Session invalidation if state becomes non-ACTIVE
+    if (dto.accountState && dto.accountState !== AccountState.ACTIVE) {
+      await this.redisService.deleteSessionsForUser(id);
+    }
+
+    // Password hashing
+    let passwordHash: string | undefined;
+    if (dto.password) {
+      passwordHash = await this.passwordService.hash(dto.password);
+    }
+
+    // Handle image update or removal
+    let imageUrl: string | null | undefined;
+    if (imageFile && imageFile.buffer && imageFile.buffer.length > 0) {
+      // Upload new image
+      imageUrl = await this.storageService.uploadFile(
+        imageFile.buffer,
+        imageFile.originalname,
+        imageFile.mimetype,
+      );
+      // Delete old image if one existed
+      if (user.imageUrl) {
+        await this.storageService.deleteFile(user.imageUrl);
+      }
+    } else if (dto.removeImage === true) {
+      if (user.imageUrl) {
+        await this.storageService.deleteFile(user.imageUrl);
+      }
+      imageUrl = null;
+    }
+
+    // Validate classId if user is student and classId provided
+    if (user.role === Role.STUDENT && dto.classId !== undefined) {
+      if (dto.classId) {
+        const cls = await this.prisma.class.findUnique({
+          where: { id: dto.classId },
+        });
+        if (!cls) {
+          throw new BadRequestException({
+            statusCode: 400,
+            errorCode: 'CLASS_NOT_FOUND',
+            message: 'The specified class does not exist',
+          });
+        }
+      }
+    }
+
+    // Build update data
+    const updateData: any = {};
+    if (dto.firstName !== undefined) updateData.firstName = dto.firstName;
+    if (dto.lastName !== undefined) updateData.lastName = dto.lastName;
+    if (dto.accountState !== undefined) updateData.accountState = dto.accountState;
+    if (passwordHash !== undefined) updateData.passwordHash = passwordHash;
+    if (imageUrl !== undefined) updateData.imageUrl = imageUrl;
+
+    // Handle studentProfile.classId update if applicable
+    if (user.role === Role.STUDENT && dto.classId !== undefined) {
+      updateData.studentProfile = {
+        upsert: {
+          create: {
+            classId: dto.classId || null,
+          },
+          update: {
+            classId: dto.classId || null,
+          },
+        },
+      };
+    }
+
+    return this.prisma.user.update({
+      where: { id },
+      data: updateData,
+      select: {
+        id: true,
+        nationalId: true,
+        firstName: true,
+        lastName: true,
+        username: true,
+        role: true,
+        accountState: true,
+        imageUrl: true,
+        teacherProfile: true,
+        studentProfile: {
+          include: {
+            class: true,
+            currentTier: true,
+          },
+        },
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+  }
+
+  async deleteUser(id: string, adminId: string, correlationId?: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+    });
+
+    if (!user) {
+      throw new NotFoundException({
+        statusCode: 404,
+        errorCode: 'USER_NOT_FOUND',
+        message: `User with ID ${id} not found`,
+      });
+    }
+
+    // Prevent self-deletion
+    if (id === adminId) {
+      throw new BadRequestException({
+        statusCode: 400,
+        errorCode: 'CANNOT_DELETE_SELF',
+        message: 'مدیر نمی‌تواند حساب خود را حذف کند.',
+      });
+    }
+
+    // Departure cleanup if not already departed
+    if (user.accountState !== AccountState.DEPARTED) {
+      if (user.role === Role.STUDENT) {
+        await this.academicService.handleStudentDeparture(id, adminId, correlationId);
+      } else if (user.role === Role.TEACHER) {
+        await this.academicService.handleTeacherDeparture(id, adminId, correlationId);
+      }
+    }
+
+    // Invalidate sessions
+    await this.redisService.deleteSessionsForUser(id);
+
+    // Clean up profile image from storage
+    if (user.imageUrl) {
+      await this.storageService.deleteFile(user.imageUrl);
+    }
+
+    // Delete user (Prisma cascade handles all child relations)
+    await this.prisma.user.delete({
+      where: { id },
     });
   }
 
