@@ -23,7 +23,7 @@ import {
 } from 'lucide-vue-next';
 import { useAuthStore } from '../stores/auth';
 import { useNotificationsStore } from '../stores/notifications';
-import { toPersianDigits, api } from '@student-reward/shared';
+import { toPersianDigits, api, resolveFileUrl } from '@student-reward/shared';
 
 const route = useRoute();
 const router = useRouter();
@@ -167,7 +167,7 @@ async function handleLogout() {
             <div class="w-9 h-9 rounded-xl bg-blue-700 text-white flex items-center justify-center text-xs font-black shrink-0 overflow-hidden">
               <img
                 v-if="authStore.user?.imageUrl"
-                :src="authStore.user.imageUrl"
+                :src="resolveFileUrl(authStore.user.imageUrl)"
                 :alt="authStore.user.firstName"
                 class="w-full h-full object-cover"
               />

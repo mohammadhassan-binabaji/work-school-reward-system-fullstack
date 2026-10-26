@@ -301,3 +301,67 @@ export function resolveTeacherPointDelta(log: PointAuditLog, teacherId?: string)
 
   return 0;
 }
+
+export interface ResolveFileUrlOptions {
+  /** Force treating this path as a remote backend file even if pattern doesn't match */
+  remote?: boolean;
+  /** Fallback URL or placeholder if path is empty */
+  fallback?: string;
+  /** Custom base URL to override environment variable */
+  baseUrl?: string;
+}
+
+/**
+ * Resolves a file/image URL safely across Web and Capacitor Android.
+ * - Leaves already qualified protocols (http:, https:, data:, blob:, capacitor:, file:, //) untouched.
+ * - Leaves bundled local assets (/assets/, assets/) untouched so they load locally from the APK bundle.
+ * - Prepends remote storage host to backend upload paths (/uploads/, uploads/) or when remote=true.
+ */
+export function resolveFileUrl(
+  path?: string | null,
+  options: ResolveFileUrlOptions = {}
+): string {
+  if (!path || typeof path !== 'string') {
+    return options.fallback || '';
+  }
+
+  const trimmed = path.trim();
+  if (!trimmed) return options.fallback || '';
+
+  // 1. Leave already absolute or scheme-based URLs as-is
+  if (/^(https?:|data:|blob:|capacitor:|file:|\/\/)/i.test(trimmed)) {
+    return trimmed;
+  }
+
+  // 2. Leave bundled local assets as-is (loaded from local APK bundle / localhost)
+  if (!options.remote && (trimmed.startsWith('/assets/') || trimmed.startsWith('assets/'))) {
+    return trimmed;
+  }
+
+  // 3. Resolve backend-uploaded assets or remote requests to remote storage host
+  const isUploadPath = trimmed.startsWith('/uploads/') || trimmed.startsWith('uploads/');
+  if (options.remote || isUploadPath) {
+    let rawBase = options.baseUrl;
+    if (!rawBase && typeof import.meta !== 'undefined') {
+      const env = (import.meta as any).env;
+      rawBase = env?.VITE_STORAGE_BASE_URL;
+      if (!rawBase && env?.VITE_API_BASE_URL) {
+        try {
+          rawBase = new URL(env.VITE_API_BASE_URL).origin;
+        } catch {
+          // ignore parsing error
+        }
+      }
+    }
+    if (!rawBase) {
+      rawBase = 'https://student.mhbj.ir';
+    }
+
+    const cleanBase = rawBase.replace(/\/+$/, '');
+    const cleanPath = trimmed.replace(/^\/+/, '');
+    return `${cleanBase}/${cleanPath}`;
+  }
+
+  // Default: return relative path for other local static assets
+  return trimmed;
+}

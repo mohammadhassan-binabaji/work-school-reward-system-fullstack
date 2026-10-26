@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router';
 import { Bell, LogOut, Coins } from 'lucide-vue-next';
 import { useAuthStore } from '../stores/auth';
 import { useNotificationsStore } from '../stores/notifications';
-import { toPersianDigits, formatNovin } from '@student-reward/shared';
+import { toPersianDigits, formatNovin, resolveFileUrl } from '@student-reward/shared';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -32,7 +32,7 @@ async function handleLogout() {
       >
         <img
           v-if="authStore.user?.imageUrl"
-          :src="authStore.user.imageUrl"
+          :src="resolveFileUrl(authStore.user.imageUrl)"
           :alt="teacherName"
           class="w-full h-full rounded-full object-cover"
         />

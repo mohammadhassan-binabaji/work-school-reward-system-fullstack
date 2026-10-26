@@ -26,6 +26,7 @@ import ConfirmDialog from '../components/ConfirmDialog.vue';
 import {
   api,
   toPersianDigits,
+  resolveFileUrl,
   type User,
   type Role,
   type AccountState,
@@ -571,7 +572,7 @@ async function handleBulkImport() {
                     >
                       <img
                         v-if="u.imageUrl"
-                        :src="u.imageUrl"
+                        :src="resolveFileUrl(u.imageUrl)"
                         :alt="u.firstName"
                         class="w-full h-full object-cover"
                       />
@@ -913,7 +914,7 @@ async function handleBulkImport() {
           <!-- Existing image without new upload and not marked for removal -->
           <div v-else-if="editingUser.imageUrl && !editRemoveCurrentImage" class="flex items-center gap-3">
             <div class="w-12 h-12 rounded-xl overflow-hidden border border-slate-200 bg-slate-100 shrink-0">
-              <img :src="editingUser.imageUrl" alt="تصویر فعلی" class="w-full h-full object-cover" />
+              <img :src="resolveFileUrl(editingUser.imageUrl)" alt="تصویر فعلی" class="w-full h-full object-cover" />
             </div>
             <div class="flex items-center gap-2">
               <button

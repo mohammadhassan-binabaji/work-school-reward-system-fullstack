@@ -16,6 +16,7 @@ import {
   api,
   toPersianDigits,
   formatNovin,
+  resolveFileUrl,
   type Reward,
   type RewardRequest,
 } from '@student-reward/shared';
@@ -262,7 +263,7 @@ function getRequestStatusBadge(status: string): { label: string; style: string; 
             >
               <img
                 v-if="r.imageUrl"
-                :src="r.imageUrl"
+                :src="resolveFileUrl(r.imageUrl)"
                 :alt="r.name"
                 class="w-full h-full object-cover"
               />
@@ -380,7 +381,7 @@ function getRequestStatusBadge(status: string): { label: string; style: string; 
         >
           <img
             v-if="selectedReward.imageUrl"
-            :src="selectedReward.imageUrl"
+            :src="resolveFileUrl(selectedReward.imageUrl)"
             :alt="selectedReward.name"
             class="w-full h-full object-cover"
           />

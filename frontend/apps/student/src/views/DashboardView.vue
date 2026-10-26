@@ -23,6 +23,7 @@ import {
   formatJalaliDate,
   formatAuditLogDescription,
   resolveStudentPointDelta,
+  resolveFileUrl,
   getTierTheme,
   type DailySnapshot,
   type PointAuditLog,
@@ -523,7 +524,7 @@ const filteredActivities = computed(() => {
                 <div class="w-12 h-12 rounded-full ring-2 ring-slate-400 bg-slate-700 overflow-hidden shadow-md flex items-center justify-center">
                   <img
                     v-if="(leaderboardTab === 'school' ? schoolRankings : classRankings)?.topStudents[1].imageUrl"
-                    :src="(leaderboardTab === 'school' ? schoolRankings : classRankings)?.topStudents[1].imageUrl"
+                    :src="resolveFileUrl((leaderboardTab === 'school' ? schoolRankings : classRankings)?.topStudents[1].imageUrl)"
                     :alt="(leaderboardTab === 'school' ? schoolRankings : classRankings)?.topStudents[1].studentName"
                     class="w-full h-full object-cover"
                   />
@@ -555,7 +556,7 @@ const filteredActivities = computed(() => {
                 <div class="w-14 h-14 rounded-full ring-2 ring-amber-300 bg-amber-950 overflow-hidden shadow-neon-gold flex items-center justify-center">
                   <img
                     v-if="(leaderboardTab === 'school' ? schoolRankings : classRankings)?.topStudents[0].imageUrl"
-                    :src="(leaderboardTab === 'school' ? schoolRankings : classRankings)?.topStudents[0].imageUrl"
+                    :src="resolveFileUrl((leaderboardTab === 'school' ? schoolRankings : classRankings)?.topStudents[0].imageUrl)"
                     :alt="(leaderboardTab === 'school' ? schoolRankings : classRankings)?.topStudents[0].studentName"
                     class="w-full h-full object-cover"
                   />
@@ -590,7 +591,7 @@ const filteredActivities = computed(() => {
                 <div class="w-12 h-12 rounded-full ring-2 ring-amber-700 bg-amber-950 overflow-hidden shadow-md flex items-center justify-center">
                   <img
                     v-if="(leaderboardTab === 'school' ? schoolRankings : classRankings)?.topStudents[2].imageUrl"
-                    :src="(leaderboardTab === 'school' ? schoolRankings : classRankings)?.topStudents[2].imageUrl"
+                    :src="resolveFileUrl((leaderboardTab === 'school' ? schoolRankings : classRankings)?.topStudents[2].imageUrl)"
                     :alt="(leaderboardTab === 'school' ? schoolRankings : classRankings)?.topStudents[2].studentName"
                     class="w-full h-full object-cover"
                   />

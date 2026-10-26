@@ -7,6 +7,7 @@ import {
   api,
   toPersianDigits,
   formatNovin,
+  resolveFileUrl,
   type TeacherAssignment,
   type Class,
 } from '@student-reward/shared';
@@ -140,7 +141,7 @@ function quickAward(assignmentId: string, studentId: string) {
                 <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-indigo-300 p-[1.5px] shadow-xs shrink-0 overflow-hidden">
                   <img
                     v-if="s.user.imageUrl"
-                    :src="s.user.imageUrl"
+                    :src="resolveFileUrl(s.user.imageUrl)"
                     :alt="s.user.firstName"
                     class="w-full h-full rounded-full object-cover"
                   />

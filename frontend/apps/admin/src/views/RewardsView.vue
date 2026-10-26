@@ -19,6 +19,7 @@ import {
   toPersianDigits,
   formatNovin,
   formatJalaliDateTime,
+  resolveFileUrl,
   type Reward,
   type RewardRequest,
   type RewardRequestStatus,
@@ -343,7 +344,7 @@ function askDeleteReward(id: string) {
       >
         <div class="space-y-2">
           <div class="w-full h-32 rounded-2xl bg-slate-100 flex items-center justify-center overflow-hidden mb-2">
-            <img v-if="r.imageUrl" :src="r.imageUrl" :alt="r.name" class="w-full h-full object-cover" />
+            <img v-if="r.imageUrl" :src="resolveFileUrl(r.imageUrl)" :alt="r.name" class="w-full h-full object-cover" />
             <Gift v-else class="w-10 h-10 text-slate-400" />
           </div>
 

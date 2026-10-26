@@ -18,6 +18,7 @@ import {
   toPersianDigits,
   formatNovin,
   formatJalaliDateTime,
+  resolveFileUrl,
   type Activity,
   type VerificationRequest,
   type ActivityType,
@@ -270,7 +271,7 @@ async function handleUnban() {
                 <td class="p-3.5">
                   <a
                     v-if="v.fileAttachmentUrl"
-                    :href="v.fileAttachmentUrl"
+                    :href="resolveFileUrl(v.fileAttachmentUrl)"
                     target="_blank"
                     class="text-blue-600 hover:underline flex items-center gap-1 font-bold"
                   >
