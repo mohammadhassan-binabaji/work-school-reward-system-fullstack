@@ -10,6 +10,8 @@
 - As a student, I want to see the profile images of the top 3 students on the leaderboard podium so that top achievers are prominently recognized.
 - As a school administrator, I want to sign in with my national ID and password so that I can access administrative functions.
 - As a school administrator, I want to create classes so that the school structure is represented in the system.
+- As a school administrator, I want to edit classes and subjects so that curricular structures stay up-to-date.
+- As a school administrator, I want to delete obsolete classes and subjects so that inactive or mistakenly created records are removed.
 - As a school administrator, I want to assign each student to a class so that membership is managed centrally.
 - As a school administrator, I want to assign teachers to classes by subject so that teaching relationships are explicit.
 - As a school administrator, I want to manage rewards with prices, inventory, and an optional approval requirement so that students can redeem available rewards.

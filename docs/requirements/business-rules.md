@@ -11,6 +11,8 @@
 - Leaving the school removes a teacher's balance, class assignments, and relationships.
 - Deactivation preserves a teacher's balance and relationships but prevents all teacher actions.
 - Removing a teacher from a class removes the assignment but does not change the teacher's balance; administrators handle any balance change separately.
+- Deleting a class unassigns all students belonging to that class without altering their point balance or reward requests, and removes all teacher assignments to that class.
+- Deleting a subject removes all teacher-class-subject assignments referencing that subject.
 - Teacher reward eligibility is based on the student's membership in a class assigned to that teacher.
 - Teacher awards are positive only.
 - Teachers must select an administrator-defined task and one of its predefined point-amount options when awarding points.

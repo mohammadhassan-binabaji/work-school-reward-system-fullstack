@@ -36,6 +36,11 @@ The system enables teachers to award points to students for actions such as comp
 ### Class and membership management
 
 - Administrators shall create classes.
+- Administrators shall edit class details (name, grade level, description, and active status).
+- Administrators shall delete classes; deleting a class unassigns its students and removes its teacher assignments.
+- Administrators shall create subjects.
+- Administrators shall edit subject details (name and description).
+- Administrators shall delete subjects; deleting a subject removes associated teacher assignments.
 - Administrators shall assign students to classes.
 - Each student shall belong to exactly one class.
 - Changing a student's class shall not change the student's point balance or reward requests.
