@@ -213,7 +213,7 @@ model TeacherClassSubjectAssignment {
   createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz
   updatedAt DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
-  @@unique([teacherId, classId, subjectId])
+  @@unique([teacherId, classId, subjectId], map: "teacher_assignments_unique_triplet")
   @@map("teacher_class_subject_assignments")
 }
 
@@ -355,7 +355,7 @@ model StudentActivityProgress {
   createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
-  @@unique([studentId, activityId])
+  @@unique([studentId, activityId], map: "student_activity_progress_unique")
   @@map("student_activity_progress")
 }
 
@@ -422,12 +422,29 @@ model DailyStudentSnapshot {
   @@map("daily_student_snapshots")
 }
 
+model GuidanceCategory {
+  id        String             @id @default(uuid()) @db.Uuid
+  title     String             @db.VarChar(150)
+  iconKey   String?            @map("icon_key") @db.VarChar(100)
+  sortOrder Int                @default(0) @map("sort_order")
+  status    GuidanceCardStatus @default(ACTIVE)
+  createdAt DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  cards GuidanceCard[]
+
+  @@map("guidance_categories")
+}
+
 model GuidanceCard {
   id              String             @id @default(uuid()) @db.Uuid
+  categoryId      String             @map("category_id") @db.Uuid
+  category        GuidanceCategory   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   title           String             @db.VarChar(150)
   description     String             @db.Text
   logoKey         String             @map("logo_key") @db.VarChar(100)
   pointRangeLabel String             @map("point_range_label") @db.VarChar(100)
+  sortOrder       Int                @default(0) @map("sort_order")
   status          GuidanceCardStatus @default(ACTIVE)
   createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz
   updatedAt       DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz

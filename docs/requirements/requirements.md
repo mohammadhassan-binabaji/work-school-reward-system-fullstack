@@ -172,11 +172,14 @@ The system enables teachers to award points to students for actions such as comp
 
 ### `Point earning guidance`
 
-- The system shall provide a guidance page for students displaying cards that describe ways to earn points.
-- Only administrators shall be able to create, edit, and delete guidance cards.
-- Each guidance card shall have a title, a description, a logo selected from a set of predefined logos, and a suggested point value or point range (such as 10 to 20 points).
-- Guidance cards shall be display-only for students; students shall not be able to click on or take any action on a card.
-- The guidance page shall be visible to students.
+- The system shall provide a guidance page for students displaying categorized activity directories that describe ways to earn points.
+- Only administrators shall be able to create, edit, reorder, and delete guidance categories (groups).
+- Only administrators shall be able to create, edit, and delete guidance cards, assigning each card to a designated guidance category.
+- Each guidance category shall have a title, an optional icon identifier, a display sort order, and an active status.
+- Each guidance card shall have a title, a description, a category assignment, a logo selected from a predefined catalog, a suggested point value or point range (such as 10 to 20 points), and a display sort order.
+- The student guidance page shall organize activities into collapsible category accordions. Inside each accordion, activities are displayed in a compact 2-column table (activity title on the right, suggested points badge on the left).
+- Tapping an activity row in the student table shall open an overlaid Activity Detail Modal showing the activity title, suggested point badge, and full description.
+- The guidance page shall be visible to students, teachers, and administrators.
 
 ### In-app notifications
 

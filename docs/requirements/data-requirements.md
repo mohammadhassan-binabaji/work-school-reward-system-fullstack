@@ -223,17 +223,28 @@ Each message within a task proposal must preserve:
 - Message body
 - Sent date and time
 
-## Point Earning Guidance Card
+## Point Earning Guidance Categories and Cards
 
+### Guidance Category
+Each guidance category must store:
+- Title (e.g. Educational, Disciplinary, Cultural & Sports)
+- Optional icon identifier
+- Display sort order
+- Active or removed state
+- Timestamps (created at, updated at)
+
+### Guidance Card
 Each guidance card must store:
-
+- Associated guidance category (foreign key reference)
 - Title
 - Description
 - Logo selected from a predefined set of logos
 - Suggested point value or point range (such as 10 to 20 points)
+- Display sort order within category
 - Active or removed state
+- Timestamps (created at, updated at)
 
-Only administrators can create, edit, and delete guidance cards. Cards are display-only for students and do not support any student interaction.
+Only administrators can create, edit, reorder, and delete guidance categories and cards. Cards are organized into category accordions on the student interface, with row tap opening an informational detail modal.
 
 ## Student Tier
 

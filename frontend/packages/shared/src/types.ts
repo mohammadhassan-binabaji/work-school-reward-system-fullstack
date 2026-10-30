@@ -259,12 +259,26 @@ export interface TaskProposalMessage {
   createdAt: string;
 }
 
+export interface GuidanceCategory {
+  id: string;
+  title: string;
+  iconKey?: string | null;
+  sortOrder: number;
+  status: GuidanceCardStatus;
+  createdAt: string;
+  updatedAt: string;
+  cards?: GuidanceCard[];
+}
+
 export interface GuidanceCard {
   id: string;
+  categoryId: string;
+  category?: GuidanceCategory;
   title: string;
   description: string;
   logoKey: string;
   pointRangeLabel: string;
+  sortOrder: number;
   status: GuidanceCardStatus;
   createdAt: string;
   updatedAt: string;

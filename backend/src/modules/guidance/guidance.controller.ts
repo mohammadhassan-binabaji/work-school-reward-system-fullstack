@@ -6,11 +6,12 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   HttpCode,
   HttpStatus,
   ParseUUIDPipe,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiCookieAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiCookieAuth, ApiQuery } from '@nestjs/swagger';
 import { GuidanceService } from './guidance.service';
 import { CreateGuidanceCardDto, UpdateGuidanceCardDto } from './dto/guidance.dto';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -35,8 +36,12 @@ export class GuidanceController {
   @Roles('ADMIN', 'TEACHER', 'STUDENT')
   @Get()
   @ApiOperation({ summary: 'List guidance cards (Display-only for students)' })
-  async findAllGuidanceCards(@CurrentUser('role') role?: Role) {
-    return this.guidanceService.findAllGuidanceCards(role);
+  @ApiQuery({ name: 'categoryId', required: false, type: String })
+  async findAllGuidanceCards(
+    @CurrentUser('role') role?: Role,
+    @Query('categoryId') categoryId?: string,
+  ) {
+    return this.guidanceService.findAllGuidanceCards(role, categoryId);
   }
 
   @Roles('ADMIN', 'TEACHER', 'STUDENT')

@@ -212,27 +212,76 @@ async function main() {
   });
   console.log('✓ Seeded Sample Activities');
 
-  // 8. Seed Guidance Cards
+  // 8. Seed Guidance Categories & Cards
+  const academicCat = await prisma.guidanceCategory.create({
+    data: {
+      title: 'فعالیت‌های آموزشی',
+      iconKey: 'graduation-cap',
+      sortOrder: 1,
+      status: GuidanceCardStatus.ACTIVE,
+    },
+  });
+
+  const disciplinaryCat = await prisma.guidanceCategory.create({
+    data: {
+      title: 'فعالیت‌های انضباطی',
+      iconKey: 'shield',
+      sortOrder: 2,
+      status: GuidanceCardStatus.ACTIVE,
+    },
+  });
+
+  const culturalCat = await prisma.guidanceCategory.create({
+    data: {
+      title: 'فعالیت‌های فرهنگی و ورزشی',
+      iconKey: 'trophy',
+      sortOrder: 3,
+      status: GuidanceCardStatus.ACTIVE,
+    },
+  });
+
   await prisma.guidanceCard.createMany({
     data: [
       {
-        title: 'Participate in Class Discussions',
-        description: 'Actively speak up and contribute thoughtful questions during class lessons',
+        categoryId: academicCat.id,
+        title: 'شرکت فعال در مباحث کلاس',
+        description: 'مشارکت فعال و مؤثر در مباحث کلاسی و پاسخ به پرسش‌های درسی معلم',
         logoKey: 'chat-bubble-outline',
-        pointRangeLabel: '5 to 15 pts',
+        pointRangeLabel: '۱۰ تا ۳۰ نوین',
+        sortOrder: 1,
         status: GuidanceCardStatus.ACTIVE,
       },
       {
-        title: 'Complete Weekly STEM Challenges',
-        description: 'Solve creative engineering or math puzzles posted weekly by science teachers',
+        categoryId: academicCat.id,
+        title: 'کسب نمره برتر در آزمون‌های کلاسی',
+        description: 'کسب نمرات عالی و پیشرفت محسوس در ارزشیابی‌های مستمر',
         logoKey: 'lightbulb-outline',
-        pointRangeLabel: '20 to 50 pts',
+        pointRangeLabel: '۲۰ تا ۵۰ نوین',
+        sortOrder: 2,
+        status: GuidanceCardStatus.ACTIVE,
+      },
+      {
+        categoryId: disciplinaryCat.id,
+        title: 'حضور به موقع و نظم در ورود به کلاس',
+        description: 'رعایت دقیق زمان‌بندی کلاسی و عدم تاخیر در طول هفته',
+        logoKey: 'shield',
+        pointRangeLabel: '۱۰ تا ۲۰ نوین',
+        sortOrder: 1,
+        status: GuidanceCardStatus.ACTIVE,
+      },
+      {
+        categoryId: culturalCat.id,
+        title: 'کسب رتبه در مسابقات ورزشی یا فرهنگی',
+        description: 'حضور و درخشش در رویدادها، مسابقات ورزشی یا فرهنگی مدرسه‌ای و منطقه‌ای',
+        logoKey: 'trophy',
+        pointRangeLabel: '۵۰ تا ۱۰۰ نوین',
+        sortOrder: 1,
         status: GuidanceCardStatus.ACTIVE,
       },
     ],
     skipDuplicates: true,
   });
-  console.log('✓ Seeded Guidance Cards');
+  console.log('✓ Seeded Guidance Categories & Cards');
 
   console.log('Database seeding complete.');
 }

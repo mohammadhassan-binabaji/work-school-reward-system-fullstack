@@ -74,8 +74,8 @@
 - Students and administrators can exchange messages on a task proposal throughout its lifecycle.
 - Teachers cannot see or participate in student task proposals.
 - Task proposals use status labels `Pending to Approve`, `Ready to Do`, `Completed`, `Declined`, and `Canceled`.
-- Point earning guidance cards are managed exclusively by administrators.
-- Guidance cards are informational and display-only; students cannot interact with them beyond viewing.
+- Point earning guidance categories and cards are managed exclusively by administrators.
+- Guidance cards are organized under categories and present informational rubrics; students view them via collapsible accordions and two-column activity tables, with row taps revealing activity details in an overlaid modal.
 - Every user (student, teacher, and school administrator) possesses an individual in-app notification inbox.
 - System events create notification records in `Unread` state immediately upon occurrence for the affected recipient.
 - Student notifications are generated for: reward request status transitions (`Pending to Receive`, `Completed`, `Declined`), task proposal status transitions and administrator messages, teacher point awards, administrator point adjustments, and challenge/mission verification reviews (including rejection ban or manual unblock).

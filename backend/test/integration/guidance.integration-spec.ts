@@ -67,24 +67,40 @@ describe('Guidance Cards Integration Tests', () => {
     studentCookie = studentAuth.cookie;
   });
 
-  it('allows admin to create, read, update, and delete guidance cards (FR-064)', async () => {
-    // 1. Create Guidance Card
+  it('allows admin to create, read, update, and delete guidance categories and cards (FR-064)', async () => {
+    // 1. Create Category
+    const catRes = await request(app.getHttpServer())
+      .post('/api/v1/guidance-categories')
+      .set('Cookie', adminCookie)
+      .send({
+        title: 'Sports & Athletics',
+        iconKey: 'trophy',
+        sortOrder: 1,
+      })
+      .expect(201);
+
+    const categoryId = catRes.body.id;
+    expect(catRes.body.title).toBe('Sports & Athletics');
+
+    // 2. Create Guidance Card under category
     const createRes = await request(app.getHttpServer())
       .post('/api/v1/guidance-cards')
       .set('Cookie', adminCookie)
       .send({
+        categoryId,
         title: 'Join School Sports Team',
         description: 'Participate in after-school athletics to earn points',
         logoKey: 'sports_soccer',
         pointRangeLabel: '15 to 30 points',
+        sortOrder: 1,
       })
       .expect(201);
 
     const cardId = createRes.body.id;
     expect(createRes.body.title).toBe('Join School Sports Team');
-    expect(createRes.body.logoKey).toBe('sports_soccer');
+    expect(createRes.body.categoryId).toBe(categoryId);
 
-    // 2. Update Guidance Card
+    // 3. Update Guidance Card
     const updateRes = await request(app.getHttpServer())
       .patch(`/api/v1/guidance-cards/${cardId}`)
       .set('Cookie', adminCookie)
@@ -97,7 +113,18 @@ describe('Guidance Cards Integration Tests', () => {
     expect(updateRes.body.title).toBe('Join Varsity Sports');
     expect(updateRes.body.pointRangeLabel).toBe('20 to 40 points');
 
-    // 3. Delete Guidance Card
+    // 4. Update Category
+    const updateCatRes = await request(app.getHttpServer())
+      .patch(`/api/v1/guidance-categories/${categoryId}`)
+      .set('Cookie', adminCookie)
+      .send({
+        title: 'Athletics & Competitions',
+      })
+      .expect(200);
+
+    expect(updateCatRes.body.title).toBe('Athletics & Competitions');
+
+    // 5. Delete Guidance Card
     await request(app.getHttpServer())
       .delete(`/api/v1/guidance-cards/${cardId}`)
       .set('Cookie', adminCookie)
@@ -105,14 +132,34 @@ describe('Guidance Cards Integration Tests', () => {
 
     const check = await prisma.guidanceCard.findUnique({ where: { id: cardId } });
     expect(check?.status).toBe('REMOVED');
+
+    // 6. Delete Category
+    await request(app.getHttpServer())
+      .delete(`/api/v1/guidance-categories/${categoryId}`)
+      .set('Cookie', adminCookie)
+      .expect(200);
+
+    const checkCat = await prisma.guidanceCategory.findUnique({ where: { id: categoryId } });
+    expect(checkCat?.status).toBe('REMOVED');
   });
 
   it('enforces student read-only access and rejects student mutations (FR-065)', async () => {
-    // Admin creates card
+    // Admin creates category and card
+    const catRes = await request(app.getHttpServer())
+      .post('/api/v1/guidance-categories')
+      .set('Cookie', adminCookie)
+      .send({
+        title: 'Academic Activities',
+        iconKey: 'graduation-cap',
+      })
+      .expect(201);
+    const categoryId = catRes.body.id;
+
     const createRes = await request(app.getHttpServer())
       .post('/api/v1/guidance-cards')
       .set('Cookie', adminCookie)
       .send({
+        categoryId,
         title: 'Reading Challenge',
         description: 'Read 3 books per term',
         logoKey: 'book_icon',
@@ -120,6 +167,14 @@ describe('Guidance Cards Integration Tests', () => {
       })
       .expect(201);
     const cardId = createRes.body.id;
+
+    // Student can list guidance categories with their cards
+    const catListRes = await request(app.getHttpServer())
+      .get('/api/v1/guidance-categories')
+      .set('Cookie', studentCookie)
+      .expect(200);
+
+    expect(catListRes.body.some((c: any) => c.id === categoryId)).toBe(true);
 
     // Student can list guidance cards
     const listRes = await request(app.getHttpServer())
@@ -129,11 +184,21 @@ describe('Guidance Cards Integration Tests', () => {
 
     expect(listRes.body.some((c: any) => c.id === cardId)).toBe(true);
 
+    // Student cannot create guidance category
+    await request(app.getHttpServer())
+      .post('/api/v1/guidance-categories')
+      .set('Cookie', studentCookie)
+      .send({
+        title: 'Illegal Student Category',
+      })
+      .expect(403);
+
     // Student cannot create guidance card
     await request(app.getHttpServer())
       .post('/api/v1/guidance-cards')
       .set('Cookie', studentCookie)
       .send({
+        categoryId,
         title: 'Illegal Student Card',
         description: 'Desc',
         logoKey: 'logo',

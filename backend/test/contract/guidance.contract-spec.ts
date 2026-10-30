@@ -58,7 +58,7 @@ describe('Guidance Cards Contract Tests (e2e)', () => {
       .send({})
       .expect(400);
 
-    // Missing logoKey and pointRangeLabel
+    // Missing categoryId, logoKey and pointRangeLabel
     await request(app.getHttpServer())
       .post('/api/v1/guidance-cards')
       .set('Cookie', adminCookie)
@@ -66,6 +66,36 @@ describe('Guidance Cards Contract Tests (e2e)', () => {
         title: 'Title only',
         description: 'Description',
       })
+      .expect(400);
+
+    // Invalid categoryId (not UUID)
+    await request(app.getHttpServer())
+      .post('/api/v1/guidance-cards')
+      .set('Cookie', adminCookie)
+      .send({
+        categoryId: 'not-a-uuid',
+        title: 'Title',
+        description: 'Desc',
+        logoKey: 'shield',
+        pointRangeLabel: '10 pts',
+      })
+      .expect(400);
+  });
+
+  it('POST /api/v1/guidance-categories validates required fields', async () => {
+    // Missing title
+    await request(app.getHttpServer())
+      .post('/api/v1/guidance-categories')
+      .set('Cookie', adminCookie)
+      .send({})
+      .expect(400);
+  });
+
+  it('PATCH /api/v1/guidance-categories/:id validates status enum', async () => {
+    await request(app.getHttpServer())
+      .patch('/api/v1/guidance-categories/00000000-0000-0000-0000-000000000000')
+      .set('Cookie', adminCookie)
+      .send({ status: 'INVALID_STATUS' })
       .expect(400);
   });
 
