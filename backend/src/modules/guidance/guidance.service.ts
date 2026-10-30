@@ -6,7 +6,6 @@ import {
   CreateGuidanceCategoryDto,
   UpdateGuidanceCategoryDto,
 } from './dto/guidance.dto';
-import { GuidanceCardStatus, Role } from '@prisma/client';
 
 @Injectable()
 export class GuidanceService {
@@ -20,20 +19,14 @@ export class GuidanceService {
         title: dto.title,
         iconKey: dto.iconKey,
         sortOrder: dto.sortOrder ?? 0,
-        status: dto.status || GuidanceCardStatus.ACTIVE,
       },
     });
   }
 
-  async findAllCategories(currentUserRole?: Role) {
-    const isStudent = currentUserRole === Role.STUDENT;
-    const where = isStudent ? { status: GuidanceCardStatus.ACTIVE } : {};
-
+  async findAllCategories() {
     return this.prisma.guidanceCategory.findMany({
-      where,
       include: {
         cards: {
-          where: isStudent ? { status: GuidanceCardStatus.ACTIVE } : {},
           orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
         },
       },
@@ -66,14 +59,8 @@ export class GuidanceService {
 
   async deleteCategory(id: string) {
     await this.findCategoryById(id);
-    // Soft-delete category and its cards
-    await this.prisma.guidanceCard.updateMany({
-      where: { categoryId: id },
-      data: { status: GuidanceCardStatus.REMOVED },
-    });
-    return this.prisma.guidanceCategory.update({
+    return this.prisma.guidanceCategory.delete({
       where: { id },
-      data: { status: GuidanceCardStatus.REMOVED },
     });
   }
 
@@ -90,17 +77,13 @@ export class GuidanceService {
         logoKey: dto.logoKey,
         pointRangeLabel: dto.pointRangeLabel,
         sortOrder: dto.sortOrder ?? 0,
-        status: dto.status || GuidanceCardStatus.ACTIVE,
       },
       include: { category: true },
     });
   }
 
-  async findAllGuidanceCards(currentUserRole?: Role, categoryId?: string) {
+  async findAllGuidanceCards(categoryId?: string) {
     const where: any = {};
-    if (currentUserRole === Role.STUDENT) {
-      where.status = GuidanceCardStatus.ACTIVE;
-    }
     if (categoryId) {
       where.categoryId = categoryId;
     }
@@ -142,9 +125,8 @@ export class GuidanceService {
 
   async deleteGuidanceCard(id: string) {
     await this.findGuidanceCardById(id);
-    return this.prisma.guidanceCard.update({
+    return this.prisma.guidanceCard.delete({
       where: { id },
-      data: { status: GuidanceCardStatus.REMOVED },
     });
   }
 }

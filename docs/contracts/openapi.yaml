@@ -650,9 +650,6 @@ components:
           type: integer
           minimum: 0
           default: 0
-        status:
-          type: string
-          enum: [ACTIVE, REMOVED]
 
     UpdateGuidanceCategoryDto:
       type: object
@@ -666,9 +663,6 @@ components:
         sortOrder:
           type: integer
           minimum: 0
-        status:
-          type: string
-          enum: [ACTIVE, REMOVED]
 
     GuidanceCategoryDto:
       type: object
@@ -682,9 +676,6 @@ components:
           type: string
         sortOrder:
           type: integer
-        status:
-          type: string
-          enum: [ACTIVE, REMOVED]
         createdAt:
           type: string
           format: date-time
@@ -723,9 +714,6 @@ components:
           type: integer
           minimum: 0
           default: 0
-        status:
-          type: string
-          enum: [ACTIVE, REMOVED]
 
     GuidanceCardDto:
       type: object
@@ -746,9 +734,6 @@ components:
           type: string
         sortOrder:
           type: integer
-        status:
-          type: string
-          enum: [ACTIVE, REMOVED]
         createdAt:
           type: string
           format: date-time
@@ -776,9 +761,6 @@ components:
         sortOrder:
           type: integer
           minimum: 0
-        status:
-          type: string
-          enum: [ACTIVE, REMOVED]
 
     VerificationRequestDto:
       type: object

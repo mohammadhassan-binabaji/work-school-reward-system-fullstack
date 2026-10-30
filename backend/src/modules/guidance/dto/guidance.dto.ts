@@ -2,14 +2,12 @@ import {
   IsNotEmpty,
   IsString,
   MaxLength,
-  IsEnum,
   IsOptional,
   IsUUID,
   IsInt,
   Min,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { GuidanceCardStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
 
 export class CreateGuidanceCategoryDto {
@@ -31,11 +29,6 @@ export class CreateGuidanceCategoryDto {
   @IsInt()
   @Min(0)
   sortOrder?: number;
-
-  @ApiPropertyOptional({ enum: GuidanceCardStatus, default: GuidanceCardStatus.ACTIVE })
-  @IsOptional()
-  @IsEnum(GuidanceCardStatus)
-  status?: GuidanceCardStatus;
 }
 
 export class UpdateGuidanceCategoryDto {
@@ -57,11 +50,6 @@ export class UpdateGuidanceCategoryDto {
   @IsInt()
   @Min(0)
   sortOrder?: number;
-
-  @ApiPropertyOptional({ enum: GuidanceCardStatus })
-  @IsOptional()
-  @IsEnum(GuidanceCardStatus)
-  status?: GuidanceCardStatus;
 }
 
 export class CreateGuidanceCardDto {
@@ -99,11 +87,6 @@ export class CreateGuidanceCardDto {
   @IsInt()
   @Min(0)
   sortOrder?: number;
-
-  @ApiPropertyOptional({ enum: GuidanceCardStatus, default: GuidanceCardStatus.ACTIVE })
-  @IsOptional()
-  @IsEnum(GuidanceCardStatus)
-  status?: GuidanceCardStatus;
 }
 
 export class UpdateGuidanceCardDto {
@@ -141,9 +124,4 @@ export class UpdateGuidanceCardDto {
   @IsInt()
   @Min(0)
   sortOrder?: number;
-
-  @ApiPropertyOptional({ enum: GuidanceCardStatus })
-  @IsOptional()
-  @IsEnum(GuidanceCardStatus)
-  status?: GuidanceCardStatus;
 }

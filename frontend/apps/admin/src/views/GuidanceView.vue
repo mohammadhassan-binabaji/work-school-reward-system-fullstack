@@ -45,11 +45,11 @@ const categoryIconKey = ref('graduation-cap');
 const categorySortOrder = ref<number>(1);
 const categorySaving = ref(false);
 
-// Confirm Dialog State
+// Confirm Dialog State (Category Deletion)
 const isConfirmOpen = ref(false);
-const deleteType = ref<'card' | 'category'>('card');
-const deleteTargetId = ref('');
+const deleteTargetCategoryId = ref('');
 const deleting = ref(false);
+const deletingCardId = ref<string | null>(null);
 
 const successMessage = ref<string | null>(null);
 const errorMessage = ref<string | null>(null);
@@ -133,9 +133,22 @@ async function handleSaveCategory() {
 }
 
 function askDeleteCategory(id: string) {
-  deleteType.value = 'category';
-  deleteTargetId.value = id;
+  deleteTargetCategoryId.value = id;
   isConfirmOpen.value = true;
+}
+
+async function handleConfirmDeleteCategory() {
+  deleting.value = true;
+  try {
+    await api.delete(`/guidance-categories/${deleteTargetCategoryId.value}`);
+    showSuccess('دسته‌بندی و کارت‌های زیرمجموعه آن با موفقیت حذف شدند.');
+    isConfirmOpen.value = false;
+    await loadData();
+  } catch (err: any) {
+    alert(err.message || 'خطا در حذف دسته‌بندی');
+  } finally {
+    deleting.value = false;
+  }
 }
 
 // Card operations
@@ -196,28 +209,17 @@ async function handleSaveCard() {
   }
 }
 
-function askDeleteCard(id: string) {
-  deleteType.value = 'card';
-  deleteTargetId.value = id;
-  isConfirmOpen.value = true;
-}
-
-async function handleConfirmDelete() {
-  deleting.value = true;
+async function handleDeleteCard(id: string) {
+  if (deletingCardId.value) return;
+  deletingCardId.value = id;
   try {
-    if (deleteType.value === 'category') {
-      await api.delete(`/guidance-categories/${deleteTargetId.value}`);
-      showSuccess('دسته‌بندی با موفقیت حذف شد.');
-    } else {
-      await api.delete(`/guidance-cards/${deleteTargetId.value}`);
-      showSuccess('کارت راهنما با موفقیت حذف شد.');
-    }
-    isConfirmOpen.value = false;
+    await api.delete(`/guidance-cards/${id}`);
+    showSuccess('کارت راهنما با موفقیت حذف شد.');
     await loadData();
   } catch (err: any) {
-    alert(err.message || 'خطا در حذف آیتم');
+    alert(err.message || 'خطا در حذف کارت راهنما');
   } finally {
-    deleting.value = false;
+    deletingCardId.value = null;
   }
 }
 
@@ -363,9 +365,10 @@ function getCategoryTitle(catId: string) {
                 <Edit2 class="w-4 h-4" />
               </button>
               <button
-                class="text-slate-400 hover:text-rose-600 p-1 rounded-lg transition-colors"
+                :disabled="deletingCardId === c.id"
+                class="text-slate-400 hover:text-rose-600 disabled:opacity-40 p-1 rounded-lg transition-colors"
                 title="حذف کارت"
-                @click="askDeleteCard(c.id)"
+                @click="handleDeleteCard(c.id)"
               >
                 <Trash2 class="w-4 h-4" />
               </button>
@@ -526,18 +529,14 @@ function getCategoryTitle(catId: string) {
       </template>
     </AdminModal>
 
-    <!-- Confirm Dialog -->
+    <!-- Confirm Dialog (Category Deletion) -->
     <ConfirmDialog
       :is-open="isConfirmOpen"
-      :title="deleteType === 'category' ? 'حذف دسته‌بندی' : 'حذف کارت راهنما'"
-      :message="
-        deleteType === 'category'
-          ? 'آیا از حذف این دسته‌بندی اطمینان دارید؟ کارت‌های درون این دسته‌بندی نیز غیرفعال می‌شوند.'
-          : 'آیا از حذف این کارت راهنما اطمینان دارید؟'
-      "
+      title="حذف دسته‌بندی"
+      message="آیا از حذف این دسته‌بندی اطمینان دارید؟ تمام کارت‌های راهنمای زیرمجموعه آن نیز برای همیشه حذف خواهند شد."
       :loading="deleting"
       is-destructive
-      @confirm="handleConfirmDelete"
+      @confirm="handleConfirmDeleteCategory"
       @cancel="isConfirmOpen = false"
     />
   </div>

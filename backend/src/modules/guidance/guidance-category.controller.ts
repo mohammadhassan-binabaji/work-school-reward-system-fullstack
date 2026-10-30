@@ -22,8 +22,6 @@ import {
   UpdateGuidanceCategoryDto,
 } from './dto/guidance.dto';
 import { Roles } from '../../common/decorators/roles.decorator';
-import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Role } from '@prisma/client';
 
 @ApiTags('guidance-categories')
 @ApiBearerAuth()
@@ -43,8 +41,8 @@ export class GuidanceCategoryController {
   @Roles('ADMIN', 'TEACHER', 'STUDENT')
   @Get()
   @ApiOperation({ summary: 'List guidance categories with cards' })
-  async findAllCategories(@CurrentUser('role') role?: Role) {
-    return this.guidanceService.findAllCategories(role);
+  async findAllCategories() {
+    return this.guidanceService.findAllCategories();
   }
 
   @Roles('ADMIN', 'TEACHER', 'STUDENT')

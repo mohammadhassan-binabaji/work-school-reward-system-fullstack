@@ -11,12 +11,10 @@ import {
   HttpStatus,
   ParseUUIDPipe,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiCookieAuth, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiCookieAuth, ApiQuery } from '@nestjs/swagger';
 import { GuidanceService } from './guidance.service';
 import { CreateGuidanceCardDto, UpdateGuidanceCardDto } from './dto/guidance.dto';
 import { Roles } from '../../common/decorators/roles.decorator';
-import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Role } from '@prisma/client';
 
 @ApiTags('guidance-cards')
 @ApiBearerAuth()
@@ -38,10 +36,9 @@ export class GuidanceController {
   @ApiOperation({ summary: 'List guidance cards (Display-only for students)' })
   @ApiQuery({ name: 'categoryId', required: false, type: String })
   async findAllGuidanceCards(
-    @CurrentUser('role') role?: Role,
     @Query('categoryId') categoryId?: string,
   ) {
-    return this.guidanceService.findAllGuidanceCards(role, categoryId);
+    return this.guidanceService.findAllGuidanceCards(categoryId);
   }
 
   @Roles('ADMIN', 'TEACHER', 'STUDENT')

@@ -124,23 +124,40 @@ describe('Guidance Cards Integration Tests', () => {
 
     expect(updateCatRes.body.title).toBe('Athletics & Competitions');
 
-    // 5. Delete Guidance Card
+    // 5. Delete Guidance Card (permanently deleted)
     await request(app.getHttpServer())
       .delete(`/api/v1/guidance-cards/${cardId}`)
       .set('Cookie', adminCookie)
       .expect(200);
 
     const check = await prisma.guidanceCard.findUnique({ where: { id: cardId } });
-    expect(check?.status).toBe('REMOVED');
+    expect(check).toBeNull();
 
-    // 6. Delete Category
+    // Create a sub-card under the category to test cascade deletion
+    const subCardRes = await request(app.getHttpServer())
+      .post('/api/v1/guidance-cards')
+      .set('Cookie', adminCookie)
+      .send({
+        categoryId,
+        title: 'Track and Field',
+        description: 'Running practice',
+        logoKey: 'trophy',
+        pointRangeLabel: '10 to 20 points',
+      })
+      .expect(201);
+    const subCardId = subCardRes.body.id;
+
+    // 6. Delete Category (permanently deletes category and cascade deletes its cards)
     await request(app.getHttpServer())
       .delete(`/api/v1/guidance-categories/${categoryId}`)
       .set('Cookie', adminCookie)
       .expect(200);
 
     const checkCat = await prisma.guidanceCategory.findUnique({ where: { id: categoryId } });
-    expect(checkCat?.status).toBe('REMOVED');
+    expect(checkCat).toBeNull();
+
+    const checkSubCard = await prisma.guidanceCard.findUnique({ where: { id: subCardId } });
+    expect(checkSubCard).toBeNull();
   });
 
   it('enforces student read-only access and rejects student mutations (FR-065)', async () => {

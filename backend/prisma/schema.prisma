@@ -99,11 +99,6 @@ enum ProposalStatus {
   CANCELED
 }
 
-enum GuidanceCardStatus {
-  ACTIVE
-  REMOVED
-}
-
 enum NotificationReadStatus {
   UNREAD
   READ
@@ -423,13 +418,12 @@ model DailyStudentSnapshot {
 }
 
 model GuidanceCategory {
-  id        String             @id @default(uuid()) @db.Uuid
-  title     String             @db.VarChar(150)
-  iconKey   String?            @map("icon_key") @db.VarChar(100)
-  sortOrder Int                @default(0) @map("sort_order")
-  status    GuidanceCardStatus @default(ACTIVE)
-  createdAt DateTime           @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+  id        String         @id @default(uuid()) @db.Uuid
+  title     String         @db.VarChar(150)
+  iconKey   String?        @map("icon_key") @db.VarChar(100)
+  sortOrder Int            @default(0) @map("sort_order")
+  createdAt DateTime       @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
   cards GuidanceCard[]
 
@@ -437,17 +431,16 @@ model GuidanceCategory {
 }
 
 model GuidanceCard {
-  id              String             @id @default(uuid()) @db.Uuid
-  categoryId      String             @map("category_id") @db.Uuid
-  category        GuidanceCategory   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  title           String             @db.VarChar(150)
-  description     String             @db.Text
-  logoKey         String             @map("logo_key") @db.VarChar(100)
-  pointRangeLabel String             @map("point_range_label") @db.VarChar(100)
-  sortOrder       Int                @default(0) @map("sort_order")
-  status          GuidanceCardStatus @default(ACTIVE)
-  createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt       DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+  id              String           @id @default(uuid()) @db.Uuid
+  categoryId      String           @map("category_id") @db.Uuid
+  category        GuidanceCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  title           String           @db.VarChar(150)
+  description     String           @db.Text
+  logoKey         String           @map("logo_key") @db.VarChar(100)
+  pointRangeLabel String           @map("point_range_label") @db.VarChar(100)
+  sortOrder       Int              @default(0) @map("sort_order")
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
   @@map("guidance_cards")
 }

@@ -91,19 +91,19 @@ describe('Guidance Cards Contract Tests (e2e)', () => {
       .expect(400);
   });
 
-  it('PATCH /api/v1/guidance-categories/:id validates status enum', async () => {
+  it('PATCH /api/v1/guidance-categories/:id validates sortOrder is non-negative', async () => {
     await request(app.getHttpServer())
       .patch('/api/v1/guidance-categories/00000000-0000-0000-0000-000000000000')
       .set('Cookie', adminCookie)
-      .send({ status: 'INVALID_STATUS' })
+      .send({ sortOrder: -1 })
       .expect(400);
   });
 
-  it('PATCH /api/v1/guidance-cards/:id validates status enum', async () => {
+  it('PATCH /api/v1/guidance-cards/:id validates sortOrder is non-negative', async () => {
     await request(app.getHttpServer())
       .patch('/api/v1/guidance-cards/00000000-0000-0000-0000-000000000000')
       .set('Cookie', adminCookie)
-      .send({ status: 'INVALID_STATUS' })
+      .send({ sortOrder: -1 })
       .expect(400);
   });
 });

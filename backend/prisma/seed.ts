@@ -1,4 +1,4 @@
-import { PrismaClient, Role, AccountState, ActivityType, GuidanceCardStatus } from '@prisma/client';
+import { PrismaClient, Role, AccountState, ActivityType } from '@prisma/client';
 import * as argon2 from 'argon2';
 
 const prisma = new PrismaClient();
@@ -218,7 +218,6 @@ async function main() {
       title: 'فعالیت‌های آموزشی',
       iconKey: 'graduation-cap',
       sortOrder: 1,
-      status: GuidanceCardStatus.ACTIVE,
     },
   });
 
@@ -227,7 +226,6 @@ async function main() {
       title: 'فعالیت‌های انضباطی',
       iconKey: 'shield',
       sortOrder: 2,
-      status: GuidanceCardStatus.ACTIVE,
     },
   });
 
@@ -236,7 +234,6 @@ async function main() {
       title: 'فعالیت‌های فرهنگی و ورزشی',
       iconKey: 'trophy',
       sortOrder: 3,
-      status: GuidanceCardStatus.ACTIVE,
     },
   });
 
@@ -249,7 +246,6 @@ async function main() {
         logoKey: 'chat-bubble-outline',
         pointRangeLabel: '۱۰ تا ۳۰ نوین',
         sortOrder: 1,
-        status: GuidanceCardStatus.ACTIVE,
       },
       {
         categoryId: academicCat.id,
@@ -258,7 +254,6 @@ async function main() {
         logoKey: 'lightbulb-outline',
         pointRangeLabel: '۲۰ تا ۵۰ نوین',
         sortOrder: 2,
-        status: GuidanceCardStatus.ACTIVE,
       },
       {
         categoryId: disciplinaryCat.id,
@@ -267,7 +262,6 @@ async function main() {
         logoKey: 'shield',
         pointRangeLabel: '۱۰ تا ۲۰ نوین',
         sortOrder: 1,
-        status: GuidanceCardStatus.ACTIVE,
       },
       {
         categoryId: culturalCat.id,
@@ -276,7 +270,6 @@ async function main() {
         logoKey: 'trophy',
         pointRangeLabel: '۵۰ تا ۱۰۰ نوین',
         sortOrder: 1,
-        status: GuidanceCardStatus.ACTIVE,
       },
     ],
     skipDuplicates: true,

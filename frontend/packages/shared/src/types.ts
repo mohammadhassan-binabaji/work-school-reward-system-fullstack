@@ -7,7 +7,6 @@ export type ActivityType = 'CHALLENGE' | 'MISSION';
 export type ActivityStatus = 'ACTIVE' | 'INACTIVE' | 'REMOVED';
 export type VerificationStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED';
 export type ProposalStatus = 'PENDING_TO_APPROVE' | 'READY_TO_DO' | 'COMPLETED' | 'DECLINED' | 'CANCELED';
-export type GuidanceCardStatus = 'ACTIVE' | 'REMOVED';
 export type NotificationReadStatus = 'UNREAD' | 'READ';
 export type ActionType =
   | 'POOL_FUND_TEACHER'
@@ -264,7 +263,6 @@ export interface GuidanceCategory {
   title: string;
   iconKey?: string | null;
   sortOrder: number;
-  status: GuidanceCardStatus;
   createdAt: string;
   updatedAt: string;
   cards?: GuidanceCard[];
@@ -279,7 +277,6 @@ export interface GuidanceCard {
   logoKey: string;
   pointRangeLabel: string;
   sortOrder: number;
-  status: GuidanceCardStatus;
   createdAt: string;
   updatedAt: string;
 }
