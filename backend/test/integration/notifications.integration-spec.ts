@@ -608,7 +608,6 @@ describe('Notifications Integration Tests', () => {
         })
         .expect(201);
       const taskId = taskRes.body.id;
-      const optionId = taskRes.body.options[0].id;
 
       const teacherAuth = await loginUser(app, '2222222222', 'Password123!');
 
@@ -616,7 +615,7 @@ describe('Notifications Integration Tests', () => {
       await request(app.getHttpServer())
         .post('/api/v1/points/teacher-award')
         .set('Cookie', teacherAuth.cookie)
-        .send({ studentId, classId, subjectId, taskId, optionId })
+        .send({ studentId, classId, subjectId, amount: 20, reason: 'Homework Excellence' })
         .expect(200);
 
       let inbox = await request(app.getHttpServer())
@@ -628,7 +627,7 @@ describe('Notifications Integration Tests', () => {
         (n: any) => n.originatingEntityType === 'POINT_AWARD',
       );
       expect(awardNotif).toBeDefined();
-      expect(awardNotif.subject).toBe('Points Awarded');
+      expect(awardNotif.subject).toBe('نوین دریافت کردید');
       expect(awardNotif.body).toContain('Sarah Jenkins');
 
       // Admin adjusts balance (EVT-17)
@@ -647,8 +646,8 @@ describe('Notifications Integration Tests', () => {
         (n: any) => n.originatingEntityType === 'POINT_ADJUSTMENT',
       );
       expect(adjustNotif).toBeDefined();
-      expect(adjustNotif.subject).toBe('Point Balance Adjusted');
-      expect(adjustNotif.body).toContain('15');
+      expect(adjustNotif.subject).toBe('موجودی نوین شما تغییر کرد');
+      expect(adjustNotif.body).toContain('Science Fair Special Mention');
     });
 
     it('creates notifications for verification approval, rejection, ban, and unblock (FR-014, FR-015)', async () => {

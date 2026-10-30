@@ -170,4 +170,110 @@ describe('Points Awarding Integration Tests', () => {
     const updated = await prisma.pointTransferTask.findUnique({ where: { id: taskId } });
     expect(updated?.isActive).toBe(false);
   });
+
+  it('allows teacher to award points with custom reason and amount (FR-018, FR-020, FR-021)', async () => {
+    // Create teacher
+    const teacherRes = await request(app.getHttpServer())
+      .post('/api/v1/users')
+      .set('Cookie', adminCookie)
+      .send({
+        nationalId: '2222222222',
+        firstName: 'Sarah',
+        lastName: 'Teacher',
+        username: 'teacher_sarah',
+        password: 'Password123!',
+        role: 'TEACHER',
+      })
+      .expect(201);
+    const teacherId = teacherRes.body.id;
+
+    // Fund teacher with 100 points
+    await request(app.getHttpServer())
+      .post('/api/v1/points/pool/fund-teacher')
+      .set('Cookie', adminCookie)
+      .send({ teacherId, amount: 100 })
+      .expect(200);
+
+    // Create Class & Subject & Assignment
+    const classRes = await request(app.getHttpServer())
+      .post('/api/v1/classes')
+      .set('Cookie', adminCookie)
+      .send({ name: 'Class 8A', gradeLevel: 'Grade 8' })
+      .expect(201);
+    const classId = classRes.body.id;
+
+    const subjectRes = await request(app.getHttpServer())
+      .post('/api/v1/subjects')
+      .set('Cookie', adminCookie)
+      .send({ name: 'Mathematics' })
+      .expect(201);
+    const subjectId = subjectRes.body.id;
+
+    await request(app.getHttpServer())
+      .post('/api/v1/assignments')
+      .set('Cookie', adminCookie)
+      .send({ teacherId, classId, subjectId })
+      .expect(201);
+
+    // Create Student Alice in Class 8A
+    const studentRes = await request(app.getHttpServer())
+      .post('/api/v1/users')
+      .set('Cookie', adminCookie)
+      .send({
+        nationalId: '4444444444',
+        firstName: 'Alice',
+        lastName: 'Student',
+        username: 'alice_student',
+        password: 'Password123!',
+        role: 'STUDENT',
+        classId,
+      })
+      .expect(201);
+    const studentId = studentRes.body.id;
+
+    // Teacher logs in
+    const teacherAuth = await loginUser(app, '2222222222', 'Password123!');
+
+    // Teacher awards 25 points with custom reason & description
+    const awardRes = await request(app.getHttpServer())
+      .post('/api/v1/points/teacher-award')
+      .set('Cookie', teacherAuth.cookie)
+      .send({
+        studentId,
+        classId,
+        subjectId,
+        amount: 25,
+        reason: 'حل مسائل سخت ریاضی',
+        description: 'تمرین صفحه ۵۰ کتاب درسی',
+      })
+      .expect(200);
+
+    expect(awardRes.body.awardedPoints).toBe(25);
+    expect(awardRes.body.studentNewBalance).toBe(25);
+    expect(awardRes.body.teacherRemainingBudget).toBe(75);
+
+    // Verify Audit Log
+    const auditLogs = await prisma.pointAuditLog.findMany({
+      where: { recipientId: studentId },
+    });
+    expect(auditLogs.length).toBe(1);
+    expect(auditLogs[0].amount).toBe(25);
+    expect(auditLogs[0].reasonDetail).toBe('حل مسائل سخت ریاضی');
+    const meta = auditLogs[0].metadata as any;
+    expect(meta.description).toBe('تمرین صفحه ۵۰ کتاب درسی');
+    expect(meta.teacherName).toContain('Sarah');
+
+    // Attempt to overspend remaining teacher budget (75 remains, try 80)
+    await request(app.getHttpServer())
+      .post('/api/v1/points/teacher-award')
+      .set('Cookie', teacherAuth.cookie)
+      .send({
+        studentId,
+        classId,
+        subjectId,
+        amount: 80,
+        reason: 'Too many points',
+      })
+      .expect(400);
+  });
 });

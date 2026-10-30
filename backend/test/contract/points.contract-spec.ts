@@ -98,4 +98,46 @@ describe('Points Contract Tests (e2e)', () => {
       })
       .expect(400);
   });
+
+  it('POST /api/v1/points/teacher-award validates required amount, reason, and positive points', async () => {
+    // Create teacher
+    await request(app.getHttpServer())
+      .post('/api/v1/users')
+      .set('Cookie', adminCookie)
+      .send({
+        nationalId: '2222222222',
+        firstName: 'Teacher',
+        lastName: 'Validation',
+        username: 'teachervalid',
+        password: 'Password123!',
+        role: 'TEACHER',
+      })
+      .expect(201);
+
+    const teacherAuth = await loginUser(app, '2222222222', 'Password123!');
+
+    // Missing amount & reason
+    await request(app.getHttpServer())
+      .post('/api/v1/points/teacher-award')
+      .set('Cookie', teacherAuth.cookie)
+      .send({
+        studentId: '00000000-0000-0000-0000-000000000000',
+        classId: '00000000-0000-0000-0000-000000000000',
+        subjectId: '00000000-0000-0000-0000-000000000000',
+      })
+      .expect(400);
+
+    // Negative or zero amount
+    await request(app.getHttpServer())
+      .post('/api/v1/points/teacher-award')
+      .set('Cookie', teacherAuth.cookie)
+      .send({
+        studentId: '00000000-0000-0000-0000-000000000000',
+        classId: '00000000-0000-0000-0000-000000000000',
+        subjectId: '00000000-0000-0000-0000-000000000000',
+        amount: 0,
+        reason: 'Test',
+      })
+      .expect(400);
+  });
 });

@@ -318,7 +318,6 @@ describe('Quickstart End-to-End Validation Suite (All 8 Scenarios)', () => {
         .expect(201);
 
       const taskId = taskRes.body.id;
-      const option10Id = taskRes.body.options.find((o: any) => o.points === 10).id;
 
       // Step 3: Teacher Awards Points to Alice (Class 7A)
       const teacherAuth = await loginUser(app, '2222222222', 'TeacherPassword123!');
@@ -330,8 +329,9 @@ describe('Quickstart End-to-End Validation Suite (All 8 Scenarios)', () => {
           studentId: aliceId,
           classId: class7AId,
           subjectId: mathId,
-          taskId,
-          optionId: option10Id,
+          amount: 10,
+          reason: 'Homework Excellence',
+          description: 'Great homework submission',
         })
         .expect(200);
 
@@ -347,23 +347,12 @@ describe('Quickstart End-to-End Validation Suite (All 8 Scenarios)', () => {
           studentId: bobId,
           classId: class7BId,
           subjectId: mathId,
-          taskId,
-          optionId: option10Id,
+          amount: 10,
+          reason: 'Homework Excellence',
         })
         .expect(403);
 
       // Step 5: Insufficient Balance Guard Check (attempt to award 100 when only 90 remains)
-      const largeTaskRes = await request(app.getHttpServer())
-        .post('/api/v1/points/tasks')
-        .set('Cookie', adminAuth.cookie)
-        .send({
-          name: 'Super Achievement',
-          options: [{ points: 100, label: '100 pts' }],
-        })
-        .expect(201);
-      const largeTaskId = largeTaskRes.body.id;
-      const largeOptionId = largeTaskRes.body.options[0].id;
-
       await request(app.getHttpServer())
         .post('/api/v1/points/teacher-award')
         .set('Cookie', teacherAuth.cookie)
@@ -371,8 +360,8 @@ describe('Quickstart End-to-End Validation Suite (All 8 Scenarios)', () => {
           studentId: aliceId,
           classId: class7AId,
           subjectId: mathId,
-          taskId: largeTaskId,
-          optionId: largeOptionId,
+          amount: 100,
+          reason: 'Super Achievement',
         })
         .expect(400);
 
@@ -1115,7 +1104,7 @@ describe('Quickstart End-to-End Validation Suite (All 8 Scenarios)', () => {
         .expect(200);
 
       expect(teacherInbox.body.data.length).toBe(1);
-      expect(teacherInbox.body.data[0].subject).toBe('Point Budget Allocated');
+      expect(teacherInbox.body.data[0].subject).toBe('نوین به موجودی شما اضافه شد');
       expect(teacherInbox.body.data[0].originatingEntityType).toBe('POINT_ALLOCATION');
 
       // 2. Student Submits Task Proposal -> Admin Alert (EVT-05)
@@ -1133,7 +1122,7 @@ describe('Quickstart End-to-End Validation Suite (All 8 Scenarios)', () => {
 
       const propAlert = adminInbox1.body.data.find(
         (n: any) =>
-          n.originatingEntityId === proposalId && n.subject === 'New Task Proposal Submitted',
+          n.originatingEntityId === proposalId && n.subject === 'پیشنهاد فعالیت جدید',
       );
       expect(propAlert).toBeDefined();
 
@@ -1150,7 +1139,7 @@ describe('Quickstart End-to-End Validation Suite (All 8 Scenarios)', () => {
         .expect(200);
 
       const propApprovedNotif = studentInbox1.body.data.find(
-        (n: any) => n.originatingEntityId === proposalId && n.subject === 'Task Proposal Approved',
+        (n: any) => n.originatingEntityId === proposalId && n.subject === 'پیشنهاد فعالیت تأیید شد',
       );
       expect(propApprovedNotif).toBeDefined();
 
@@ -1170,7 +1159,7 @@ describe('Quickstart End-to-End Validation Suite (All 8 Scenarios)', () => {
         (n: any) => n.originatingEntityType === 'POINT_ADJUSTMENT',
       );
       expect(adjustNotif).toBeDefined();
-      expect(adjustNotif.subject).toBe('Point Balance Adjusted');
+      expect(adjustNotif.subject).toBe('موجودی نوین شما تغییر کرد');
     });
   });
 });

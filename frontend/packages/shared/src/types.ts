@@ -143,6 +143,16 @@ export interface PointAuditLogMetadata {
   activityTitle?: string;
   proposalTitle?: string;
   rewardName?: string;
+  description?: string;
+}
+
+export interface TeacherAwardRequest {
+  studentId: string;
+  classId: string;
+  subjectId: string;
+  amount: number;
+  reason: string;
+  description?: string;
 }
 
 export interface PointAuditLog {

@@ -294,21 +294,7 @@ export class PointsService {
       });
     }
 
-    // Verify task and option
-    const option = await this.prisma.pointTaskOption.findUnique({
-      where: { id: dto.optionId },
-      include: { task: true },
-    });
-
-    if (!option || option.taskId !== dto.taskId || !option.task.isActive) {
-      throw new BadRequestException({
-        statusCode: 400,
-        errorCode: 'INVALID_TASK_OPTION',
-        message: 'The selected point task or option is invalid or inactive',
-      });
-    }
-
-    const awardPoints = option.points;
+    const awardPoints = dto.amount;
 
     const teacherUser = await this.prisma.user.findUnique({
       where: { id: teacherId },
@@ -361,6 +347,14 @@ export class PointsService {
         },
       });
 
+      const metadata: Record<string, any> = {
+        teacherName,
+        subjectName: assignment.subject.name,
+      };
+      if (dto.description) {
+        metadata.description = dto.description;
+      }
+
       // Write immutable audit log
       const auditLog = await this.auditLogService.log(
         {
@@ -373,13 +367,10 @@ export class PointsService {
           recipientId: dto.studentId,
           amount: awardPoints,
           actionType: ActionType.TEACHER_AWARD_STUDENT,
-          reasonDetail: option.task.name,
+          reasonDetail: dto.reason,
           relatedEntityType: 'TeacherClassSubjectAssignment',
           relatedEntityId: assignment.id,
-          metadata: {
-            teacherName,
-            subjectName: assignment.subject.name,
-          },
+          metadata,
           resultingSourceBalance: updatedTeacher.pointBalance,
           resultingRecipientBalance: updatedStudent.currentBalance,
         },
@@ -404,7 +395,7 @@ export class PointsService {
         result.studentId,
         teacherName,
         result.awardedPoints,
-        option.task.name,
+        dto.reason,
       ),
     );
 

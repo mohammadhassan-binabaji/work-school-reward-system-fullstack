@@ -94,15 +94,23 @@ export class TeacherAwardPointsDto {
   @IsUUID()
   subjectId: string;
 
-  @ApiProperty({ format: 'uuid' })
+  @ApiProperty({ example: 10, minimum: 1, description: 'Points to award to student' })
   @IsNotEmpty()
-  @IsUUID()
-  taskId: string;
+  @IsInt()
+  @Min(1)
+  amount: number;
 
-  @ApiProperty({ format: 'uuid' })
+  @ApiProperty({ example: 'مشارکت فعال در درس ریاضی', maxLength: 150 })
   @IsNotEmpty()
-  @IsUUID()
-  optionId: string;
+  @IsString()
+  @MaxLength(150)
+  reason: string;
+
+  @ApiPropertyOptional({ example: 'پاسخ صحیح به تمرین صفحه ۲۵', maxLength: 500 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  description?: string;
 }
 
 export class AdminAdjustStudentBalanceDto {

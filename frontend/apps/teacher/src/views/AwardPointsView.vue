@@ -39,6 +39,9 @@ const selectedStudentId = ref('');
 const studentSearchQuery = ref('');
 const selectedTaskId = ref('');
 const selectedOptionId = ref('');
+const customReason = ref('');
+const customDescription = ref('');
+const customAmount = ref<number | null>(null);
 
 // Submit status
 const submitting = ref(false);
@@ -155,6 +158,37 @@ watch(
   { immediate: true },
 );
 
+function onTaskSelectChange() {
+  selectedOptionId.value = '';
+  if (!selectedTaskId.value) {
+    return;
+  }
+  const task = pointTasks.value.find((t) => t.id === selectedTaskId.value);
+  if (task) {
+    customReason.value = task.name;
+    customDescription.value = task.description || '';
+    if (task.options && task.options.length > 0) {
+      customAmount.value = task.options[0].points;
+      selectedOptionId.value = task.options[0].id;
+    }
+  }
+}
+
+function selectOptionPill(opt: PointTaskOption) {
+  selectedOptionId.value = opt.id;
+  customAmount.value = opt.points;
+}
+
+watch(
+  () => customAmount.value,
+  (val) => {
+    if (currentTask.value) {
+      const matchingOpt = currentTask.value.options.find((o) => o.points === val);
+      selectedOptionId.value = matchingOpt ? matchingOpt.id : '';
+    }
+  },
+);
+
 async function handleAward() {
   errorMessage.value = null;
 
@@ -166,15 +200,17 @@ async function handleAward() {
     errorMessage.value = 'لطفاً دانش‌آموز مورد نظر را انتخاب کنید.';
     return;
   }
-  if (!selectedTaskId.value || !selectedOptionId.value) {
-    errorMessage.value = 'لطفاً عنوان فعالیت و مقدار نوین را انتخاب کنید.';
+  if (!customReason.value.trim()) {
+    errorMessage.value = 'لطفاً دلیل یا عنوان فعالیت را وارد کنید.';
+    return;
+  }
+  const amount = Number(customAmount.value);
+  if (!amount || amount <= 0 || !Number.isInteger(amount)) {
+    errorMessage.value = 'لطفاً مقدار معتبر و مثبتی برای نوین وارد کنید.';
     return;
   }
 
-  const option = currentOption.value;
-  if (!option) return;
-
-  if (authStore.pointBalance < option.points) {
+  if (authStore.pointBalance < amount) {
     errorMessage.value = 'موجودی نوین شما برای این پاداش کافی نیست.';
     return;
   }
@@ -185,11 +221,12 @@ async function handleAward() {
       studentId: selectedStudentId.value,
       classId: currentAssignment.value.classId,
       subjectId: currentAssignment.value.subjectId,
-      taskId: selectedTaskId.value,
-      optionId: selectedOptionId.value,
+      amount,
+      reason: customReason.value.trim(),
+      description: customDescription.value.trim() || undefined,
     });
 
-    awardedAmount.value = option.points;
+    awardedAmount.value = amount;
     awardedStudentName.value = selectedStudent.value
       ? `${selectedStudent.value.user.firstName} ${selectedStudent.value.user.lastName}`
       : 'دانش‌آموز';
@@ -206,7 +243,11 @@ async function handleAward() {
 function resetForAnotherAward() {
   awardSuccess.value = false;
   selectedStudentId.value = '';
+  selectedTaskId.value = '';
   selectedOptionId.value = '';
+  customReason.value = '';
+  customDescription.value = '';
+  customAmount.value = null;
   errorMessage.value = null;
 }
 </script>
@@ -353,29 +394,56 @@ function resetForAnotherAward() {
           </div>
         </div>
 
-        <!-- Step 3: Select Point Task & Option -->
-        <div class="bg-white rounded-3xl p-4.5 border border-slate-200 shadow-xs space-y-3">
+        <!-- Step 3: Custom Reason, Amount & Templates -->
+        <div class="bg-white rounded-3xl p-4.5 border border-slate-200 shadow-xs space-y-3.5">
           <label class="block text-xs font-bold text-slate-700 flex items-center gap-1.5">
             <BookOpen class="w-4 h-4 text-indigo-600" />
             <span>۳. فعالیت و مقدار نوین:</span>
           </label>
 
-          <!-- Task selector -->
-          <select
-            v-model="selectedTaskId"
-            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-indigo-600 font-medium"
-            @change="selectedOptionId = ''"
-          >
-            <option value="" disabled>عنوان فعالیت را انتخاب کنید...</option>
-            <option v-for="t in pointTasks" :key="t.id" :value="t.id">
-              {{ t.name }}
-            </option>
-          </select>
+          <!-- Template selector -->
+          <div class="space-y-1">
+            <div class="flex items-center justify-between text-[11px] text-slate-500 font-medium">
+              <span>الگوی آماده (اختیاری):</span>
+              <button
+                v-if="selectedTaskId"
+                type="button"
+                class="text-indigo-600 hover:underline text-[10px]"
+                @click="selectedTaskId = ''; onTaskSelectChange()"
+              >
+                پاک کردن الگو
+              </button>
+            </div>
+            <select
+              v-model="selectedTaskId"
+              class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-indigo-600 font-medium"
+              @change="onTaskSelectChange"
+            >
+              <option value="">فعالیت سفارشی (بدون الگو)...</option>
+              <option v-for="t in pointTasks" :key="t.id" :value="t.id">
+                {{ t.name }}
+              </option>
+            </select>
+          </div>
 
-          <!-- Discrete Point Options Pills -->
-          <div v-if="currentTask && currentTask.options.length > 0" class="space-y-1.5 pt-1">
+          <!-- Reason / Title Input -->
+          <div class="space-y-1">
+            <label class="block text-[11px] text-slate-600 font-bold">
+              عنوان فعالیت / دلیل پاداش <span class="text-rose-500">*</span>:
+            </label>
+            <input
+              v-model="customReason"
+              type="text"
+              maxlength="150"
+              placeholder="مثلاً حل تمرین پای تخته، انضباط کلاسی..."
+              class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-indigo-600 font-medium"
+            />
+          </div>
+
+          <!-- Template Option Pills (if template chosen) -->
+          <div v-if="currentTask && currentTask.options.length > 0" class="space-y-1.5 pt-0.5">
             <span class="text-[11px] text-slate-500 font-medium block">
-              مقدار پاداش پیشنهادی برای این فعالیت:
+              مقادیر پیشنهادی این الگو:
             </span>
             <div class="grid grid-cols-2 gap-2">
               <button
@@ -388,7 +456,7 @@ function resetForAnotherAward() {
                     ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
                     : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100',
                 ]"
-                @click="selectedOptionId = opt.id"
+                @click="selectOptionPill(opt)"
               >
                 <span class="text-xs font-black">{{ formatNovin(opt.points) }}</span>
                 <span
@@ -403,6 +471,45 @@ function resetForAnotherAward() {
               </button>
             </div>
           </div>
+
+          <!-- Amount Input -->
+          <div class="space-y-1">
+            <div class="flex items-center justify-between">
+              <label class="block text-[11px] text-slate-600 font-bold">
+                مقدار نوین پرداختی <span class="text-rose-500">*</span>:
+              </label>
+              <span v-if="customAmount" class="text-[10px] font-bold text-indigo-600">
+                {{ formatNovin(customAmount) }}
+              </span>
+            </div>
+            <div class="relative">
+              <input
+                v-model.number="customAmount"
+                type="number"
+                min="1"
+                step="1"
+                placeholder="مثلاً ۱۰"
+                class="w-full bg-slate-50 border border-slate-200 rounded-xl pr-3 pl-12 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-indigo-600 font-bold"
+              />
+              <span class="absolute left-3 top-2 text-[10px] text-slate-400 pointer-events-none">
+                نوین
+              </span>
+            </div>
+          </div>
+
+          <!-- Description / Note Input (Optional) -->
+          <div class="space-y-1">
+            <label class="block text-[11px] text-slate-600 font-bold">
+              توضیحات تکمیلی (اختیاری):
+            </label>
+            <textarea
+              v-model="customDescription"
+              rows="2"
+              maxlength="500"
+              placeholder="توضیحاتی در صورت تمایل..."
+              class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-indigo-600 resize-none font-medium"
+            ></textarea>
+          </div>
         </div>
 
         <!-- Error Alert -->
@@ -416,7 +523,7 @@ function resetForAnotherAward() {
 
         <!-- Submit Button -->
         <button
-          :disabled="submitting || !selectedStudentId || !selectedOptionId"
+          :disabled="submitting || !selectedStudentId || !customReason.trim() || !customAmount || customAmount <= 0"
           class="w-full py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs shadow-md disabled:opacity-40 transition-all flex items-center justify-center gap-2"
           @click="handleAward"
         >

@@ -213,8 +213,8 @@ components:
         - studentId
         - classId
         - subjectId
-        - taskId
-        - optionId
+        - amount
+        - reason
       properties:
         studentId:
           type: string
@@ -225,12 +225,20 @@ components:
         subjectId:
           type: string
           format: uuid
-        taskId:
+        amount:
+          type: integer
+          minimum: 1
+          example: 10
+          description: "Points to award to student"
+        reason:
           type: string
-          format: uuid
-        optionId:
+          maxLength: 150
+          example: "مشارکت فعال در کلاس ریاضی"
+        description:
           type: string
-          format: uuid
+          maxLength: 500
+          nullable: true
+          example: "پاسخ صحیح به تمرین صفحه ۲۵"
 
     RewardDto:
       type: object
@@ -1824,7 +1832,7 @@ paths:
   /points/teacher-award:
     post:
       summary: Award Points from Teacher to Student
-      description: Teacher awards points to an enrolled student in assigned class using a predefined task and discrete option (FR-018, FR-020, FR-021).
+      description: Teacher awards points to an enrolled student in assigned class with custom reason, amount, and optional description using task templates as presets.
       security:
         - SessionAuth: []
       requestBody:
