@@ -11,10 +11,10 @@ import { Roles } from '../../common/decorators/roles.decorator';
 export class StudentBanController {
   constructor(private activitiesService: ActivitiesService) {}
 
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'VICE_PRINCIPAL')
   @Post(':id/unban')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Admin manual unban override for student activity (Admin only)' })
+  @ApiOperation({ summary: 'Admin or VP manual unban override for student activity' })
   async unbanStudent(@Param('id', ParseUUIDPipe) studentId: string, @Body() dto: UnbanStudentDto) {
     return this.activitiesService.unbanStudent(studentId, dto);
   }

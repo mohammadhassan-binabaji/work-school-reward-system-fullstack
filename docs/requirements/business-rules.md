@@ -3,7 +3,14 @@
 - A student belongs to one and only one class.
 - The first administrator is provisioned manually; administrators can provision other user accounts.
 - A user's identifier is a 10-digit national ID.
-- Administrator, teacher, and student authentication uses national ID plus password.
+- Administrator, vice principal, teacher, and student authentication uses national ID plus password.
+- Vice principals have personal point budgets funded from the system point pool.
+- Vice principal point adjustments to students are symmetric: positive adjustments debit the vice principal's balance and credit the student; negative adjustments debit the student and credit the vice principal's balance.
+- Vice principals cannot adjust more points than their available balance (when crediting) or more points than the student's current balance (when debiting).
+- When a vice principal leaves the school, any remaining point balance automatically returns to the system point pool under `VICE_PRINCIPAL_DEPARTURE_RETURN`.
+- Vice principals have authority to manage rewards and approve/decline/complete reward requests, create/edit/delete activities, review challenge submissions, and review/approve/complete proposals.
+- Vice principals access only 6 views on the admin web console: Dashboard, Direct Adjust, Rewards, Activities, Proposals, and Notifications.
+- Vice principals cannot access user management, academic management, pool management, point-task management, guidance, tiers, rankings, or reports through either the web interface or backend APIs.
 - Changing class does not change a student's point balance or reward requests.
 - Leaving the school removes the student's balance and active reward requests.
 - A class can have multiple subjects and teacher assignments.
@@ -34,8 +41,9 @@
 - Reward request statuses are `Pending to Approve`, `Pending to Receive`, `Completed`, and `Declined`.
 - Status colors are blue for `Pending to Approve` and `Pending to Receive`, green for `Completed`, and red for `Declined`.
 - Every point transfer or point-balance change is recorded in the audit history with its actor, source, recipient, amount, action or reason, and time.
-- Audit and reporting access is role-appropriate for administrators, teachers, and students.
+- Audit and reporting access is role-appropriate for administrators, teachers, and students. Vice principals can create audit entries through permitted workflows but cannot access reports.
 - Teacher student-point reporting is limited to students in the teacher's assigned classes.
+- Each user can read and update only their own notification inbox. Review notifications for reward requests, proposals, and activity verifications are broadcast to active administrators and vice principals.
 - Point-flow audit records are immutable and cannot be corrected or deleted by administrators.
 - Point-flow audit records are retained permanently.
 - Point-flow reports can be filtered by date range, student, teacher, class, subject, action type, and reward, and can be exported as CSV, Excel, or PDF.
@@ -58,29 +66,29 @@
 - Student weekly history records the current balance at the end of each day.
 - Historical student balance snapshot records may be panned and queried lazily across multi-week timelines with non-negative scale bounds ($y \ge 0$).
 - Challenge and mission activity can produce student point awards.
-- Only administrators can create and manage challenges and missions.
+- Administrators and vice principals can create and manage challenges and missions.
 - Challenge and mission point values are fixed at creation and cannot be edited; a changed value requires removing and recreating the activity.
-- Challenge and mission points are awarded only after an administrator manually verifies and accepts the student's verification request.
+- Challenge and mission points are awarded only after an administrator or vice principal manually verifies and accepts the student's verification request.
 - Three rejected verification requests for the same activity trigger an approximately one-month submission ban for that student and activity.
 - Rejected verification requests remain in the activity history for rejection counting.
-- The ban period is flexible and can be overridden by an administrator.
-- Administrators can unblock a student for an activity from the student's profile or details page.
+- The ban period is flexible and can be overridden by an administrator or vice principal.
+- Administrators and vice principals can unblock a student for an activity from the student's profile or details page.
 - Student task proposals begin in `Pending to Approve` state.
 - Rejection of a student task proposal closes it in `Declined` state.
-- Approval of a student task proposal requires an administrator to set a positive point value and moves it to `Ready to Do` state.
-- Point values for approved task proposals can be updated by administrators prior to completion.
+- Approval of a student task proposal requires an administrator or vice principal to set a positive point value and moves it to `Ready to Do` state.
+- Point values for approved task proposals can be updated by administrators or vice principals prior to completion.
 - Students can cancel a task proposal only while it is in `Ready to Do` state, which closes it in `Canceled` state.
-- Task completion by a student is validated manually by an administrator; marking completion transfers the points and closes the proposal as `Completed`.
-- Students and administrators can exchange messages on a task proposal throughout its lifecycle.
+- Task completion by a student is validated manually by an administrator or vice principal; marking completion transfers the points and closes the proposal as `Completed`.
+- Students, administrators, and vice principals can exchange messages on a task proposal throughout its lifecycle.
 - Teachers cannot see or participate in student task proposals.
 - Task proposals use status labels `Pending to Approve`, `Ready to Do`, `Completed`, `Declined`, and `Canceled`.
 - Point earning guidance categories and cards are managed exclusively by administrators.
 - Guidance cards are organized under categories and present informational rubrics; students view them via collapsible accordions and two-column activity tables, with row taps revealing activity details in an overlaid modal.
-- Every user (student, teacher, and school administrator) possesses an individual in-app notification inbox.
+- Every user (student, teacher, school administrator, and vice principal) possesses an individual in-app notification inbox.
 - System events create notification records in `Unread` state immediately upon occurrence for the affected recipient.
-- Student notifications are generated for: reward request status transitions (`Pending to Receive`, `Completed`, `Declined`), task proposal status transitions and administrator messages, teacher point awards, administrator point adjustments, and challenge/mission verification reviews (including rejection ban or manual unblock).
-- Administrator notifications are generated for: submitted reward requests requiring approval, submitted student task proposals, incoming student messages on proposals, and submitted challenge/mission verification requests.
-- Teacher notifications are generated when an administrator allocates points from the system point pool to the teacher's point budget.
+- Student notifications are generated for: reward request status transitions (`Pending to Receive`, `Completed`, `Declined`), task proposal status transitions and administrator or vice-principal messages, teacher point awards, administrator or vice-principal point adjustments, and challenge/mission verification reviews (including rejection ban or manual unblock).
+- Administrator and vice-principal notifications are generated for: submitted reward requests requiring approval, submitted student task proposals, incoming student messages on proposals, and submitted challenge/mission verification requests. These notifications are delivered to every active administrator and vice principal.
+- Teacher notifications are generated when an administrator allocates points from the system point pool to the teacher's point budget. Vice principal notifications are generated when an administrator funds their personal point balance.
 - An unread notification is considered viewed when at least 50% of its card remains visible in the user's viewport continuously for 1 second; viewing it sets its status to `Read` and records the read timestamp.
 - A user can mark all of their unread notifications as read at once.
 - In-app notifications cannot be deleted by users and are retained permanently in the inbox with their read or unread state preserved.

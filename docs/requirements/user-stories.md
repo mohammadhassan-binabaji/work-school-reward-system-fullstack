@@ -3,7 +3,9 @@
 ## Administrator
 
 - As the initial system owner, I want the first administrator account added manually so that the school can begin using the system.
-- As a school administrator, I want to create administrator, teacher, and student accounts with names, usernames, passwords, and optional profile images so that users can access the system with visual identification.
+- As a school administrator, I want to create administrator, vice principal, teacher, and student accounts with names, usernames, passwords, and optional profile images so that users can access the system with visual identification.
+- As a school administrator, I want to update a vice principal's profile and account state so that I can maintain their account and control access.
+- As a school administrator, I want to fund vice principal point balances from the system point pool so that vice principals have dedicated adjustment budgets.
 - As a school administrator, I want to bulk import students via Excel with an optional ZIP archive of photos so that multiple accounts and their avatars can be created at once.
 - As a school administrator, I want to see user avatars in the users table so that I can easily recognize users visually.
 - As a teacher, I want to see student avatars in my class rosters on the classes page so that I can visually identify students when reviewing progress or awarding points.
@@ -57,6 +59,16 @@
 - As a teacher, I want to receive an in-app notification when an administrator transfers points to my balance so that I know my award budget has been updated.
 - As a teacher, I want to view my notifications, filter them by read status, and see an unread badge counter so that I stay informed of balance changes.
 - As a teacher, I want unread notifications to be marked as read after I view them and to mark all unread notifications as read with one action so that my notification list stays up to date.
+
+## Vice Principal
+
+- As a vice principal, I want to sign in with my national ID and password to access the restricted administrative console.
+- As a vice principal, I want to see only my permitted views (Dashboard, Direct Adjust, Rewards, Activities, Proposals, Notifications) in the layout sidebar so that my workspace is focused on my responsibilities.
+- As a vice principal, I want to view my allocated point balance on the dashboard and adjustment page so that I know how many points I can award.
+- As a vice principal, I want to directly credit points to a student (deducting from my balance) or debit points from a student (returning to my balance) so that I can reward or correct student conduct.
+- As a vice principal, I want to manage rewards, approve/decline/complete reward requests, review activity verifications, and approve/complete student proposals so that administrative workflows are distributed efficiently.
+- As a vice principal, I want to receive in-app review notifications for reward requests, proposals, and activity verifications so that I can promptly take action.
+- As a vice principal, I want to see only my own notifications in my notification inbox so that my alerts are private.
 
 ## Student
 

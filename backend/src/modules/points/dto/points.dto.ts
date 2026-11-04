@@ -27,6 +27,19 @@ export class FundTeacherBudgetDto {
   amount: number;
 }
 
+export class FundVicePrincipalBudgetDto {
+  @ApiProperty({ format: 'uuid' })
+  @IsNotEmpty()
+  @IsUUID()
+  vicePrincipalId: string;
+
+  @ApiProperty({ example: 100, minimum: 1 })
+  @IsNotEmpty()
+  @IsInt()
+  @Min(1)
+  amount: number;
+}
+
 export class CreatePointTaskOptionDto {
   @ApiProperty({ example: 10, minimum: 1 })
   @IsNotEmpty()
@@ -126,6 +139,24 @@ export class AdminAdjustStudentBalanceDto {
   amount: number;
 
   @ApiProperty({ example: 'Correction for grading error' })
+  @IsNotEmpty()
+  @IsString()
+  reason: string;
+}
+
+export class ViceAdjustStudentBalanceDto {
+  @ApiProperty({ format: 'uuid' })
+  @IsNotEmpty()
+  @IsUUID()
+  studentId: string;
+
+  @ApiProperty({ example: 20, description: 'Positive to credit student (debits VP balance), negative to debit student (credits VP balance)' })
+  @IsNotEmpty()
+  @IsInt()
+  @NotEquals(0)
+  amount: number;
+
+  @ApiProperty({ example: 'Correction or direct vice principal adjustment' })
   @IsNotEmpty()
   @IsString()
   reason: string;

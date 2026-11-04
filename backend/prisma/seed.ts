@@ -103,6 +103,34 @@ async function main() {
   });
   console.log(`✓ Seeded Initial Admin (${admin.username})`);
 
+  // 3.1. Seed Sample Vice Principal
+  const vpPasswordHash = await argon2.hash('VicePassword123!', {
+    type: argon2.argon2id,
+  });
+
+  const vp = await prisma.user.upsert({
+    where: { nationalId: '2222222222' },
+    update: {},
+    create: {
+      nationalId: '2222222222',
+      firstName: 'Vice',
+      lastName: 'Principal',
+      username: 'vice.principal',
+      passwordHash: vpPasswordHash,
+      role: Role.VICE_PRINCIPAL,
+      accountState: AccountState.ACTIVE,
+    },
+  });
+  await prisma.teacherProfile.upsert({
+    where: { id: vp.id },
+    update: {},
+    create: {
+      id: vp.id,
+      pointBalance: 200,
+    },
+  });
+  console.log(`✓ Seeded Sample Vice Principal (${vp.username})`);
+
   // 4. Seed Classes & Subjects
   const class7A = await prisma.class.upsert({
     where: { name: 'Class 7A' },

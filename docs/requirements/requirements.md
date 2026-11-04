@@ -8,17 +8,20 @@ The system enables teachers to award points to students for actions such as comp
 
 ## Actors
 
-- **School administrator:** Manages classes, class membership, teacher assignments, reward catalog, system point pool, teacher point balances, and student point adjustments.
+- **School administrator:** Manages classes, class membership, teacher assignments, reward catalog, system point pool, teacher and vice principal point balances, and student point adjustments.
+- **Vice Principal:** Assists administration with restricted access to the management console (Dashboard, Direct Adjust, Rewards, Activities, Proposals, Notifications). Operates with a personal point balance funded from the system pool, performs symmetric point adjustments on students, reviews reward requests, verifies activities, and approves task proposals.
 - **Teacher:** Teaches assigned subjects in assigned classes and awards positive points to students in those classes using the teacher's available point balance.
 - **Student:** Belongs to one class, receives points, views the balance and reward requests, and redeems rewards.
 
 ## Account and access management
 
 - The first school administrator shall be added manually.
-- An administrator shall be able to create additional administrator, teacher, and student accounts.
+- An administrator shall be able to create additional administrator, vice principal, teacher, and student accounts.
+- An administrator shall be able to update a vice principal's profile information, password, and account state, as for other managed accounts.
+- Deactivating or inactivating a vice principal shall preserve their balance while preventing authenticated actions. Marking a vice principal as departed shall return any remaining balance to the system point pool.
 - Accounts shall store a first name, last name, username, password, and an optional profile image.
 - A user's identifier shall be a 10-digit national ID.
-- Administrators, teachers, and students shall sign in using their national ID and password.
+- Administrators, vice principals, teachers, and students shall sign in using their national ID and password.
 - Profile images shall support JPEG, PNG, and WebP formats up to 5 MB.
 - When an account has no profile image, the user interface shall display an initials-based fallback placeholder.
 - Administrators shall be able to upload an optional profile image when creating a single user account.
@@ -64,6 +67,18 @@ The system enables teachers to award points to students for actions such as comp
 - Awarding points shall reduce the teacher's balance by the exact amount awarded.
 - The system shall prevent a teacher from awarding more points than the teacher's available balance.
 
+### Vice Principal points and economy
+
+- Administrators shall transfer points from the system-wide point pool to a vice principal's point balance.
+- Vice principals shall be able to directly adjust a student's point balance using their personal point balance.
+- Crediting points to a student shall reduce the vice principal's point balance by the exact amount awarded.
+- Debiting points from a student shall return the deducted points directly to the vice principal's point balance.
+- The system shall prevent a vice principal from awarding more points than their available balance, and from debiting more points than the student's current balance.
+- When a vice principal departs from the school, any remaining unspent points in their balance shall automatically return to the system point pool.
+- Vice principals shall have access to manage and review rewards, challenge/mission verifications, and student task proposals with the same authority as administrators.
+- Vice principals shall receive in-app review notifications for reward approvals, task proposals, and challenge verifications.
+- Vice principals shall use the admin frontend web application, restricted to 6 views: Dashboard, Direct Adjust (Vice Principal mode), Rewards, Activities, Proposals, and Notifications.
+
 ### Student points and rewards
 
 - Administrators shall be able to add or subtract points from a student's balance.
@@ -82,23 +97,26 @@ The system enables teachers to award points to students for actions such as comp
 
 - When a student requests a reward that does not require approval, the request shall enter `Pending to Receive` immediately and inventory shall decrease.
 - When a student requests a reward that requires approval, the request shall enter `Pending to Approve`.
-- An administrator shall manually review each `Pending to Approve` request.
-- If the administrator approves the request, the request shall move to `Pending to Receive`.
-- If the administrator declines the request, the reserved points shall return to the student's balance and the request shall move to `Declined`.
+- An administrator or vice principal shall manually review each `Pending to Approve` request.
+- If an administrator or vice principal approves the request, the request shall move to `Pending to Receive`.
+- If an administrator or vice principal declines the request, the reserved points shall return to the student's balance and the request shall move to `Declined`.
 - Students shall not be able to create a new request for a reward when its inventory is zero.
-- When the student receives the reward, the administrator shall mark the request as received and the status shall change to `Completed`.
+- When the student receives the reward, an administrator or vice principal shall mark the request as received and the status shall change to `Completed`.
 
 ### Notifications
 
 - For reward state changes, the system shall show a message or label on the student's request.
+- Reward approval requests, new task proposals and proposal messages, and activity verification submissions shall notify all active administrators and vice principals.
+- Each vice principal shall see only notifications addressed to their own account.
+- The vice principal inbox shall be available in the admin application, and vice principals shall not have access to other users' notification inboxes.
 - SMS, email, and other external notifications are not required for this behavior.
 - Reward request statuses shall use the labels `Pending to Approve`, `Pending to Receive`, `Completed`, and `Declined`.
 - Status labels shall use these colors: `Pending to Approve` blue, `Pending to Receive` blue, `Completed` green, and `Declined` red.
 
 ### Audit and reporting
 
-- The system shall maintain a complete audit history of point transfers and point flow, including administrator transfers to teachers, teacher awards to students, administrator student-balance adjustments, and point changes caused by reward requests and redemptions.
-- The audit history shall support reporting for administrators, teachers, and students according to their roles.
+- The system shall maintain a complete audit history of point transfers and point flow, including administrator transfers to teachers and vice principals, teacher awards to students, administrator and vice-principal student-balance adjustments, and point changes caused by reward requests and redemptions.
+- The audit history shall support reporting for administrators, teachers, and students according to their roles. Vice principals shall not have access to reporting views or report APIs.
 - Reports shall provide filters for date range, student, teacher, class, subject, action type, and reward.
 - Reports shall support export to CSV, Excel, and PDF.
 - Audit records shall preserve enough information to trace the source, recipient, amount, reason or action, actor, and time of each point change.
@@ -137,38 +155,38 @@ The system enables teachers to award points to students for actions such as comp
 ### Challenges and missions
 
 - The system shall provide a Challenges and Missions section.
-- Only school administrators shall be able to create and manage challenges and missions.
-- Administrators shall define a fixed point value when creating each challenge or mission.
-- Administrators shall not be able to change the point value of an existing challenge or mission; changing it requires removing the existing activity and creating a new one.
-- Administrators shall configure the maximum number of times each student may complete each challenge or mission.
+- School administrators and vice principals shall be able to create and manage challenges and missions.
+- Administrators and vice principals shall define a fixed point value when creating each challenge or mission.
+- Administrators and vice principals shall not be able to change the point value of an existing challenge or mission; changing it requires removing the existing activity and creating a new one.
+- Administrators and vice principals shall configure the maximum number of times each student may complete each challenge or mission.
 - Students shall be able to earn points by completing challenges and missions.
 - A mission may require an action such as joining the school's Instagram social page.
 - A challenge may require completing a specified task.
-- Administrators shall be able to award points for challenge and mission completion.
+- Administrators and vice principals shall be able to award points for challenge and mission completion.
 - Students shall be able to submit a verification request for a completed challenge or mission.
-- An administrator shall manually review each verification request.
-- If the administrator confirms the submission is valid, the system shall mark the challenge or mission completed for the student and award the configured mission or challenge points.
+- An administrator or vice principal shall manually review each verification request.
+- If an administrator or vice principal confirms the submission is valid, the system shall mark the challenge or mission completed for the student and award the configured mission or challenge points.
 - A student shall be able to submit verification requests for a challenge or mission only until the configured completion limit is reached.
 - When a student reaches the configured completion limit, the system shall mark that activity done for the student and prevent further verification requests for it.
 - If three verification requests for the same challenge or mission are rejected for a student, the system shall block that student from submitting another verification request for that activity for approximately one month.
 - The system shall retain rejected verification requests sufficiently to count rejections for the same student and activity.
 - The ban duration shall remain flexible rather than being defined as an exact calendar period.
-- Administrators shall be able to manually unban or unblock a student for an activity from the student's profile or details page in the administrator web interface.
+- Administrators and vice principals shall be able to manually unban or unblock a student for an activity from the student's profile or details page in the administrator web interface.
 
 ### Student task proposals
 
 - Students shall be able to submit voluntary task proposals (such as proposing to sing a song in front of the class).
 - Each student task proposal shall start in a `Pending to Approve` state.
-- Administrators shall be able to review pending task proposals.
-- If an administrator rejects a proposal, the proposal shall change to `Declined` state and close.
-- If an administrator approves a proposal, the administrator shall set a positive point amount for the proposal; the status shall change to `Ready to Do` and the point amount shall be visible to the student.
-- Administrators shall be able to modify the assigned point amount after approval while the proposal is active, and the updated point amount shall be displayed to the student.
+- Administrators and vice principals shall be able to review pending task proposals.
+- If an administrator or vice principal rejects a proposal, the proposal shall change to `Declined` state and close.
+- If an administrator or vice principal approves a proposal, they shall set a positive point amount for the proposal; the status shall change to `Ready to Do` and the point amount shall be visible to the student.
+- Administrators and vice principals shall be able to modify the assigned point amount after approval while the proposal is active, and the updated point amount shall be displayed to the student.
 - While a proposal is in `Ready to Do` state, the student shall be able to cancel the request, changing its status to `Canceled` and closing the request.
-- After the student performs the task, an administrator shall manually verify completion and mark the request complete; the system shall transfer the assigned points to the student and change the status to `Completed` (closed).
-- Students and administrators shall be able to exchange messages within a task proposal during its active lifetime.
+- After the student performs the task, an administrator or vice principal shall manually verify completion and mark the request complete; the system shall transfer the assigned points to the student and change the status to `Completed` (closed).
+- Students, administrators, and vice principals shall be able to exchange messages within a task proposal during its active lifetime.
 - Teachers shall not see or participate in student task proposals.
-- Students and administrators shall be able to view open task proposals.
-- Administrators shall be able to filter task proposals by status (`Pending to Approve`, `Ready to Do`, `Completed`, `Declined`, `Canceled`).
+- Students shall be able to view their own open task proposals. Administrators and vice principals shall be able to view school-wide task proposals.
+- Administrators and vice principals shall be able to filter task proposals by status (`Pending to Approve`, `Ready to Do`, `Completed`, `Declined`, `Canceled`).
 
 ### `Point earning guidance`
 

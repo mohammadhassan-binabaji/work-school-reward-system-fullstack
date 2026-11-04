@@ -29,15 +29,15 @@ import { Role } from '@prisma/client';
 export class ActivitiesController {
   constructor(private activitiesService: ActivitiesService) {}
 
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'VICE_PRINCIPAL')
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create challenge or mission (Admin only)' })
+  @ApiOperation({ summary: 'Create challenge or mission (Admin & Vice Principal)' })
   async createActivity(@Body() dto: CreateActivityDto) {
     return this.activitiesService.createActivity(dto);
   }
 
-  @Roles('ADMIN', 'STUDENT')
+  @Roles('ADMIN', 'STUDENT', 'VICE_PRINCIPAL')
   @Get()
   @ApiOperation({ summary: 'List challenges and missions' })
   @ApiResponse({ status: 200, type: [ActivityResponseDto] })
@@ -45,7 +45,7 @@ export class ActivitiesController {
     return this.activitiesService.findAllActivities(user);
   }
 
-  @Roles('ADMIN', 'STUDENT')
+  @Roles('ADMIN', 'STUDENT', 'VICE_PRINCIPAL')
   @Get(':id')
   @ApiOperation({ summary: 'Get challenge or mission by ID' })
   @ApiResponse({ status: 200, type: ActivityResponseDto })
@@ -56,9 +56,9 @@ export class ActivitiesController {
     return this.activitiesService.findActivityById(id, user);
   }
 
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'VICE_PRINCIPAL')
   @Patch(':id')
-  @ApiOperation({ summary: 'Update activity metadata (point value is immutable) (Admin only)' })
+  @ApiOperation({ summary: 'Update activity metadata (point value is immutable) (Admin & Vice Principal)' })
   async updateActivity(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateActivityMetadataDto,
@@ -66,9 +66,9 @@ export class ActivitiesController {
     return this.activitiesService.updateActivityMetadata(id, dto);
   }
 
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'VICE_PRINCIPAL')
   @Delete(':id')
-  @ApiOperation({ summary: 'Remove activity (Admin only)' })
+  @ApiOperation({ summary: 'Remove activity (Admin & Vice Principal)' })
   async deleteActivity(@Param('id', ParseUUIDPipe) id: string) {
     return this.activitiesService.deleteActivity(id);
   }

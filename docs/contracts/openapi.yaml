@@ -4,7 +4,7 @@ info:
   version: 1.0.0
   description: >
     Complete RESTful backend specification for the Student Reward System.
-    Enforces Role-Based Access Control (RBAC: ADMIN, TEACHER, STUDENT) and Stateful Session Authentication.
+    Enforces Role-Based Access Control (RBAC: ADMIN, VICE_PRINCIPAL, TEACHER, STUDENT) and Stateful Session Authentication.
 servers:
   - url: http://localhost:3000/api/v1
     description: Local Development Server
@@ -94,7 +94,7 @@ components:
           example: "jane.doe"
         role:
           type: string
-          enum: [ADMIN, TEACHER, STUDENT]
+          enum: [ADMIN, TEACHER, STUDENT, VICE_PRINCIPAL]
         accountState:
           type: string
           enum: [ACTIVE, INACTIVE, DEACTIVATED, DEPARTED]
@@ -105,6 +105,7 @@ components:
         teacherProfile:
           type: object
           nullable: true
+          description: Teacher award-budget profile or vice-principal personal adjustment balance.
           properties:
             pointBalance:
               type: integer
@@ -163,7 +164,7 @@ components:
           example: "sess_a8f93e2b1c4d"
         role:
           type: string
-          enum: [ADMIN, TEACHER, STUDENT]
+          enum: [ADMIN, TEACHER, STUDENT, VICE_PRINCIPAL]
         user:
           $ref: '#/components/schemas/UserResponse'
 
@@ -823,30 +824,6 @@ components:
           type: string
           format: date-time
 
-    UpdateTierConfigurationsDto:
-      type: object
-      required:
-        - tiers
-      properties:
-        tiers:
-          type: array
-          items:
-            type: object
-            required:
-              - tierNumber
-              - name
-              - minPointsThreshold
-            properties:
-              tierNumber:
-                type: integer
-                minimum: 1
-                maximum: 5
-              name:
-                type: string
-              minPointsThreshold:
-                type: integer
-                minimum: 0
-
     DailyStudentSnapshotDto:
       type: object
       required:
@@ -940,7 +917,7 @@ components:
           type: string
         role:
           type: string
-          enum: [ADMIN, TEACHER, STUDENT]
+          enum: [ADMIN, TEACHER, STUDENT, VICE_PRINCIPAL]
 
     PointAuditLogResponse:
       type: object
@@ -969,17 +946,17 @@ components:
           nullable: true
         actorRole:
           type: string
-          enum: [ADMIN, TEACHER, STUDENT, SYSTEM]
+          enum: [ADMIN, TEACHER, STUDENT, VICE_PRINCIPAL, SYSTEM]
         sourceType:
           type: string
-          enum: [SYSTEM_POOL, TEACHER, STUDENT_CURRENT, STUDENT_RESERVED]
+          enum: [SYSTEM_POOL, TEACHER, VICE_PRINCIPAL, STUDENT_CURRENT, STUDENT_RESERVED]
         sourceId:
           type: string
           format: uuid
           nullable: true
         recipientType:
           type: string
-          enum: [TEACHER, STUDENT_CURRENT, STUDENT_RESERVED, SYSTEM_POOL, NONE]
+          enum: [TEACHER, VICE_PRINCIPAL, STUDENT_CURRENT, STUDENT_RESERVED, SYSTEM_POOL, NONE]
         recipientId:
           type: string
           format: uuid
@@ -993,8 +970,10 @@ components:
           type: string
           enum:
             - POOL_FUND_TEACHER
+            - POOL_FUND_VICE_PRINCIPAL
             - TEACHER_AWARD_STUDENT
             - ADMIN_ADJUST_STUDENT
+            - VICE_ADJUST_STUDENT
             - REWARD_RESERVE_POINTS
             - REWARD_DECLINE_RETURN
             - REWARD_REMOVE_RETURN
@@ -1004,12 +983,14 @@ components:
             - STUDENT_DEPARTURE_DEDUCT
             - SET_POOL_BALANCE
             - TEACHER_DEPARTURE_RETURN
+            - VICE_PRINCIPAL_DEPARTURE_RETURN
         reasonDetail:
           type: string
           nullable: true
           description: >-
-            Optional supplemental detail text. Present only for TEACHER_AWARD_STUDENT
-            (contains task name directly) and ADMIN_ADJUST_STUDENT (contains admin-supplied reason);
+            Optional supplemental detail text. Present for TEACHER_AWARD_STUDENT
+            (contains task name directly), ADMIN_ADJUST_STUDENT, or VICE_ADJUST_STUDENT
+            (contains the actor-supplied reason);
             null for all other action types.
           example: 'Special recognition award'
         relatedEntityType:
@@ -1287,7 +1268,7 @@ paths:
           required: false
           schema:
             type: string
-            enum: [ADMIN, TEACHER, STUDENT]
+            enum: [ADMIN, TEACHER, STUDENT, VICE_PRINCIPAL]
         - name: accountState
           in: query
           required: false
@@ -1305,7 +1286,7 @@ paths:
                   $ref: '#/components/schemas/UserResponse'
     post:
       summary: Create User Account
-      description: Admin creates an admin, teacher, or student account with optional profile image (FR-002, FR-003).
+      description: Admin creates an admin, vice principal, teacher, or student account with optional profile image (FR-002, FR-003).
       security:
         - SessionAuth: []
       requestBody:
@@ -1316,7 +1297,7 @@ paths:
               type: object
               required: [nationalId, firstName, lastName, username, password, role]
               properties:
-                nationalId: { type: string, pattern: '^[0-9]{10}
+                nationalId: { type: string, pattern: '^[0-9]{10}$' }
       responses:
         '201':
           description: Created
@@ -1378,6 +1359,28 @@ paths:
         '422':
           description: Row-level validation errors (including declared image filename not found in ZIP)
 
+  /users/students:
+    get:
+      summary: List active students for point adjustment (Admin or Vice Principal)
+      description: Returns only student IDs, national IDs, and names required by direct-adjustment forms. Vice Principals cannot access the full user-management endpoints.
+      security:
+        - SessionAuth: []
+      responses:
+        '200':
+          description: Active student adjustment targets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required: [id, nationalId, firstName, lastName]
+                  properties:
+                    id: { type: string, format: uuid }
+                    nationalId: { type: string }
+                    firstName: { type: string }
+                    lastName: { type: string }
+
   /users/{id}:
     get:
       summary: Get Single User by ID (Admin only)
@@ -1398,7 +1401,7 @@ paths:
   /users/{id}/state:
     patch:
       summary: Update User Account Lifecycle State
-      description: Deactivates, reactivates, or marks user as departed (FR-010, FR-012, FR-014).
+      description: Deactivates, reactivates, or marks a user as departed. Vice principal departure returns any remaining balance to the system pool (FR-010, FR-012, FR-014).
       security:
         - SessionAuth: []
       parameters:
@@ -1731,6 +1734,28 @@ paths:
         '200':
           description: Points successfully allocated (FR-016)
 
+  /points/pool/fund-vice-principal:
+    post:
+      summary: Fund Vice Principal Point Balance from System Pool (Admin only)
+      description: Transfers points from the system pool to an active vice principal's personal adjustment balance.
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [vicePrincipalId, amount]
+              properties:
+                vicePrincipalId: { type: string, format: uuid }
+                amount: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: Points successfully allocated to the vice principal
+        '400':
+          description: Insufficient system pool balance or inactive vice principal
+
   /points/tasks:
     get:
       summary: List Point Transfer Tasks
@@ -1847,6 +1872,7 @@ paths:
   /points/admin-adjust:
     post:
       summary: Direct Administrator Point Adjustment
+      description: Admin-only pool-based adjustment of a student's point balance.
       security:
         - SessionAuth: []
       requestBody:
@@ -1864,6 +1890,29 @@ paths:
         '200':
           description: Balance adjusted (FR-023)
 
+  /points/vice-adjust:
+    post:
+      summary: Direct Vice Principal Point Adjustment
+      description: Vice-principal-only symmetric adjustment. Positive amounts debit the vice principal balance and credit the student; negative amounts debit the student and return points to the vice principal balance.
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [studentId, amount, reason]
+              properties:
+                studentId: { type: string, format: uuid }
+                amount: { type: integer, description: "Positive or negative integer adjustment; zero is invalid" }
+                reason: { type: string }
+      responses:
+        '200':
+          description: Student and vice principal balances adjusted
+        '400':
+          description: Insufficient vice principal or student balance
+
   # ==========================================
   # REWARDS & REDEMPTION
   # ==========================================
@@ -1878,7 +1927,7 @@ paths:
           required: false
           schema:
             type: boolean
-            description: Include inactive/removed rewards (Admin/Teacher)
+            description: Include inactive/removed rewards (Admin/Vice Principal)
       responses:
         '200':
           description: OK
@@ -1888,7 +1937,7 @@ paths:
                 type: array
                 items: { $ref: '#/components/schemas/RewardDto' }
     post:
-      summary: Create Reward (Admin)
+      summary: Create Reward (Admin or Vice Principal)
       security:
         - SessionAuth: []
       requestBody:
@@ -1929,7 +1978,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/RewardDto' }
     patch:
-      summary: Update Reward Metadata (price is immutable) (Admin only)
+      summary: Update Reward Metadata (price is immutable) (Admin or Vice Principal)
       security:
         - SessionAuth: []
       parameters:
@@ -1949,7 +1998,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/RewardDto' }
     delete:
-      summary: Remove Reward from Catalog (Admin)
+      summary: Remove Reward from Catalog (Admin or Vice Principal)
       description: Closes active requests, returns reserved points, and records audit entries (FR-034).
       security:
         - SessionAuth: []
@@ -2030,7 +2079,7 @@ paths:
 
   /reward-requests/{id}/approve:
     post:
-      summary: Approve Reward Request (Admin)
+      summary: Approve Reward Request (Admin or Vice Principal)
       security:
         - SessionAuth: []
       parameters:
@@ -2044,7 +2093,7 @@ paths:
 
   /reward-requests/{id}/decline:
     post:
-      summary: Decline Reward Request (Admin)
+      summary: Decline Reward Request (Admin or Vice Principal)
       security:
         - SessionAuth: []
       parameters:
@@ -2067,7 +2116,7 @@ paths:
 
   /reward-requests/{id}/receive:
     post:
-      summary: Mark Reward Request as Received / Delivered (Admin)
+      summary: Mark Reward Request as Received / Delivered (Admin or Vice Principal)
       security:
         - SessionAuth: []
       parameters:
@@ -2097,7 +2146,7 @@ paths:
                 type: array
                 items: { $ref: '#/components/schemas/ActivityDto' }
     post:
-      summary: Create Activity (Admin)
+      summary: Create Activity (Admin or Vice Principal)
       security:
         - SessionAuth: []
       requestBody:
@@ -2138,7 +2187,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/ActivityDto' }
     patch:
-      summary: Update Activity Metadata (point value is immutable) (Admin only)
+      summary: Update Activity Metadata (point value is immutable) (Admin or Vice Principal)
       security:
         - SessionAuth: []
       parameters:
@@ -2158,7 +2207,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/ActivityDto' }
     delete:
-      summary: Remove Activity (Admin only)
+      summary: Remove Activity (Admin or Vice Principal)
       security:
         - SessionAuth: []
       parameters:
@@ -2242,7 +2291,7 @@ paths:
 
   /verifications/{id}/review:
     post:
-      summary: Review Verification Request (Admin)
+      summary: Review Verification Request (Admin or Vice Principal)
       security:
         - SessionAuth: []
       parameters:
@@ -2266,7 +2315,7 @@ paths:
 
   /verifications/{id}/accept:
     post:
-      summary: Admin Accepts Verification and Awards Points (Admin only)
+      summary: Admin or Vice Principal Accepts Verification and Awards Points
       security:
         - SessionAuth: []
       parameters:
@@ -2280,7 +2329,7 @@ paths:
 
   /verifications/{id}/reject:
     post:
-      summary: Admin Rejects Verification and Tracks Ban Counters (Admin only)
+      summary: Admin or Vice Principal Rejects Verification and Tracks Ban Counters
       security:
         - SessionAuth: []
       parameters:
@@ -2299,7 +2348,7 @@ paths:
 
   /students/{id}/unban:
     post:
-      summary: Clear Student Submission Ban for Activity (Admin)
+      summary: Clear Student Submission Ban for Activity (Admin or Vice Principal)
       security:
         - SessionAuth: []
       parameters:
@@ -2326,7 +2375,7 @@ paths:
   /proposals:
     get:
       summary: List Task Proposals
-      description: Students retrieve only their own proposals (FR-050, FR-051). Admins filter school-wide (FR-052). Teachers forbidden (FR-053).
+      description: Students retrieve only their own proposals (FR-050, FR-051). Admins and vice principals filter school-wide (FR-052). Teachers forbidden (FR-053).
       security:
         - SessionAuth: []
       parameters:
@@ -2385,7 +2434,7 @@ paths:
 
   /proposals/{id}/approve:
     post:
-      summary: Approve Proposal and Assign Points (Admin)
+      summary: Approve Proposal and Assign Points (Admin or Vice Principal)
       security:
         - SessionAuth: []
       parameters:
@@ -2408,7 +2457,7 @@ paths:
 
   /proposals/{id}/points:
     patch:
-      summary: Update Assigned Point Value in Ready to Do (Admin)
+      summary: Update Assigned Point Value in Ready to Do (Admin or Vice Principal)
       security:
         - SessionAuth: []
       parameters:
@@ -2431,7 +2480,7 @@ paths:
 
   /proposals/{id}/decline:
     post:
-      summary: Decline Proposal (Admin)
+      summary: Decline Proposal (Admin or Vice Principal)
       security:
         - SessionAuth: []
       parameters:
@@ -2467,7 +2516,7 @@ paths:
 
   /proposals/{id}/complete:
     post:
-      summary: Verify and Complete Task Proposal (Admin)
+      summary: Verify and Complete Task Proposal (Admin or Vice Principal)
       security:
         - SessionAuth: []
       parameters:
@@ -2501,11 +2550,11 @@ paths:
                   properties:
                     id: { type: string, format: uuid }
                     senderId: { type: string, format: uuid }
-                    senderRole: { type: string, enum: [STUDENT, ADMIN] }
+                    senderRole: { type: string, enum: [STUDENT, ADMIN, VICE_PRINCIPAL] }
                     message: { type: string }
                     createdAt: { type: string, format: date-time }
     post:
-      summary: Post Message to Proposal (Student or Admin)
+      summary: Post Message to Proposal (Student, Admin, or Vice Principal)
       security:
         - SessionAuth: []
       parameters:
@@ -2986,7 +3035,7 @@ paths:
     get:
       summary: Retrieve authenticated user's notification inbox
       description: |
-        Returns a paginated list of in-app notifications addressed to the current authenticated user.
+        Returns a paginated list of in-app notifications addressed to the current authenticated user. Reward requests, proposals, and activity verification alerts are broadcast to all active administrators and vice principals.
         Supports filtering by read status (ALL, UNREAD, READ).
         Results are ordered deterministically by creation date descending with ID descending as tie-breaker (`createdAt DESC, id DESC`).
       operationId: getNotifications

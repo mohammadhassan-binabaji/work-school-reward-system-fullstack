@@ -16,10 +16,12 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiCookieAuth } from
 import { PointsService } from './points.service';
 import {
   FundTeacherBudgetDto,
+  FundVicePrincipalBudgetDto,
   CreatePointTaskDto,
   UpdatePointTaskDto,
   TeacherAwardPointsDto,
   AdminAdjustStudentBalanceDto,
+  ViceAdjustStudentBalanceDto,
   SetPoolBalanceDto,
 } from './dto/points.dto';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -61,6 +63,18 @@ export class PointsController {
     @Req() req: RequestWithCorrelation,
   ) {
     return this.pointsService.fundTeacherBudget(dto, adminId, req.correlationId || '');
+  }
+
+  @Roles('ADMIN')
+  @Post('pool/fund-vice-principal')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Fund vice principal point award budget from pool (Admin only)' })
+  async fundVicePrincipal(
+    @Body() dto: FundVicePrincipalBudgetDto,
+    @CurrentUser('id') adminId: string,
+    @Req() req: RequestWithCorrelation,
+  ) {
+    return this.pointsService.fundVicePrincipalBudget(dto, adminId, req.correlationId || '');
   }
 
   @Roles('ADMIN')
@@ -122,5 +136,17 @@ export class PointsController {
     @Req() req: RequestWithCorrelation,
   ) {
     return this.pointsService.adminAdjustStudentBalance(dto, adminId, req.correlationId || '');
+  }
+
+  @Roles('VICE_PRINCIPAL')
+  @Post('vice-adjust')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Vice principal student balance adjustment from own balance (Vice Principal only)' })
+  async viceAdjust(
+    @Body() dto: ViceAdjustStudentBalanceDto,
+    @CurrentUser('id') vicePrincipalId: string,
+    @Req() req: RequestWithCorrelation,
+  ) {
+    return this.pointsService.viceAdjustStudentBalance(dto, vicePrincipalId, req.correlationId || '');
   }
 }

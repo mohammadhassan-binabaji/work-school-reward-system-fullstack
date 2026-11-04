@@ -40,9 +40,9 @@ export class ProposalsController {
     return this.proposalsService.createProposal(dto, studentId);
   }
 
-  @Roles('ADMIN', 'STUDENT')
+  @Roles('ADMIN', 'STUDENT', 'VICE_PRINCIPAL')
   @Get()
-  @ApiOperation({ summary: 'Query task proposals (Admin sees school-wide, Student sees own)' })
+  @ApiOperation({ summary: 'Query task proposals (Admin/VP sees school-wide, Student sees own)' })
   async findAllProposals(
     @Query('studentId') studentId?: string,
     @Query('status') status?: ProposalStatus,
@@ -55,7 +55,7 @@ export class ProposalsController {
     });
   }
 
-  @Roles('ADMIN', 'STUDENT')
+  @Roles('ADMIN', 'STUDENT', 'VICE_PRINCIPAL')
   @Get(':id')
   @ApiOperation({ summary: 'Get task proposal by ID' })
   async findProposalById(
@@ -65,10 +65,10 @@ export class ProposalsController {
     return this.proposalsService.findProposalById(id, user!);
   }
 
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'VICE_PRINCIPAL')
   @Post(':id/approve')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Admin approves proposal and sets point value (Admin only)' })
+  @ApiOperation({ summary: 'Admin or VP approves proposal and sets point value' })
   async approveProposal(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: ApproveProposalDto,
@@ -77,9 +77,9 @@ export class ProposalsController {
     return this.proposalsService.approveProposal(id, dto, adminId);
   }
 
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'VICE_PRINCIPAL')
   @Patch(':id/points')
-  @ApiOperation({ summary: 'Admin updates point value while in READY_TO_DO (Admin only)' })
+  @ApiOperation({ summary: 'Admin or VP updates point value while in READY_TO_DO' })
   async updateProposalPoints(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateProposalPointsDto,
@@ -87,10 +87,10 @@ export class ProposalsController {
     return this.proposalsService.updateProposalPoints(id, dto);
   }
 
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'VICE_PRINCIPAL')
   @Post(':id/decline')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Admin declines proposal (Admin only)' })
+  @ApiOperation({ summary: 'Admin or VP declines proposal' })
   async declineProposal(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: DeclineProposalDto,
@@ -110,22 +110,27 @@ export class ProposalsController {
     return this.proposalsService.cancelProposal(id, studentId);
   }
 
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'VICE_PRINCIPAL')
   @Post(':id/complete')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Admin marks proposal completed and awards points (Admin only)' })
+  @ApiOperation({ summary: 'Admin or VP marks proposal completed and awards points' })
   async completeProposal(
     @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser('id') adminId: string,
+    @CurrentUser() user: { id: string; role: Role },
     @Req() req: RequestWithCorrelation,
   ) {
-    return this.proposalsService.completeProposal(id, adminId, req.correlationId || '');
+    return this.proposalsService.completeProposal(
+      id,
+      user.id,
+      req.correlationId || '',
+      user.role,
+    );
   }
 
-  @Roles('ADMIN', 'STUDENT')
+  @Roles('ADMIN', 'STUDENT', 'VICE_PRINCIPAL')
   @Post(':id/messages')
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Post in-request message to proposal thread (Admin and Student only)' })
+  @ApiOperation({ summary: 'Post in-request message to proposal thread (Admin, VP, and Student only)' })
   async createMessage(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreateProposalMessageDto,
@@ -134,7 +139,7 @@ export class ProposalsController {
     return this.proposalsService.createProposalMessage(id, dto, user);
   }
 
-  @Roles('ADMIN', 'STUDENT')
+  @Roles('ADMIN', 'STUDENT', 'VICE_PRINCIPAL')
   @Get(':id/messages')
   @ApiOperation({ summary: 'Get in-request message thread for proposal' })
   async getMessages(

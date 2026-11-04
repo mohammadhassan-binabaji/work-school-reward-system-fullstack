@@ -336,7 +336,12 @@ export class ActivitiesService {
   }
 
   // Admin Acceptance (FR-038, FR-039)
-  async acceptVerification(id: string, adminId: string, correlationId: string) {
+  async acceptVerification(
+    id: string,
+    adminId: string,
+    correlationId: string,
+    reviewerRole: Role = Role.ADMIN,
+  ) {
     const verification = await this.prisma.verificationRequest.findUnique({
       where: { id },
       include: { activity: true },
@@ -417,7 +422,8 @@ export class ActivitiesService {
         {
           correlationId,
           actorId: adminId,
-          actorRole: ActorRole.ADMIN,
+          actorRole:
+            reviewerRole === Role.VICE_PRINCIPAL ? ActorRole.VICE_PRINCIPAL : ActorRole.ADMIN,
           sourceType: SourceType.SYSTEM_POOL,
           recipientType: RecipientType.STUDENT_CURRENT,
           recipientId: verification.studentId,

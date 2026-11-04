@@ -27,6 +27,7 @@ import {
   api,
   toPersianDigits,
   resolveFileUrl,
+  getStatusLabel,
   type User,
   type Role,
   type AccountState,
@@ -448,7 +449,7 @@ async function handleBulkImport() {
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
       <div>
         <h1 class="text-xl font-black text-slate-900 tracking-tight">مدیریت کاربران</h1>
-        <p class="text-xs text-slate-500 mt-0.5">مشاهده، ایجاد و مدیریت وضعیت حساب‌های دانش‌آموزان، معلمان و مدیران</p>
+        <p class="text-xs text-slate-500 mt-0.5">مشاهده، ایجاد و مدیریت وضعیت حساب‌های دانش‌آموزان، معلمان، مدیران و معاونان</p>
       </div>
 
       <div class="flex items-center gap-2 self-start sm:self-auto">
@@ -509,6 +510,7 @@ async function handleBulkImport() {
           <option value="">تمام نقش‌ها</option>
           <option value="STUDENT">دانش‌آموز</option>
           <option value="TEACHER">معلم</option>
+          <option value="VICE_PRINCIPAL">معاون سامانه</option>
           <option value="ADMIN">مدیر سیستم</option>
         </select>
 
@@ -565,6 +567,8 @@ async function handleBulkImport() {
                       :class="[
                         u.role === 'ADMIN'
                           ? 'bg-purple-100 text-purple-700'
+                          : u.role === 'VICE_PRINCIPAL'
+                          ? 'bg-indigo-100 text-indigo-700'
                           : u.role === 'TEACHER'
                           ? 'bg-blue-100 text-blue-700'
                           : 'bg-emerald-100 text-emerald-700'
@@ -595,12 +599,14 @@ async function handleBulkImport() {
                       'px-2.5 py-0.5 rounded-full text-[10px] font-bold',
                       u.role === 'ADMIN'
                         ? 'bg-purple-50 text-purple-700 border border-purple-200'
+                        : u.role === 'VICE_PRINCIPAL'
+                        ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
                         : u.role === 'TEACHER'
                         ? 'bg-blue-50 text-blue-700 border border-blue-200'
                         : 'bg-emerald-50 text-emerald-700 border border-emerald-200',
                     ]"
                   >
-                    {{ u.role === 'ADMIN' ? 'مدیر' : u.role === 'TEACHER' ? 'معلم' : 'دانش‌آموز' }}
+                    {{ getStatusLabel(u.role) }}
                   </span>
                 </td>
                 <td class="p-3.5">
@@ -715,6 +721,7 @@ async function handleBulkImport() {
           >
             <option value="STUDENT">دانش‌آموز</option>
             <option value="TEACHER">معلم</option>
+            <option value="VICE_PRINCIPAL">معاون سامانه</option>
             <option value="ADMIN">مدیر سیستم</option>
           </select>
         </div>
@@ -812,12 +819,14 @@ async function handleBulkImport() {
                 'px-2 py-0.5 rounded-full text-[10px] font-bold',
                 editingUser.role === 'ADMIN'
                   ? 'bg-purple-100 text-purple-700'
+                  : editingUser.role === 'VICE_PRINCIPAL'
+                  ? 'bg-indigo-100 text-indigo-700'
                   : editingUser.role === 'TEACHER'
                   ? 'bg-blue-100 text-blue-700'
                   : 'bg-emerald-100 text-emerald-700'
               ]"
             >
-              {{ editingUser.role === 'ADMIN' ? 'مدیر' : editingUser.role === 'TEACHER' ? 'معلم' : 'دانش‌آموز' }}
+              {{ getStatusLabel(editingUser.role) }}
             </span>
           </div>
         </div>

@@ -116,7 +116,7 @@ export class UsersService {
         },
       });
 
-      if (dto.role === Role.TEACHER) {
+      if (dto.role === Role.TEACHER || dto.role === Role.VICE_PRINCIPAL) {
         await tx.teacherProfile.create({
           data: {
             id: user.id,
@@ -195,6 +195,22 @@ export class UsersService {
     });
   }
 
+  async findActiveStudentsForAdjustment() {
+    return this.prisma.user.findMany({
+      where: {
+        role: Role.STUDENT,
+        accountState: AccountState.ACTIVE,
+      },
+      select: {
+        id: true,
+        nationalId: true,
+        firstName: true,
+        lastName: true,
+      },
+      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+    });
+  }
+
   async findOne(id: string) {
     const user = await this.prisma.user.findUnique({
       where: { id },
@@ -250,6 +266,8 @@ export class UsersService {
         await this.academicService.handleStudentDeparture(id, adminId, correlationId);
       } else if (user.role === Role.TEACHER) {
         await this.academicService.handleTeacherDeparture(id, adminId, correlationId);
+      } else if (user.role === Role.VICE_PRINCIPAL) {
+        await this.academicService.handleVicePrincipalDeparture(id, adminId, correlationId);
       }
     }
 
@@ -319,6 +337,8 @@ export class UsersService {
         await this.academicService.handleStudentDeparture(id, adminId, correlationId);
       } else if (user.role === Role.TEACHER) {
         await this.academicService.handleTeacherDeparture(id, adminId, correlationId);
+      } else if (user.role === Role.VICE_PRINCIPAL) {
+        await this.academicService.handleVicePrincipalDeparture(id, adminId, correlationId);
       }
     }
 
@@ -444,6 +464,8 @@ export class UsersService {
         await this.academicService.handleStudentDeparture(id, adminId, correlationId);
       } else if (user.role === Role.TEACHER) {
         await this.academicService.handleTeacherDeparture(id, adminId, correlationId);
+      } else if (user.role === Role.VICE_PRINCIPAL) {
+        await this.academicService.handleVicePrincipalDeparture(id, adminId, correlationId);
       }
     }
 

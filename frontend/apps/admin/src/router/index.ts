@@ -6,6 +6,7 @@ import UsersView from '../views/UsersView.vue';
 import AcademicView from '../views/AcademicView.vue';
 import TasksView from '../views/TasksView.vue';
 import DirectAdjustView from '../views/DirectAdjustView.vue';
+import AdjustViewWrapper from '../views/AdjustViewWrapper.vue';
 import RewardsView from '../views/RewardsView.vue';
 import ActivitiesView from '../views/ActivitiesView.vue';
 import ProposalsView from '../views/ProposalsView.vue';
@@ -27,30 +28,30 @@ const routes = [
     path: '/pool',
     name: 'pool',
     component: PoolManagementView,
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, allowedRoles: ['ADMIN'] },
   },
   {
     path: '/users',
     name: 'users',
     component: UsersView,
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, allowedRoles: ['ADMIN'] },
   },
   {
     path: '/academic',
     name: 'academic',
     component: AcademicView,
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, allowedRoles: ['ADMIN'] },
   },
   {
     path: '/tasks',
     name: 'tasks',
     component: TasksView,
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, allowedRoles: ['ADMIN'] },
   },
   {
     path: '/adjust',
     name: 'adjust',
-    component: DirectAdjustView,
+    component: AdjustViewWrapper,
     meta: { requiresAuth: true },
   },
   {
@@ -75,25 +76,25 @@ const routes = [
     path: '/guidance',
     name: 'guidance',
     component: GuidanceView,
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, allowedRoles: ['ADMIN'] },
   },
   {
     path: '/tiers',
     name: 'tiers',
     component: TiersView,
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, allowedRoles: ['ADMIN'] },
   },
   {
     path: '/rankings',
     name: 'rankings',
     component: RankingsView,
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, allowedRoles: ['ADMIN'] },
   },
   {
     path: '/reports',
     name: 'reports',
     component: ReportsView,
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, allowedRoles: ['ADMIN'] },
   },
   {
     path: '/notifications',
@@ -131,6 +132,13 @@ router.beforeEach(async (to, _from, next) => {
     next('/login');
   } else if (to.path === '/login' && authStore.isAuthenticated) {
     next('/');
+  } else if (to.meta.allowedRoles && Array.isArray(to.meta.allowedRoles)) {
+    const userRole = authStore.user?.role;
+    if (userRole && !to.meta.allowedRoles.includes(userRole)) {
+      next('/');
+    } else {
+      next();
+    }
   } else {
     next();
   }

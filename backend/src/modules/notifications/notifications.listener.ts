@@ -38,15 +38,15 @@ export class NotificationsListener {
     return user?.accountState === AccountState.ACTIVE;
   }
 
-  private async getActiveAdminIds(): Promise<string[]> {
-    const admins = await this.prisma.user.findMany({
+  private async getActiveAdministratorIds(): Promise<string[]> {
+    const administrators = await this.prisma.user.findMany({
       where: {
-        role: Role.ADMIN,
+        role: { in: [Role.ADMIN, Role.VICE_PRINCIPAL] },
         accountState: AccountState.ACTIVE,
       },
       select: { id: true },
     });
-    return admins.map((a) => a.id);
+    return administrators.map((administrator) => administrator.id);
   }
 
   @OnEvent('reward.status_changed')
@@ -83,7 +83,7 @@ export class NotificationsListener {
 
   @OnEvent('reward.requires_approval')
   async handleRewardRequiresApproval(event: RewardRequiresApprovalEvent) {
-    const adminIds = await this.getActiveAdminIds();
+    const adminIds = await this.getActiveAdministratorIds();
     if (adminIds.length === 0) return;
 
     const formatted = NotificationFormatter.formatRewardRequiresApproval(
@@ -136,7 +136,7 @@ export class NotificationsListener {
 
   @OnEvent('proposal.submitted')
   async handleProposalSubmitted(event: ProposalSubmittedEvent) {
-    const adminIds = await this.getActiveAdminIds();
+    const adminIds = await this.getActiveAdministratorIds();
     if (adminIds.length === 0) return;
 
     const formatted = NotificationFormatter.formatProposalSubmitted(
@@ -157,12 +157,13 @@ export class NotificationsListener {
 
   @OnEvent('proposal.message')
   async handleProposalMessage(event: ProposalMessageEvent) {
-    if (event.senderRole === Role.ADMIN) {
+    if (event.senderRole === Role.ADMIN || event.senderRole === Role.VICE_PRINCIPAL) {
       if (!(await this.isRecipientActive(event.studentId))) return;
 
       const formatted = NotificationFormatter.formatAdminProposalMessage(
         event.senderName,
         event.messagePreview,
+        event.senderRole,
       );
 
       await this.prisma.notification.create({
@@ -175,7 +176,7 @@ export class NotificationsListener {
         },
       });
     } else if (event.senderRole === Role.STUDENT) {
-      const adminIds = await this.getActiveAdminIds();
+      const adminIds = await this.getActiveAdministratorIds();
       if (adminIds.length === 0) return;
 
       const formatted = NotificationFormatter.formatStudentProposalMessage(
@@ -199,7 +200,7 @@ export class NotificationsListener {
 
   @OnEvent('verification.submitted')
   async handleVerificationSubmitted(event: VerificationSubmittedEvent) {
-    const adminIds = await this.getActiveAdminIds();
+    const adminIds = await this.getActiveAdministratorIds();
     if (adminIds.length === 0) return;
 
     const formatted = NotificationFormatter.formatVerificationSubmitted(
@@ -313,7 +314,11 @@ export class NotificationsListener {
   async handlePointAdjusted(event: PointAdjustedEvent) {
     if (!(await this.isRecipientActive(event.studentId))) return;
 
-    const formatted = NotificationFormatter.formatPointAdjusted(event.amount, event.reason);
+    const formatted = NotificationFormatter.formatPointAdjusted(
+      event.amount,
+      event.reason,
+      event.actorRole,
+    );
 
     await this.prisma.notification.create({
       data: {
@@ -328,13 +333,17 @@ export class NotificationsListener {
 
   @OnEvent('point.allocated')
   async handlePointAllocated(event: PointAllocatedEvent) {
-    if (!(await this.isRecipientActive(event.teacherId))) return;
+    if (!(await this.isRecipientActive(event.recipientId))) return;
 
-    const formatted = NotificationFormatter.formatPointAllocated(event.amount, event.newBalance);
+    const formatted = NotificationFormatter.formatPointAllocated(
+      event.amount,
+      event.newBalance,
+      event.recipientRole,
+    );
 
     await this.prisma.notification.create({
       data: {
-        recipientId: event.teacherId,
+        recipientId: event.recipientId,
         subject: formatted.subject,
         body: formatted.body,
         originatingEntityType: OriginatingEntityType.POINT_ALLOCATION,

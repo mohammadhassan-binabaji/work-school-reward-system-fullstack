@@ -7,7 +7,7 @@ This document defines the important business data the system must store or displ
 - Data must support the role-based behavior and permissions defined in [requirements.md](requirements.md).
 - Point-flow and reward-activity history must remain traceable and permanently retained where the requirements define it as audit history.
 - A user's national ID is the only user identifier and contains 10 digits.
-- Passwords are required for administrator, teacher, and student sign-in. The system must not expose stored passwords in user-facing views.
+- Passwords are required for administrator, vice principal, teacher, and student sign-in. The system must not expose stored passwords in user-facing views.
 
 ## Administrator
 
@@ -20,7 +20,22 @@ The system must store or display:
 - Administrator role
 - Optional profile image URL
 
-The first administrator is provisioned manually. Administrators can create additional administrator, teacher, and student accounts.
+The first administrator is provisioned manually. Administrators can create additional administrator, vice principal, teacher, and student accounts.
+
+## Vice Principal
+
+The system must store or display:
+
+- First name
+- Last name
+- National ID
+- Account state, including active, inactive, deactivated, or departed state
+- Personal point balance used for symmetric student adjustments
+- Optional profile image URL
+
+Administrators can create and manage vice principal accounts and fund their point balances from the system pool. A vice principal can access only the dashboard, direct adjustment, rewards, activities, proposals, and notifications in the admin application. The vice principal's notification inbox must contain only notifications addressed to that user.
+
+When a vice principal departs, the remaining balance is returned to the system point pool and the departure is retained in point-flow history.
 
 ## Teacher
 
@@ -91,6 +106,7 @@ The system must distinguish between:
 
 - System-wide point pool
 - Teacher award-budget balance
+- Vice principal adjustment-budget balance
 - Student reward-point balance
 - Reserved student points for an active reward request
 
@@ -107,7 +123,7 @@ Each point activity record must preserve:
 - Related student, teacher, class, subject, activity, reward, or request when applicable
 - Resulting balance when needed to trace the flow
 
-Teacher awards are positive and reduce the teacher balance by the awarded amount. Administrators can add or subtract student points. Point activity history is immutable and permanently retained.
+Teacher awards are positive and reduce the teacher balance by the awarded amount. Administrator adjustments use the system pool. Vice principal adjustments are symmetric: a positive adjustment debits the vice principal's balance and credits the student; a negative adjustment debits the student and credits the vice principal's balance. Point activity history records the actor's role and is immutable and permanently retained.
 
 ## Point Transfer Task
 
@@ -156,9 +172,9 @@ Allowed request labels are:
 - `Completed`
 - `Declined`
 
-Rewards not requiring approval enter `Pending to Receive` immediately on request and decrease inventory. Rewards requiring approval enter `Pending to Approve`; administrator approval moves them to `Pending to Receive`; decline returns reserved points.
+Rewards not requiring approval enter `Pending to Receive` immediately on request and decrease inventory. Rewards requiring approval enter `Pending to Approve`; administrator or vice-principal approval moves them to `Pending to Receive`; decline returns reserved points.
 
-The administrator marks a request as received after handover, changing it to `Completed`.
+An administrator or vice principal marks a request as received after handover, changing it to `Completed`.
 
 Students cannot cancel reward requests at any stage.
 
@@ -174,7 +190,7 @@ The system must store or display:
 - Active, inactive, or removed state
 - Creation information
 
-Only administrators create and manage these activities. The fixed point value cannot be changed after creation; changing it requires removing and recreating the activity.
+Administrators and vice principals create and manage these activities. The fixed point value cannot be changed after creation; changing it requires removing and recreating the activity.
 
 ## Challenge or Mission Verification Request
 
@@ -184,14 +200,14 @@ Each verification request must preserve:
 - Challenge or mission
 - Submitted evidence or verification information, when provided
 - Submission date and time
-- Administrator reviewer
+- Administrator or vice principal reviewer
 - Review date and time
 - Review result
 - Rejection history
 - Current activity-completion count for the student
 - Ban or unblock state when applicable
 
-Accepted verification marks the activity completed for the student and awards the fixed points. Three rejected requests for the same student and activity trigger a flexible approximately one-month ban. Administrators can manually unblock the student from the student profile.
+Accepted verification marks the activity completed for the student and awards the fixed points. Three rejected requests for the same student and activity trigger a flexible approximately one-month ban. Administrators and vice principals can manually unblock the student from the student profile.
 
 ## Student Task Proposal
 
@@ -204,7 +220,7 @@ Each student task proposal must preserve:
 - Submission date and time
 - Approval date and time
 - Completion date and time
-- Reviewing administrator
+- Reviewing administrator or vice principal
 
 Allowed proposal statuses are:
 
@@ -219,7 +235,7 @@ Allowed proposal statuses are:
 Each message within a task proposal must preserve:
 
 - Task proposal reference
-- Sender (student or administrator)
+- Sender (student, administrator, or vice principal)
 - Message body
 - Sent date and time
 
@@ -285,7 +301,11 @@ Each immutable audit record must preserve enough information to trace:
 - Date and time
 - Relevant resulting state or balance
 
-Audit records cover transfers, awards, administrator adjustments, reward requests, redemptions, cancellations, declines, and returned points. Administrators cannot correct or delete them.
+Audit records cover transfers, awards, administrator and vice-principal adjustments, reward requests, redemptions, cancellations, declines, and returned points. Records distinguish vice-principal adjustments and funding/departure transfers and preserve the actor's role. Administrators cannot correct or delete them. Vice principals cannot query report APIs or view the reporting interface.
+
+## Notifications
+
+Each user has a private notification inbox. Vice principals can read and update only notifications addressed to their own account. Review notifications for reward approval requests, proposals and proposal messages, and activity verification submissions are sent to every active administrator and vice principal. Vice principals also receive notifications when their personal point balance is funded.
 
 ## Report
 

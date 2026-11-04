@@ -1,3 +1,5 @@
+import { Role } from '@prisma/client';
+
 export interface FormattedNotification {
   subject: string;
   body: string;
@@ -99,10 +101,11 @@ export class NotificationFormatter {
   static formatAdminProposalMessage(
     adminName: string,
     messagePreview: string,
+    senderRole: Extract<Role, 'ADMIN' | 'VICE_PRINCIPAL'> = Role.ADMIN,
   ): FormattedNotification {
     return {
       subject: 'پیام جدید دربارهٔ پیشنهاد فعالیت',
-      body: `مدیر ${adminName} پیامی فرستاده است: «${messagePreview}».`,
+      body: `${senderRole === Role.VICE_PRINCIPAL ? 'معاون سامانه' : 'مدیر'} ${adminName} پیامی فرستاده است: «${messagePreview}».`,
     };
   }
 
@@ -186,18 +189,28 @@ export class NotificationFormatter {
   }
 
   // EVT-17
-  static formatPointAdjusted(amount: number, reason: string): FormattedNotification {
+  static formatPointAdjusted(
+    amount: number,
+    reason: string,
+    actorRole: Extract<Role, 'ADMIN' | 'VICE_PRINCIPAL'> = Role.ADMIN,
+  ): FormattedNotification {
     return {
       subject: 'موجودی نوین شما تغییر کرد',
-      body: `مدیر موجودی نوین شما را به میزان ${toPersianDigits(amount)} نوین تغییر داد. دلیل: ${reason}`,
+      body: `${actorRole === Role.VICE_PRINCIPAL ? 'معاون سامانه' : 'مدیر'} موجودی نوین شما را به میزان ${toPersianDigits(amount)} نوین تغییر داد. دلیل: ${reason}`,
     };
   }
 
   // EVT-18
-  static formatPointAllocated(amount: number, newBalance: number): FormattedNotification {
+  static formatPointAllocated(
+    amount: number,
+    newBalance: number,
+    recipientRole: Extract<Role, 'TEACHER' | 'VICE_PRINCIPAL'> = Role.TEACHER,
+  ): FormattedNotification {
+    const balanceLabel =
+      recipientRole === Role.VICE_PRINCIPAL ? 'موجودی شخصی' : 'بودجهٔ نوین‌دهی';
     return {
       subject: 'نوین به موجودی شما اضافه شد',
-      body: `مدیر ${toPersianDigits(amount)} نوین به بودجهٔ نوین‌دهی شما اختصاص داد. موجودی قابل‌استفادهٔ جدید شما ${toPersianDigits(newBalance)} نوین است.`,
+      body: `مدیر ${toPersianDigits(amount)} نوین به ${balanceLabel} شما اختصاص داد. موجودی قابل‌استفادهٔ جدید شما ${toPersianDigits(newBalance)} نوین است.`,
     };
   }
 }

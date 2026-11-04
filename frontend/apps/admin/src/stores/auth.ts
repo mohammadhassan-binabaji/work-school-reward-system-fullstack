@@ -9,6 +9,7 @@ export const useAuthStore = defineStore('adminAuth', () => {
 
   const isAuthenticated = computed(() => !!user.value && !!api.getSessionId());
   const isAdmin = computed(() => user.value?.role === 'ADMIN');
+  const isVicePrincipal = computed(() => user.value?.role === 'VICE_PRINCIPAL');
 
   async function fetchMe(): Promise<boolean> {
     const sessionId = api.getSessionId();
@@ -42,9 +43,9 @@ export const useAuthStore = defineStore('adminAuth', () => {
         password,
       });
 
-      if (res.role !== 'ADMIN') {
+      if (res.role !== 'ADMIN' && res.role !== 'VICE_PRINCIPAL') {
         api.clearSession();
-        error.value = 'این پنل فقط مخصوص مدیران سیستم است.';
+        error.value = 'این پنل فقط مخصوص مدیران و معاونان سیستم است.';
         return { success: false, message: error.value };
       }
 
@@ -76,6 +77,7 @@ export const useAuthStore = defineStore('adminAuth', () => {
     error,
     isAuthenticated,
     isAdmin,
+    isVicePrincipal,
     fetchMe,
     login,
     logout,

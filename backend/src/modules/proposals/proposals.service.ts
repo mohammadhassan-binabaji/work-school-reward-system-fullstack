@@ -334,7 +334,12 @@ export class ProposalsService {
   }
 
   // Admin Completion & Point Award (FR-048)
-  async completeProposal(id: string, adminId: string, correlationId: string) {
+  async completeProposal(
+    id: string,
+    adminId: string,
+    correlationId: string,
+    reviewerRole: Role = Role.ADMIN,
+  ) {
     const proposal = await this.prisma.studentTaskProposal.findUnique({
       where: { id },
     });
@@ -399,7 +404,8 @@ export class ProposalsService {
         {
           correlationId,
           actorId: adminId,
-          actorRole: ActorRole.ADMIN,
+          actorRole:
+            reviewerRole === Role.VICE_PRINCIPAL ? ActorRole.VICE_PRINCIPAL : ActorRole.ADMIN,
           sourceType: SourceType.SYSTEM_POOL,
           recipientType: RecipientType.STUDENT_CURRENT,
           recipientId: proposal.studentId,

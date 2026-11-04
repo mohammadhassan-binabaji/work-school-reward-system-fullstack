@@ -17,12 +17,13 @@ This guide describes the core API endpoints and verification flows for the Stude
 - `GET /api/v1/auth/me` - Get profile of the current authenticated user.
 
 ### 2. User Management (`/api/v1/users`) [Admin only]
+- `GET /api/v1/users/students` - Admin or vice principal lookup of active students using only the identifying fields needed by direct-adjustment forms; vice principals do not receive access to general user-management endpoints.
 - `POST /api/v1/users` - Create user account (supports multipart/form-data with optional profile image file up to 5MB, JPG/PNG/WebP).
 - `GET /api/v1/users/import/template` - Download student bulk import Excel template with optional image filename column.
 - `POST /api/v1/users/import/excel` - Bulk import students from Excel file and optional ZIP archive containing photos matching filenames in spreadsheet.
 - `GET /api/v1/users` - List users with optional role and accountState filtering (includes `imageUrl`).
 - `GET /api/v1/users/:id` - Get user details (includes `imageUrl`).
-- `PATCH /api/v1/users/:id/state` - Update user account state (`ACTIVE`, `INACTIVE`, `DEACTIVATED`, `DEPARTED`).
+- `PATCH /api/v1/users/:id/state` - Admin-only account-state changes (`ACTIVE`, `INACTIVE`, `DEACTIVATED`, `DEPARTED`). Setting a vice principal to `DEPARTED` returns their remaining balance to the system pool.
 
 ### 3. Academic Structure (`/api/v1/classes`, `/api/v1/subjects`, `/api/v1/assignments`)
 - `POST/GET/PATCH/DELETE /api/v1/classes` - Manage class structures.
@@ -35,31 +36,33 @@ This guide describes the core API endpoints and verification flows for the Stude
 ### 4. Point Economy (`/api/v1/points`)
 - `GET /api/v1/points/pool` - Get system pool balance.
 - `POST /api/v1/points/pool/fund-teacher` - Transfer points from pool to teacher budget.
+- `POST /api/v1/points/pool/fund-vice-principal` - Admin transfers points from pool to an active vice principal's personal balance.
 - `POST/GET/PATCH/DELETE /api/v1/points/tasks` - Predefined transfer tasks with discrete positive point options.
 - `POST /api/v1/points/teacher-award` - Teacher awards points to student in assigned class.
-- `POST /api/v1/points/admin-adjust` - Direct admin credit or debit to student balance.
+- `POST /api/v1/points/admin-adjust` - Admin directly credits or debits a student's balance using the system pool.
+- `POST /api/v1/points/vice-adjust` - Vice principal credits a student from their own balance or debits the student to return points to their own balance. Insufficient balances are rejected.
 
 ### 5. Reward Catalog & Redemption (`/api/v1/rewards`, `/api/v1/reward-requests`)
-- `POST/GET/PATCH/DELETE /api/v1/rewards` - Manage reward catalog (price is immutable).
+- `POST/GET/PATCH/DELETE /api/v1/rewards` - Admins and vice principals manage the reward catalog (price is immutable).
 - `POST /api/v1/reward-requests` - Student redeems reward (immediate balance reservation). Returns `409` if the student already has a pending request for the same reward.
-- `POST /api/v1/reward-requests/:id/approve` - Admin approves request.
-- `POST /api/v1/reward-requests/:id/decline` - Admin declines request (refunds reserved points to student).
-- `POST /api/v1/reward-requests/:id/receive` - Admin confirms physical handover (completes redemption).
+- `POST /api/v1/reward-requests/:id/approve` - Admin or vice principal approves request.
+- `POST /api/v1/reward-requests/:id/decline` - Admin or vice principal declines request (refunds reserved points to student).
+- `POST /api/v1/reward-requests/:id/receive` - Admin or vice principal confirms physical handover (completes redemption).
 
 ### 6. Challenges & Missions (`/api/v1/activities`, `/api/v1/verifications`, `/api/v1/students`)
-- `POST/GET/PATCH/DELETE /api/v1/activities` - Manage challenges and missions.
+- `POST/GET/PATCH/DELETE /api/v1/activities` - Admins and vice principals manage challenges and missions.
 - `POST /api/v1/activities/:id/submissions` - Student submits verification evidence (text and file URL).
-- `POST /api/v1/verifications/:id/accept` - Admin accepts submission (awards fixed points).
-- `POST /api/v1/verifications/:id/reject` - Admin rejects submission (3 rejections trigger dynamic temporary submission ban).
-- `POST /api/v1/students/:id/unban` - Admin manually unbans student.
+- `POST /api/v1/verifications/:id/accept` - Admin or vice principal accepts submission (awards fixed points).
+- `POST /api/v1/verifications/:id/reject` - Admin or vice principal rejects submission (3 rejections trigger dynamic temporary submission ban).
+- `POST /api/v1/students/:id/unban` - Admin or vice principal manually unbans a student.
 
 ### 7. Voluntary Task Proposals (`/api/v1/proposals`)
 - `POST /api/v1/proposals` - Student submits task proposal.
-- `POST /api/v1/proposals/:id/approve` - Admin approves and sets point value (`READY_TO_DO`).
-- `PATCH /api/v1/proposals/:id/points` - Admin modifies point value while `READY_TO_DO`.
+- `POST /api/v1/proposals/:id/approve` - Admin or vice principal approves and sets point value (`READY_TO_DO`).
+- `PATCH /api/v1/proposals/:id/points` - Admin or vice principal modifies point value while `READY_TO_DO`.
 - `POST /api/v1/proposals/:id/cancel` - Student cancels proposal (allowed strictly in `READY_TO_DO`).
-- `POST /api/v1/proposals/:id/complete` - Admin marks completed and awards points.
-- `POST/GET /api/v1/proposals/:id/messages` - Private in-request messages (teachers strictly excluded).
+- `POST /api/v1/proposals/:id/complete` - Admin or vice principal marks completed and awards points.
+- `POST/GET /api/v1/proposals/:id/messages` - Private in-request messages (admin, vice principal, and proposal owner only; teachers are excluded).
 
 ### 8. Rankings & Tiers (`/api/v1/rankings`, `/api/v1/tiers`)
 - `GET /api/v1/rankings/class/:id` - Standard competition ranking for class (privacy-masked for students).
@@ -75,3 +78,10 @@ This guide describes the core API endpoints and verification flows for the Stude
 
 ### 10. Guidance Cards (`/api/v1/guidance-cards`)
 - `POST/GET/PATCH/DELETE /api/v1/guidance-cards` - Manage and view display-only point earning guidance cards.
+
+### 11. Notifications (`/api/v1/notifications`)
+- `GET /api/v1/notifications` and `GET /api/v1/notifications/unread-count` - Read the authenticated user's own inbox and unread count.
+- `PATCH /api/v1/notifications/:id/read` and `PATCH /api/v1/notifications/read-all` - Mark only the authenticated user's notifications as read.
+- Reward approval requests, proposals and proposal messages, and activity verification submissions notify every active administrator and vice principal. Vice principals cannot read another user's inbox.
+
+Vice principals are denied user, academic, pool, point-task, guidance-card, tier, ranking, and report APIs, even if they call those endpoints directly.

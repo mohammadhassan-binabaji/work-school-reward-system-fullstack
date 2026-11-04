@@ -10,10 +10,12 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuditLogService } from './audit-log.service';
 import {
   FundTeacherBudgetDto,
+  FundVicePrincipalBudgetDto,
   CreatePointTaskDto,
   UpdatePointTaskDto,
   TeacherAwardPointsDto,
   AdminAdjustStudentBalanceDto,
+  ViceAdjustStudentBalanceDto,
   SetPoolBalanceDto,
 } from './dto/points.dto';
 import {
@@ -118,17 +120,25 @@ export class PointsService {
         pool = await tx.systemPointPool.create({ data: { balance: 0 } });
       }
 
-      if (pool.balance < dto.amount) {
+      const debitedPool = await tx.systemPointPool.updateMany({
+        where: { id: pool.id, balance: { gte: dto.amount } },
+        data: { balance: { decrement: dto.amount } },
+      });
+
+      if (debitedPool.count !== 1) {
+        const currentPool = await tx.systemPointPool.findUnique({
+          where: { id: pool.id },
+          select: { balance: true },
+        });
         throw new BadRequestException({
           statusCode: 400,
           errorCode: 'INSUFFICIENT_POOL_BALANCE',
-          message: `System pool balance (${pool.balance}) is insufficient to fund ${dto.amount} points`,
+          message: `System pool balance (${currentPool?.balance || 0}) is insufficient to fund ${dto.amount} points`,
         });
       }
 
-      const updatedPool = await tx.systemPointPool.update({
+      const updatedPool = await tx.systemPointPool.findUniqueOrThrow({
         where: { id: pool.id },
-        data: { balance: { decrement: dto.amount } },
       });
 
       const updatedTeacher = await tx.teacherProfile.update({
@@ -173,8 +183,111 @@ export class PointsService {
       new PointAllocatedEvent(
         result.auditLogId,
         result.teacherId,
+        Role.TEACHER,
         result.awardedBudget,
         result.teacherNewBalance,
+      ),
+    );
+
+    const { auditLogId, ...response } = result;
+    return response;
+  }
+
+  // Fund Vice Principal Budget
+  async fundVicePrincipalBudget(dto: FundVicePrincipalBudgetDto, adminId: string, correlationId: string) {
+    const vp = await this.prisma.user.findUnique({
+      where: { id: dto.vicePrincipalId },
+      include: { teacherProfile: true },
+    });
+
+    if (!vp || vp.role !== Role.VICE_PRINCIPAL || !vp.teacherProfile) {
+      throw new NotFoundException({
+        statusCode: 404,
+        errorCode: 'VICE_PRINCIPAL_NOT_FOUND',
+        message: 'Vice Principal profile not found',
+      });
+    }
+
+    if (vp.accountState !== AccountState.ACTIVE) {
+      throw new BadRequestException({
+        statusCode: 400,
+        errorCode: 'VICE_PRINCIPAL_NOT_ACTIVE',
+        message: 'Cannot fund inactive or departed vice principal',
+      });
+    }
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      let pool = await tx.systemPointPool.findFirst();
+      if (!pool) {
+        pool = await tx.systemPointPool.create({ data: { balance: 0 } });
+      }
+
+      const debitedPool = await tx.systemPointPool.updateMany({
+        where: { id: pool.id, balance: { gte: dto.amount } },
+        data: { balance: { decrement: dto.amount } },
+      });
+
+      if (debitedPool.count !== 1) {
+        const currentPool = await tx.systemPointPool.findUnique({
+          where: { id: pool.id },
+          select: { balance: true },
+        });
+        throw new BadRequestException({
+          statusCode: 400,
+          errorCode: 'INSUFFICIENT_POOL_BALANCE',
+          message: `System pool balance (${currentPool?.balance || 0}) is insufficient to fund ${dto.amount} points`,
+        });
+      }
+
+      const updatedPool = await tx.systemPointPool.findUniqueOrThrow({
+        where: { id: pool.id },
+      });
+
+      const updatedVp = await tx.teacherProfile.update({
+        where: { id: dto.vicePrincipalId },
+        data: { pointBalance: { increment: dto.amount } },
+      });
+
+      const admin = await tx.user.findUnique({ where: { id: adminId } });
+      const adminName = admin ? `${admin.firstName} ${admin.lastName}`.trim() : 'مدیر';
+      const vpName = `${vp.firstName} ${vp.lastName}`.trim();
+
+      const auditLog = await this.auditLogService.log(
+        {
+          correlationId,
+          actorId: adminId,
+          actorRole: ActorRole.ADMIN,
+          sourceType: SourceType.SYSTEM_POOL,
+          sourceId: pool.id,
+          recipientType: RecipientType.VICE_PRINCIPAL,
+          recipientId: dto.vicePrincipalId,
+          amount: dto.amount,
+          actionType: ActionType.POOL_FUND_VICE_PRINCIPAL,
+          metadata: { adminName, vicePrincipalName: vpName },
+          resultingSourceBalance: updatedPool.balance,
+          resultingRecipientBalance: updatedVp.pointBalance,
+        },
+        tx,
+      );
+
+      return {
+        auditLogId: auditLog.id,
+        success: true,
+        vicePrincipalId: dto.vicePrincipalId,
+        awardedBudget: dto.amount,
+        vicePrincipalNewBalance: updatedVp.pointBalance,
+        poolRemainingBalance: updatedPool.balance,
+      };
+    });
+
+    await this.eventEmitter.emitAsync(
+      'point.allocated',
+      new PointAllocatedEvent(
+        result.auditLogId,
+        result.vicePrincipalId,
+        Role.VICE_PRINCIPAL,
+        result.awardedBudget,
+        result.vicePrincipalNewBalance,
       ),
     );
 
@@ -494,6 +607,190 @@ export class PointsService {
         result.studentId,
         result.adjustmentAmount,
         dto.reason,
+        Role.ADMIN,
+      ),
+    );
+
+    const { auditLogId, ...response } = result;
+    return response;
+  }
+
+  // Vice Principal Direct Balance Adjustment
+  async viceAdjustStudentBalance(
+    dto: ViceAdjustStudentBalanceDto,
+    vicePrincipalId: string,
+    correlationId: string,
+  ) {
+    const result = await this.prisma.$transaction(async (tx) => {
+      const student = await tx.user.findUnique({
+        where: { id: dto.studentId },
+        include: { studentProfile: true },
+      });
+
+      if (!student || student.role !== Role.STUDENT || !student.studentProfile) {
+        throw new NotFoundException({
+          statusCode: 404,
+          errorCode: 'STUDENT_NOT_FOUND',
+          message: 'Student account not found',
+        });
+      }
+
+      if (student.accountState !== AccountState.ACTIVE) {
+        throw new BadRequestException({
+          statusCode: 400,
+          errorCode: 'STUDENT_NOT_ACTIVE',
+          message: 'Cannot adjust balance of inactive student',
+        });
+      }
+
+      const vp = await tx.user.findUnique({
+        where: { id: vicePrincipalId },
+        include: { teacherProfile: true },
+      });
+
+      if (!vp || vp.role !== Role.VICE_PRINCIPAL || !vp.teacherProfile) {
+        throw new NotFoundException({
+          statusCode: 404,
+          errorCode: 'VICE_PRINCIPAL_NOT_FOUND',
+          message: 'Vice Principal profile not found',
+        });
+      }
+
+      if (vp.accountState !== AccountState.ACTIVE) {
+        throw new BadRequestException({
+          statusCode: 400,
+          errorCode: 'VICE_PRINCIPAL_NOT_ACTIVE',
+          message: 'Cannot adjust balance when vice principal is inactive or departed',
+        });
+      }
+
+      const absAmount = Math.abs(dto.amount);
+
+      if (dto.amount > 0) {
+        // Credit student, debit VP
+        const debitedVicePrincipal = await tx.teacherProfile.updateMany({
+          where: {
+            id: vicePrincipalId,
+            pointBalance: { gte: absAmount },
+          },
+          data: { pointBalance: { decrement: absAmount } },
+        });
+
+        if (debitedVicePrincipal.count !== 1) {
+          const currentBalance = await tx.teacherProfile.findUnique({
+            where: { id: vicePrincipalId },
+            select: { pointBalance: true },
+          });
+          throw new BadRequestException({
+            statusCode: 400,
+            errorCode: 'INSUFFICIENT_VICE_PRINCIPAL_BALANCE',
+            message: `Vice Principal point balance (${currentBalance?.pointBalance || 0}) is insufficient to award ${absAmount} points`,
+          });
+        }
+
+        await tx.studentProfile.update({
+          where: { id: dto.studentId },
+          data: { currentBalance: { increment: absAmount } },
+        });
+      } else {
+        // Debit student, credit VP
+        const debitedStudent = await tx.studentProfile.updateMany({
+          where: {
+            id: dto.studentId,
+            currentBalance: { gte: absAmount },
+          },
+          data: { currentBalance: { decrement: absAmount } },
+        });
+
+        if (debitedStudent.count !== 1) {
+          const currentBalance = await tx.studentProfile.findUnique({
+            where: { id: dto.studentId },
+            select: { currentBalance: true },
+          });
+          throw new BadRequestException({
+            statusCode: 400,
+            errorCode: 'INSUFFICIENT_STUDENT_BALANCE',
+            message: `Deduction of ${absAmount} points exceeds student current balance (${currentBalance?.currentBalance || 0})`,
+          });
+        }
+
+        await tx.teacherProfile.update({
+          where: { id: vicePrincipalId },
+          data: { pointBalance: { increment: absAmount } },
+        });
+      }
+
+      const updatedVp = await tx.teacherProfile.findUniqueOrThrow({
+        where: { id: vicePrincipalId },
+      });
+      const currentStudentProfile = await tx.studentProfile.findUniqueOrThrow({
+        where: { id: dto.studentId },
+      });
+      const newStudentBalance = currentStudentProfile.currentBalance;
+      const newHighestBalance = Math.max(
+        currentStudentProfile.highestBalance,
+        newStudentBalance,
+      );
+
+      const matchingTier = await tx.tierConfiguration.findFirst({
+        where: { minPointsThreshold: { lte: newStudentBalance } },
+        orderBy: { minPointsThreshold: 'desc' },
+      });
+
+      const lowestTier = await tx.tierConfiguration.findFirst({
+        where: { tierNumber: 1 },
+      });
+
+      const updatedStudent = await tx.studentProfile.update({
+        where: { id: dto.studentId },
+        data: {
+          highestBalance: newHighestBalance,
+          currentTierId:
+            matchingTier?.id || lowestTier?.id || currentStudentProfile.currentTierId,
+        },
+      });
+
+      const vpName = `${vp.firstName} ${vp.lastName}`.trim();
+      const studentName = `${student.firstName} ${student.lastName}`.trim();
+
+      const auditLog = await this.auditLogService.log(
+        {
+          correlationId,
+          actorId: vicePrincipalId,
+          actorRole: ActorRole.VICE_PRINCIPAL,
+          sourceType: dto.amount > 0 ? SourceType.VICE_PRINCIPAL : SourceType.STUDENT_CURRENT,
+          sourceId: dto.amount > 0 ? vicePrincipalId : dto.studentId,
+          recipientType: dto.amount > 0 ? RecipientType.STUDENT_CURRENT : RecipientType.VICE_PRINCIPAL,
+          recipientId: dto.amount > 0 ? dto.studentId : vicePrincipalId,
+          amount: absAmount,
+          actionType: ActionType.VICE_ADJUST_STUDENT,
+          reasonDetail: dto.reason,
+          metadata: { vicePrincipalName: vpName, studentName },
+          resultingSourceBalance: dto.amount > 0 ? updatedVp.pointBalance : updatedStudent.currentBalance,
+          resultingRecipientBalance: dto.amount > 0 ? updatedStudent.currentBalance : updatedVp.pointBalance,
+        },
+        tx,
+      );
+
+      return {
+        auditLogId: auditLog.id,
+        success: true,
+        studentId: dto.studentId,
+        adjustmentAmount: dto.amount,
+        newCurrentBalance: updatedStudent.currentBalance,
+        newHighestBalance: updatedStudent.highestBalance,
+        vicePrincipalRemainingBalance: updatedVp.pointBalance,
+      };
+    });
+
+    await this.eventEmitter.emitAsync(
+      'point.adjusted',
+      new PointAdjustedEvent(
+        result.auditLogId,
+        result.studentId,
+        result.adjustmentAmount,
+        dto.reason,
+        Role.VICE_PRINCIPAL,
       ),
     );
 

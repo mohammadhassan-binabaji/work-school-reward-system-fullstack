@@ -1,12 +1,13 @@
 import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Role } from '@prisma/client';
 import Redis from 'ioredis';
 
 export interface SessionData {
   userId: string;
   nationalId: string;
   username: string;
-  role: 'ADMIN' | 'TEACHER' | 'STUDENT';
+  role: Role;
   accountState: 'ACTIVE' | 'INACTIVE' | 'DEACTIVATED' | 'DEPARTED';
 }
 

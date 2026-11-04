@@ -1,4 +1,4 @@
-export type Role = 'ADMIN' | 'TEACHER' | 'STUDENT';
+export type Role = 'ADMIN' | 'TEACHER' | 'STUDENT' | 'VICE_PRINCIPAL';
 export type AccountState = 'ACTIVE' | 'INACTIVE' | 'DEACTIVATED' | 'DEPARTED';
 export type AssignmentStatus = 'ACTIVE' | 'REMOVED';
 export type RewardStatus = 'ACTIVE' | 'REMOVED';
@@ -10,8 +10,10 @@ export type ProposalStatus = 'PENDING_TO_APPROVE' | 'READY_TO_DO' | 'COMPLETED' 
 export type NotificationReadStatus = 'UNREAD' | 'READ';
 export type ActionType =
   | 'POOL_FUND_TEACHER'
+  | 'POOL_FUND_VICE_PRINCIPAL'
   | 'TEACHER_AWARD_STUDENT'
   | 'ADMIN_ADJUST_STUDENT'
+  | 'VICE_ADJUST_STUDENT'
   | 'REWARD_RESERVE_POINTS'
   | 'REWARD_DECLINE_RETURN'
   | 'REWARD_REMOVE_RETURN'
@@ -20,7 +22,8 @@ export type ActionType =
   | 'PROPOSAL_AWARD_STUDENT'
   | 'STUDENT_DEPARTURE_DEDUCT'
   | 'SET_POOL_BALANCE'
-  | 'TEACHER_DEPARTURE_RETURN';
+  | 'TEACHER_DEPARTURE_RETURN'
+  | 'VICE_PRINCIPAL_DEPARTURE_RETURN';
 
 export interface User {
   id: string;
@@ -137,6 +140,7 @@ export interface PointTransferTask {
 
 export interface PointAuditLogMetadata {
   teacherName?: string;
+  vicePrincipalName?: string;
   subjectName?: string;
   adminName?: string;
   studentName?: string;

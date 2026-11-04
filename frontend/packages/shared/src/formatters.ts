@@ -120,6 +120,7 @@ export function getStatusLabel(status: string): string {
     ADMIN: 'مدیر سیستم',
     TEACHER: 'معلم',
     STUDENT: 'دانش‌آموز',
+    VICE_PRINCIPAL: 'معاون سامانه',
   };
   return map[status] || status;
 }
@@ -127,8 +128,10 @@ export function getStatusLabel(status: string): string {
 export function formatActionType(action: ActionType | string): string {
   const map: Record<string, string> = {
     POOL_FUND_TEACHER: 'تخصیص بودجه معلم',
+    POOL_FUND_VICE_PRINCIPAL: 'تخصیص بودجه معاون',
     TEACHER_AWARD_STUDENT: 'اهدای پاداش به دانش‌آموز',
     ADMIN_ADJUST_STUDENT: 'تنظیم مستقیم مدیر',
+    VICE_ADJUST_STUDENT: 'تنظیم مستقیم معاون',
     CHALLENGE_AWARD_STUDENT: 'پاداش تایید چالش',
     PROPOSAL_AWARD_STUDENT: 'پاداش تکمیل پیشنهاد',
     REWARD_RESERVE_POINTS: 'رزرو نوین برای جایزه',
@@ -138,6 +141,7 @@ export function formatActionType(action: ActionType | string): string {
     STUDENT_DEPARTURE_DEDUCT: 'کسر خروج دانش‌آموز',
     SET_POOL_BALANCE: 'تنظیم موجودی استخر نوین',
     TEACHER_DEPARTURE_RETURN: 'بازگشت بودجه خروج معلم به استخر',
+    VICE_PRINCIPAL_DEPARTURE_RETURN: 'بازگشت بودجه خروج معاون به استخر',
   };
   return map[action] || action;
 }
@@ -147,6 +151,7 @@ export function formatAuditEntity(type: string | null | undefined): string {
   const map: Record<string, string> = {
     SYSTEM_POOL: 'استخر نوین',
     TEACHER: 'معلم',
+    VICE_PRINCIPAL: 'معاون سامانه',
     STUDENT_CURRENT: 'موجودی جاری دانش‌آموز',
     STUDENT_RESERVED: 'نوین رزرو شده دانش‌آموز',
     NONE: '—',
@@ -171,6 +176,14 @@ export function formatAuditLogDescription(log: PointAuditLog): string {
         (log.actor ? `${log.actor.firstName} ${log.actor.lastName}`.trim() : 'مدیر');
       const reason = log.reasonDetail ? ` برای : ${log.reasonDetail}` : '';
       return `تنظیم نوین توسط مدیر ${adminName}${reason}`;
+    }
+
+    case 'VICE_ADJUST_STUDENT': {
+      const vpName =
+        log.metadata?.vicePrincipalName ||
+        (log.actor ? `${log.actor.firstName} ${log.actor.lastName}`.trim() : 'معاون');
+      const reason = log.reasonDetail ? ` برای : ${log.reasonDetail}` : '';
+      return `تنظیم نوین توسط معاون ${vpName}${reason}`;
     }
 
     case 'CHALLENGE_AWARD_STUDENT': {
@@ -217,6 +230,20 @@ export function formatAuditLogDescription(log: PointAuditLog): string {
       return 'تخصیص بودجه پاداش معلم از استخر';
     }
 
+    case 'POOL_FUND_VICE_PRINCIPAL': {
+      const adminName =
+        log.metadata?.adminName ||
+        (log.actor ? `${log.actor.firstName} ${log.actor.lastName}`.trim() : '');
+      const vpName = log.metadata?.vicePrincipalName;
+      if (adminName && vpName) {
+        return `تخصیص بودجه به معاون ${vpName} توسط مدیر ${adminName} از استخر`;
+      }
+      if (vpName) {
+        return `تخصیص بودجه به معاون ${vpName} از استخر`;
+      }
+      return 'تخصیص بودجه پاداش معاون از استخر';
+    }
+
     case 'SET_POOL_BALANCE': {
       const adminName =
         log.metadata?.adminName ||
@@ -231,6 +258,15 @@ export function formatAuditLogDescription(log: PointAuditLog): string {
       return teacherName
         ? `بازگشت باقیمانده بودجه معلم ${teacherName} به استخر به علت خروج`
         : 'بازگشت باقیمانده بودجه معلم به استخر به علت خروج';
+    }
+
+    case 'VICE_PRINCIPAL_DEPARTURE_RETURN': {
+      const vpName =
+        log.metadata?.vicePrincipalName ||
+        (log.actor?.role === 'VICE_PRINCIPAL' ? `${log.actor.firstName} ${log.actor.lastName}`.trim() : '');
+      return vpName
+        ? `بازگشت باقیمانده بودجه معاون ${vpName} به استخر به علت خروج`
+        : 'بازگشت باقیمانده بودجه معاون به استخر به علت خروج';
     }
 
     case 'STUDENT_DEPARTURE_DEDUCT': {
@@ -296,6 +332,27 @@ export function resolveTeacherPointDelta(log: PointAuditLog, teacherId?: string)
   }
 
   if (log.actionType === 'POOL_FUND_TEACHER') {
+    return log.amount;
+  }
+
+  return 0;
+}
+
+export function resolveVicePrincipalPointDelta(
+  log: PointAuditLog,
+  vicePrincipalId?: string,
+): number {
+  const isTargetVicePrincipal =
+    !vicePrincipalId ||
+    log.recipientId === vicePrincipalId ||
+    log.sourceId === vicePrincipalId;
+  if (!isTargetVicePrincipal) return 0;
+
+  if (log.sourceType === 'VICE_PRINCIPAL') {
+    return -log.amount;
+  }
+
+  if (log.recipientType === 'VICE_PRINCIPAL') {
     return log.amount;
   }
 

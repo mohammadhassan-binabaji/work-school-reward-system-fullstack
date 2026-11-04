@@ -34,9 +34,9 @@ const isMobileMenuOpen = ref(false);
 const triggeringSnapshot = ref(false);
 const snapshotMessage = ref<string | null>(null);
 
-const navItems = [
+const allNavItems = [
   { title: 'داشبورد مدیریتی', path: '/', icon: LayoutDashboard },
-  { title: 'استخر نوین و بودجه معلمان', path: '/pool', icon: Landmark },
+  { title: 'استخر نوین و تخصیص بودجه', path: '/pool', icon: Landmark },
   { title: 'مدیریت کاربران', path: '/users', icon: Users },
   { title: 'ساختار آموزشی (کلاس و درس)', path: '/academic', icon: GraduationCap },
   { title: 'فعالیت‌های اهدای نوین', path: '/tasks', icon: ListPlus },
@@ -50,6 +50,15 @@ const navItems = [
   { title: 'گزارشات و خروجی اکسل/PDF', path: '/reports', icon: FileSpreadsheet },
   { title: 'اعلان‌ها', path: '/notifications', icon: Bell },
 ];
+
+const vpAllowedPaths = ['/', '/adjust', '/rewards', '/activities', '/proposals', '/notifications'];
+
+const navItems = computed(() => {
+  if (authStore.isVicePrincipal) {
+    return allNavItems.filter((item) => vpAllowedPaths.includes(item.path));
+  }
+  return allNavItems;
+});
 
 function isActive(path: string): boolean {
   if (path === '/') return route.path === '/';
@@ -179,7 +188,9 @@ async function handleLogout() {
               <span class="text-xs font-bold text-white block truncate">
                 {{ authStore.user?.firstName }} {{ authStore.user?.lastName }}
               </span>
-              <span class="text-[10px] text-slate-400">مدیر سامانه</span>
+              <span class="text-[10px] text-slate-400">
+                {{ authStore.isVicePrincipal ? 'معاون سامانه' : 'مدیر سامانه' }}
+              </span>
             </div>
           </div>
 

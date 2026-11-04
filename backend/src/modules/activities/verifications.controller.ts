@@ -25,7 +25,7 @@ import { Role, VerificationStatus } from '@prisma/client';
 export class VerificationsController {
   constructor(private activitiesService: ActivitiesService) {}
 
-  @Roles('ADMIN', 'STUDENT')
+  @Roles('ADMIN', 'STUDENT', 'VICE_PRINCIPAL')
   @Get()
   @ApiOperation({ summary: 'List verification submissions' })
   async findAllVerifications(
@@ -42,7 +42,7 @@ export class VerificationsController {
     });
   }
 
-  @Roles('ADMIN', 'STUDENT')
+  @Roles('ADMIN', 'STUDENT', 'VICE_PRINCIPAL')
   @Get(':id')
   @ApiOperation({ summary: 'Get verification submission by ID' })
   async findVerificationById(
@@ -52,40 +52,50 @@ export class VerificationsController {
     return this.activitiesService.findVerificationById(id, user!);
   }
 
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'VICE_PRINCIPAL')
   @Post(':id/review')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Admin reviews verification submission (OpenAPI contract endpoint)' })
+  @ApiOperation({ summary: 'Admin or VP reviews verification submission (OpenAPI contract endpoint)' })
   async reviewVerification(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: { action: 'ACCEPT' | 'REJECT'; rejectionReason?: string },
-    @CurrentUser('id') adminId: string,
+    @CurrentUser() user: { id: string; role: Role },
     @Req() req: RequestWithCorrelation,
   ) {
     if (dto.action === 'ACCEPT') {
-      return this.activitiesService.acceptVerification(id, adminId, req.correlationId || '');
+      return this.activitiesService.acceptVerification(
+        id,
+        user.id,
+        req.correlationId || '',
+        user.role,
+      );
     } else {
       return this.activitiesService.rejectVerification(
         id,
         { rejectionReason: dto.rejectionReason },
-        adminId,
+        user.id,
       );
     }
   }
 
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'VICE_PRINCIPAL')
   @Post(':id/accept')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Admin accepts verification and awards points (Admin only)' })
+  @ApiOperation({ summary: 'Admin or VP accepts verification and awards points' })
   async acceptVerification(
     @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser('id') adminId: string,
+    @CurrentUser() user: { id: string; role: Role },
     @Req() req: RequestWithCorrelation,
   ) {
-    return this.activitiesService.acceptVerification(id, adminId, req.correlationId || '');
+    return this.activitiesService.acceptVerification(
+      id,
+      user.id,
+      req.correlationId || '',
+      user.role,
+    );
   }
 
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'VICE_PRINCIPAL')
   @Post(':id/reject')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Admin rejects verification and tracks ban counters (Admin only)' })

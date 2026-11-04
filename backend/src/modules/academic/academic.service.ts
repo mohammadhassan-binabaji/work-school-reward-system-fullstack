@@ -540,4 +540,66 @@ export class AcademicService {
       return { success: true, message: 'Teacher marked as departed successfully' };
     });
   }
+
+  // Vice Principal Departure Lifecycle
+  async handleVicePrincipalDeparture(vicePrincipalId: string, adminId?: string, correlationId?: string) {
+    const vp = await this.prisma.user.findUnique({
+      where: { id: vicePrincipalId },
+      include: { teacherProfile: true },
+    });
+    if (!vp || vp.role !== Role.VICE_PRINCIPAL) {
+      throw new NotFoundException({
+        statusCode: 404,
+        errorCode: 'VICE_PRINCIPAL_NOT_FOUND',
+        message: 'Vice Principal not found',
+      });
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const remainingBudget = vp.teacherProfile?.pointBalance || 0;
+
+      // If remaining budget > 0, return to pool and record audit log
+      if (remainingBudget > 0) {
+        let pool = await tx.systemPointPool.findFirst();
+        if (!pool) {
+          pool = await tx.systemPointPool.create({ data: { balance: 0 } });
+        }
+
+        await tx.systemPointPool.update({
+          where: { id: pool.id },
+          data: { balance: { increment: remainingBudget } },
+        });
+
+        await tx.teacherProfile.update({
+          where: { id: vicePrincipalId },
+          data: { pointBalance: 0 },
+        });
+
+        await tx.pointAuditLog.create({
+          data: {
+            correlationId: correlationId || uuidv4(),
+            actorId: adminId || vicePrincipalId,
+            actorRole: adminId ? ActorRole.ADMIN : ActorRole.SYSTEM,
+            sourceType: SourceType.VICE_PRINCIPAL,
+            sourceId: vicePrincipalId,
+            recipientType: RecipientType.SYSTEM_POOL,
+            recipientId: pool.id,
+            amount: remainingBudget,
+            actionType: ActionType.VICE_PRINCIPAL_DEPARTURE_RETURN,
+            metadata: { vicePrincipalName: `${vp.firstName} ${vp.lastName}`.trim() },
+            resultingSourceBalance: 0,
+            resultingRecipientBalance: pool.balance + remainingBudget,
+          },
+        });
+      }
+
+      // Mark VP accountState as DEPARTED
+      await tx.user.update({
+        where: { id: vicePrincipalId },
+        data: { accountState: AccountState.DEPARTED },
+      });
+
+      return { success: true, message: 'Vice Principal marked as departed successfully' };
+    });
+  }
 }

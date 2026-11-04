@@ -37,7 +37,7 @@ export class RewardRequestsController {
     return this.rewardsService.createRewardRequest(dto, studentId, req.correlationId || '');
   }
 
-  @Roles('ADMIN', 'STUDENT')
+  @Roles('ADMIN', 'STUDENT', 'VICE_PRINCIPAL')
   @Get()
   @ApiOperation({ summary: 'Query reward requests' })
   async findAllRequests(
@@ -52,7 +52,7 @@ export class RewardRequestsController {
     });
   }
 
-  @Roles('ADMIN', 'STUDENT')
+  @Roles('ADMIN', 'STUDENT', 'VICE_PRINCIPAL')
   @Get(':id')
   @ApiOperation({ summary: 'Get reward request by ID' })
   async findRequestById(
@@ -62,36 +62,47 @@ export class RewardRequestsController {
     return this.rewardsService.findRequestById(id, user!);
   }
 
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'VICE_PRINCIPAL')
   @Post(':id/approve')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Admin approves reward request (Admin only)' })
+  @ApiOperation({ summary: 'Admin or VP approves reward request' })
   async approveRequest(@Param('id', ParseUUIDPipe) id: string, @CurrentUser('id') adminId: string) {
     return this.rewardsService.approveRewardRequest(id, adminId);
   }
 
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'VICE_PRINCIPAL')
   @Post(':id/decline')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Admin declines reward request with point refund (Admin only)' })
+  @ApiOperation({ summary: 'Admin or VP declines reward request with point refund' })
   async declineRequest(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: DeclineRewardRequestDto,
-    @CurrentUser('id') adminId: string,
+    @CurrentUser() user: { id: string; role: Role },
     @Req() req: RequestWithCorrelation,
   ) {
-    return this.rewardsService.declineRewardRequest(id, dto, adminId, req.correlationId || '');
+    return this.rewardsService.declineRewardRequest(
+      id,
+      dto,
+      user.id,
+      req.correlationId || '',
+      user.role,
+    );
   }
 
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'VICE_PRINCIPAL')
   @Post(':id/receive')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Admin confirms physical handover completed (Admin only)' })
+  @ApiOperation({ summary: 'Admin or VP confirms physical handover completed' })
   async receiveRequest(
     @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser('id') adminId: string,
+    @CurrentUser() user: { id: string; role: Role },
     @Req() req: RequestWithCorrelation,
   ) {
-    return this.rewardsService.receiveRewardRequest(id, adminId, req.correlationId || '');
+    return this.rewardsService.receiveRewardRequest(
+      id,
+      user.id,
+      req.correlationId || '',
+      user.role,
+    );
   }
 }

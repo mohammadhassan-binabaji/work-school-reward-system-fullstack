@@ -97,7 +97,12 @@ export class RewardsService {
   }
 
   // Reward Removal with Automatic Point Refunds (FR-034)
-  async removeReward(id: string, adminId: string, correlationId: string) {
+  async removeReward(
+    id: string,
+    adminId: string,
+    correlationId: string,
+    reviewerRole: Role = Role.ADMIN,
+  ) {
     const reward = await this.findRewardById(id);
 
     return this.prisma.$transaction(async (tx) => {
@@ -148,7 +153,10 @@ export class RewardsService {
             {
               correlationId,
               actorId: adminId,
-              actorRole: ActorRole.ADMIN,
+              actorRole:
+                reviewerRole === Role.VICE_PRINCIPAL
+                  ? ActorRole.VICE_PRINCIPAL
+                  : ActorRole.ADMIN,
               sourceType: SourceType.STUDENT_RESERVED,
               sourceId: req.studentId,
               recipientType: RecipientType.STUDENT_CURRENT,
@@ -467,6 +475,7 @@ export class RewardsService {
     dto: DeclineRewardRequestDto,
     adminId: string,
     correlationId: string,
+    reviewerRole: Role = Role.ADMIN,
   ) {
     const req = await this.prisma.rewardRequest.findUnique({
       where: { id },
@@ -544,7 +553,8 @@ export class RewardsService {
         {
           correlationId,
           actorId: adminId,
-          actorRole: ActorRole.ADMIN,
+          actorRole:
+            reviewerRole === Role.VICE_PRINCIPAL ? ActorRole.VICE_PRINCIPAL : ActorRole.ADMIN,
           sourceType: SourceType.STUDENT_RESERVED,
           sourceId: req.studentId,
           recipientType: RecipientType.STUDENT_CURRENT,
@@ -578,7 +588,12 @@ export class RewardsService {
   }
 
   // Physical Handover Completed (FR-033)
-  async receiveRewardRequest(id: string, adminId: string, correlationId: string) {
+  async receiveRewardRequest(
+    id: string,
+    adminId: string,
+    correlationId: string,
+    reviewerRole: Role = Role.ADMIN,
+  ) {
     const req = await this.prisma.rewardRequest.findUnique({
       where: { id },
       include: { reward: true },
@@ -634,7 +649,8 @@ export class RewardsService {
         {
           correlationId,
           actorId: adminId,
-          actorRole: ActorRole.ADMIN,
+          actorRole:
+            reviewerRole === Role.VICE_PRINCIPAL ? ActorRole.VICE_PRINCIPAL : ActorRole.ADMIN,
           sourceType: SourceType.STUDENT_RESERVED,
           sourceId: req.studentId,
           recipientType: RecipientType.NONE,

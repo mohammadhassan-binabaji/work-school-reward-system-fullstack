@@ -197,6 +197,29 @@ export class UsersController {
     return this.usersService.findAll(role, accountState);
   }
 
+  @Get('students')
+  @Roles('ADMIN', 'VICE_PRINCIPAL')
+  @ApiOperation({ summary: 'List active students for direct point adjustment (Admin or Vice Principal)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Active student identifiers and names for adjustment forms',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', format: 'uuid' },
+          nationalId: { type: 'string' },
+          firstName: { type: 'string' },
+          lastName: { type: 'string' },
+        },
+      },
+    },
+  })
+  async findActiveStudentsForAdjustment() {
+    return this.usersService.findActiveStudentsForAdjustment();
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get single user by ID (Admin only)' })
   @ApiResponse({ status: 200, description: 'User details', type: UserResponseDto })

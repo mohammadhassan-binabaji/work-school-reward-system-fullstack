@@ -12,8 +12,11 @@ import {
   ArrowUpRight,
   TrendingUp,
   FileSpreadsheet,
+  Wallet,
+  SlidersHorizontal,
 } from 'lucide-vue-next';
 import StatCard from '../components/StatCard.vue';
+import { useAuthStore } from '../stores/auth';
 import {
   api,
   toPersianDigits,
@@ -30,10 +33,13 @@ import {
 } from '@student-reward/shared';
 
 const router = useRouter();
+const authStore = useAuthStore();
 
 const loading = ref(true);
+const dashboardError = ref<string | null>(null);
 const poolBalance = ref(0);
 const usersCount = ref(0);
+const vpBalance = ref(0);
 const pendingRewardsCount = ref(0);
 const pendingVerificationsCount = ref(0);
 const pendingProposalsCount = ref(0);
@@ -45,22 +51,46 @@ onMounted(async () => {
 
 async function loadDashboard() {
   loading.value = true;
+  dashboardError.value = null;
   try {
-    const [pool, users, rewards, verifications, proposals, logsRes] = await Promise.all([
-      api.get<SystemPointPool>('/points/pool').catch(() => ({ balance: 0 })),
-      api.get<User[]>('/users').catch(() => []),
-      api.get<RewardRequest[]>('/reward-requests', { status: 'PENDING_TO_APPROVE' }).catch(() => []),
-      api.get<VerificationRequest[]>('/verifications', { status: 'PENDING' }).catch(() => []),
-      api.get<StudentTaskProposal[]>('/proposals', { status: 'PENDING_TO_APPROVE' }).catch(() => []),
-      api.get<{ data: PointAuditLog[]; total: number }>('/reports/point-flow', { limit: 8 }).catch(() => ({ data: [], total: 0 })),
-    ]);
+    if (authStore.isVicePrincipal) {
+      // VP specific dashboard loading
+      const [rewards, verifications, proposals] = await Promise.all([
+        api.get<RewardRequest[]>('/reward-requests', { status: 'PENDING_TO_APPROVE' }),
+        api.get<VerificationRequest[]>('/verifications', { status: 'PENDING' }),
+        api.get<StudentTaskProposal[]>('/proposals', { status: 'PENDING_TO_APPROVE' }),
+        authStore.fetchMe(),
+      ]);
 
-    poolBalance.value = pool.balance || 0;
-    usersCount.value = (users as User[]).length || 0;
-    pendingRewardsCount.value = (rewards as RewardRequest[]).length || 0;
-    pendingVerificationsCount.value = (verifications as VerificationRequest[]).length || 0;
-    pendingProposalsCount.value = (proposals as StudentTaskProposal[]).length || 0;
-    recentLogs.value = logsRes.data || [];
+      vpBalance.value = authStore.user?.teacherProfile?.pointBalance || 0;
+      pendingRewardsCount.value = (rewards as RewardRequest[]).length || 0;
+      pendingVerificationsCount.value = (verifications as VerificationRequest[]).length || 0;
+      pendingProposalsCount.value = (proposals as StudentTaskProposal[]).length || 0;
+    } else {
+      // Admin dashboard loading
+      const [pool, users, rewards, verifications, proposals, logsRes] = await Promise.all([
+        api.get<SystemPointPool>('/points/pool').catch(() => ({ balance: 0 })),
+        api.get<User[]>('/users').catch(() => []),
+        api.get<RewardRequest[]>('/reward-requests', { status: 'PENDING_TO_APPROVE' }).catch(() => []),
+        api.get<VerificationRequest[]>('/verifications', { status: 'PENDING' }).catch(() => []),
+        api.get<StudentTaskProposal[]>('/proposals', { status: 'PENDING_TO_APPROVE' }).catch(() => []),
+        api.get<{ data: PointAuditLog[]; total: number }>('/reports/point-flow', { limit: 8 }).catch(() => ({ data: [], total: 0 })),
+      ]);
+
+      poolBalance.value = pool.balance || 0;
+      usersCount.value = (users as User[]).length || 0;
+      pendingRewardsCount.value = (rewards as RewardRequest[]).length || 0;
+      pendingVerificationsCount.value = (verifications as VerificationRequest[]).length || 0;
+      pendingProposalsCount.value = (proposals as StudentTaskProposal[]).length || 0;
+      recentLogs.value = logsRes.data || [];
+    }
+  } catch (error) {
+    if (authStore.isVicePrincipal) {
+      dashboardError.value =
+        error instanceof Error ? error.message : 'اطلاعات داشبورد دریافت نشد. دوباره تلاش کنید.';
+    } else {
+      throw error;
+    }
   } finally {
     loading.value = false;
   }
@@ -69,34 +99,100 @@ async function loadDashboard() {
 
 <template>
   <div class="space-y-6">
+    <div
+      v-if="dashboardError"
+      role="alert"
+      class="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700"
+    >
+      {{ dashboardError }}
+    </div>
+
     <!-- Page Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
       <div>
-        <h1 class="text-xl font-black text-slate-900 tracking-tight">داشبورد مدیریتی</h1>
-        <p class="text-xs text-slate-500 mt-0.5">نمای کلی موجودی‌ها، درخواست‌های نیازمند اقدام و فعالیت‌ها</p>
+        <h1 class="text-xl font-black text-slate-900 tracking-tight">
+          {{ authStore.isVicePrincipal ? 'داشبورد معاونت سامانه' : 'داشبورد مدیریتی' }}
+        </h1>
+        <p class="text-xs text-slate-500 mt-0.5">
+          {{ authStore.isVicePrincipal ? 'نمای کلی اعتبار در اختیار و موارد نیازمند اقدام و بررسی شما' : 'نمای کلی موجودی‌ها، درخواست‌های نیازمند اقدام و فعالیت‌ها' }}
+        </p>
       </div>
 
       <div class="flex items-center gap-2">
-        <button
-          class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5"
-          @click="router.push('/pool')"
-        >
-          <Coins class="w-4 h-4" />
-          <span>تخصیص بودجه معلم</span>
-        </button>
+        <template v-if="!authStore.isVicePrincipal">
+          <button
+            class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5"
+            @click="router.push('/pool')"
+          >
+            <Coins class="w-4 h-4" />
+            <span>تخصیص بودجه معلم</span>
+          </button>
 
-        <button
-          class="px-4 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold transition-colors flex items-center gap-1.5"
-          @click="router.push('/reports')"
-        >
-          <FileSpreadsheet class="w-4 h-4 text-emerald-600" />
-          <span>گزارش کامل</span>
-        </button>
+          <button
+            class="px-4 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold transition-colors flex items-center gap-1.5"
+            @click="router.push('/reports')"
+          >
+            <FileSpreadsheet class="w-4 h-4 text-emerald-600" />
+            <span>گزارش کامل</span>
+          </button>
+        </template>
+        <template v-else>
+          <button
+            class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5"
+            @click="router.push('/adjust')"
+          >
+            <SlidersHorizontal class="w-4 h-4" />
+            <span>تنظیم مستقیم نوین</span>
+          </button>
+        </template>
       </div>
     </div>
 
-    <!-- Stat KPI Cards Grid -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+    <!-- Stat KPI Cards Grid for VP -->
+    <div v-if="authStore.isVicePrincipal" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <StatCard
+        title="موجودی نوین شما"
+        :value="formatNovin(vpBalance)"
+        subtitle="اعتبار تخصیص‌یافته به شما"
+        :icon="Wallet"
+        color="indigo"
+        class="cursor-pointer hover:border-indigo-300 transition-colors"
+        @click="router.push('/adjust')"
+      />
+
+      <StatCard
+        title="جوایز در انتظار تایید"
+        :value="toPersianDigits(pendingRewardsCount)"
+        subtitle="درخواست‌های جدید دانش‌آموزان"
+        :icon="Gift"
+        color="amber"
+        class="cursor-pointer hover:border-amber-300 transition-colors"
+        @click="router.push('/rewards')"
+      />
+
+      <StatCard
+        title="مدارک چالش در انتظار"
+        :value="toPersianDigits(pendingVerificationsCount)"
+        subtitle="ارزیابی و تایید شواهد"
+        :icon="Flag"
+        color="rose"
+        class="cursor-pointer hover:border-rose-300 transition-colors"
+        @click="router.push('/activities')"
+      />
+
+      <StatCard
+        title="پیشنهادهای در انتظار"
+        :value="toPersianDigits(pendingProposalsCount)"
+        subtitle="بررسی و قیمت‌گذاری ایده"
+        :icon="Send"
+        color="emerald"
+        class="cursor-pointer hover:border-emerald-300 transition-colors"
+        @click="router.push('/proposals')"
+      />
+    </div>
+
+    <!-- Stat KPI Cards Grid for Admin -->
+    <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
       <StatCard
         title="موجودی استخر نوین"
         :value="formatNovin(poolBalance)"
@@ -108,7 +204,7 @@ async function loadDashboard() {
       <StatCard
         title="کل کاربران ثبت‌شده"
         :value="toPersianDigits(usersCount)"
-        subtitle="دانش‌آموز، معلم، مدیر"
+        subtitle="دانش‌آموز، معلم، مدیر و معاون"
         :icon="Users"
         color="cyan"
       />
@@ -144,8 +240,8 @@ async function loadDashboard() {
       />
     </div>
 
-    <!-- Recent System Point Flow Log Table -->
-    <div class="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">
+    <!-- Recent System Point Flow Log Table (Admin only) -->
+    <div v-if="!authStore.isVicePrincipal" class="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">
       <div class="p-5 border-b border-slate-100 flex items-center justify-between">
         <div>
           <h2 class="text-sm font-extrabold text-slate-800">آخرین تراکنش‌های نوین در سامانه</h2>

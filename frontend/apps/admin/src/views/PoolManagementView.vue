@@ -20,6 +20,8 @@ import {
 
 const pool = ref<SystemPointPool | null>(null);
 const teachers = ref<User[]>([]);
+const vicePrincipals = ref<User[]>([]);
+const activeTab = ref<'teachers' | 'vicePrincipals'>('teachers');
 const loading = ref(true);
 
 // Set Pool Balance Form
@@ -33,6 +35,12 @@ const selectedTeacherId = ref('');
 const fundAmount = ref<number | ''>('');
 const fundingTeacher = ref(false);
 
+// Fund Vice Principal Form
+const isFundVpModalOpen = ref(false);
+const selectedVpId = ref('');
+const fundVpAmount = ref<number | ''>('');
+const fundingVp = ref(false);
+
 // Alerts
 const successMessage = ref<string | null>(null);
 const errorMessage = ref<string | null>(null);
@@ -44,12 +52,14 @@ onMounted(async () => {
 async function loadData() {
   loading.value = true;
   try {
-    const [p, uList] = await Promise.all([
+    const [p, uList, vpList] = await Promise.all([
       api.get<SystemPointPool>('/points/pool'),
       api.get<User[]>('/users', { role: 'TEACHER' }),
+      api.get<User[]>('/users', { role: 'VICE_PRINCIPAL' }),
     ]);
     pool.value = p;
     teachers.value = (uList || []).filter((u: User) => u.role === 'TEACHER');
+    vicePrincipals.value = (vpList || []).filter((u: User) => u.role === 'VICE_PRINCIPAL');
   } catch (e: any) {
     errorMessage.value = e.message || 'خطا در بارگذاری اطلاعات استخر نوین';
   } finally {
@@ -98,6 +108,29 @@ async function handleFundTeacher() {
     fundingTeacher.value = false;
   }
 }
+
+async function handleFundVicePrincipal() {
+  if (!selectedVpId.value || !fundVpAmount.value || fundVpAmount.value <= 0) return;
+
+  fundingVp.value = true;
+  errorMessage.value = null;
+  try {
+    await api.post('/points/pool/fund-vice-principal', {
+      vicePrincipalId: selectedVpId.value,
+      amount: Number(fundVpAmount.value),
+    });
+    successMessage.value = 'بودجه نوین با موفقیت به معاون تخصیص یافت.';
+    isFundVpModalOpen.value = false;
+    fundVpAmount.value = '';
+    selectedVpId.value = '';
+    await loadData();
+    setTimeout(() => (successMessage.value = null), 3000);
+  } catch (err: any) {
+    errorMessage.value = err.message || 'خطا در تخصیص بودجه به معاون';
+  } finally {
+    fundingVp.value = false;
+  }
+}
 </script>
 
 <template>
@@ -105,8 +138,8 @@ async function handleFundTeacher() {
     <!-- Page Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
       <div>
-        <h1 class="text-xl font-black text-slate-900 tracking-tight">استخر نوین و بودجه معلمان</h1>
-        <p class="text-xs text-slate-500 mt-0.5">مدیریت موجودی مرکزی مدرسه و تزریق اعتبار پاداش به معلمان</p>
+        <h1 class="text-xl font-black text-slate-900 tracking-tight">استخر نوین و تخصیص بودجه</h1>
+        <p class="text-xs text-slate-500 mt-0.5">مدیریت موجودی مرکزی مدرسه و تخصیص اعتبار پاداش به معلمان و معاونان</p>
       </div>
 
       <div class="flex items-center gap-2">
@@ -168,12 +201,47 @@ async function handleFundTeacher() {
             <Coins class="w-4 h-4" />
             <span>شارژ بودجه معلمان</span>
           </button>
+
+          <button
+            class="px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs transition-all shadow-md flex items-center justify-center gap-2"
+            @click="isFundVpModalOpen = true"
+          >
+            <Coins class="w-4 h-4" />
+            <span>شارژ بودجه معاونان</span>
+          </button>
         </div>
       </div>
     </div>
 
+    <!-- Navigation Tabs -->
+    <div class="flex items-center gap-2 border-b border-slate-200 pb-2">
+      <button
+        :class="[
+          'px-4 py-2 rounded-xl text-xs font-bold transition-all',
+          activeTab === 'teachers'
+            ? 'bg-indigo-600 text-white shadow-xs'
+            : 'text-slate-600 hover:bg-slate-100',
+        ]"
+        @click="activeTab = 'teachers'"
+      >
+        <span>فهرست معلمان ({{ toPersianDigits(teachers.length) }})</span>
+      </button>
+
+      <button
+        :class="[
+          'px-4 py-2 rounded-xl text-xs font-bold transition-all',
+          activeTab === 'vicePrincipals'
+            ? 'bg-blue-600 text-white shadow-xs'
+            : 'text-slate-600 hover:bg-slate-100',
+        ]"
+        @click="activeTab = 'vicePrincipals'"
+      >
+        <span>فهرست معاونان سامانه ({{ toPersianDigits(vicePrincipals.length) }})</span>
+      </button>
+    </div>
+
     <!-- Teachers Budget List -->
-    <div class="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">
+    <div v-if="activeTab === 'teachers'" class="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">
       <div class="p-5 border-b border-slate-100 flex items-center justify-between">
         <h2 class="text-sm font-extrabold text-slate-800">فهرست معلمان و تخصیص بودجه</h2>
         <span class="text-xs text-slate-400">{{ toPersianDigits(teachers.length) }} معلم فعال</span>
@@ -186,6 +254,7 @@ async function handleFundTeacher() {
               <th class="p-3.5 pr-5">نام و نام خانوادگی</th>
               <th class="p-3.5">کد ملی</th>
               <th class="p-3.5">نام کاربری</th>
+              <th class="p-3.5">موجودی اعتبار</th>
               <th class="p-3.5">وضعیت حساب</th>
               <th class="p-3.5 pl-5 text-left">عملیات</th>
             </tr>
@@ -193,7 +262,7 @@ async function handleFundTeacher() {
           <tbody class="divide-y divide-slate-100 font-medium">
             <template v-if="loading">
               <tr>
-                <td colspan="5" class="py-12 text-center text-slate-400">
+                <td colspan="6" class="py-12 text-center text-slate-400">
                   در حال بارگذاری معلمان...
                 </td>
               </tr>
@@ -208,6 +277,9 @@ async function handleFundTeacher() {
                 </td>
                 <td class="p-3.5 text-slate-600 font-mono">
                   {{ t.username }}
+                </td>
+                <td class="p-3.5 font-bold text-slate-900">
+                  {{ formatNovin(t.teacherProfile?.pointBalance || 0) }}
                 </td>
                 <td class="p-3.5">
                   <span
@@ -232,8 +304,81 @@ async function handleFundTeacher() {
               </tr>
             </template>
             <tr v-else>
-              <td colspan="5" class="py-12 text-center text-slate-400">
+              <td colspan="6" class="py-12 text-center text-slate-400">
                 معلمی در سیستم یافت نشد.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Vice Principals Budget List -->
+    <div v-else class="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">
+      <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+        <h2 class="text-sm font-extrabold text-slate-800">فهرست معاونان سامانه و تخصیص بودجه</h2>
+        <span class="text-xs text-slate-400">{{ toPersianDigits(vicePrincipals.length) }} معاون فعال</span>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-right text-xs">
+          <thead class="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
+            <tr>
+              <th class="p-3.5 pr-5">نام و نام خانوادگی</th>
+              <th class="p-3.5">کد ملی</th>
+              <th class="p-3.5">نام کاربری</th>
+              <th class="p-3.5">موجودی اعتبار</th>
+              <th class="p-3.5">وضعیت حساب</th>
+              <th class="p-3.5 pl-5 text-left">عملیات</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 font-medium">
+            <template v-if="loading">
+              <tr>
+                <td colspan="6" class="py-12 text-center text-slate-400">
+                  در حال بارگذاری معاونان...
+                </td>
+              </tr>
+            </template>
+            <template v-else-if="vicePrincipals.length > 0">
+              <tr v-for="vp in vicePrincipals" :key="vp.id" class="hover:bg-slate-50/80 transition-colors">
+                <td class="p-3.5 pr-5 font-bold text-slate-800">
+                  {{ vp.firstName }} {{ vp.lastName }}
+                </td>
+                <td class="p-3.5 text-slate-600">
+                  {{ toPersianDigits(vp.nationalId) }}
+                </td>
+                <td class="p-3.5 text-slate-600 font-mono">
+                  {{ vp.username }}
+                </td>
+                <td class="p-3.5 font-bold text-slate-900">
+                  {{ formatNovin(vp.teacherProfile?.pointBalance || 0) }}
+                </td>
+                <td class="p-3.5">
+                  <span
+                    :class="[
+                      'px-2.5 py-0.5 rounded-full text-[10px] font-bold',
+                      vp.accountState === 'ACTIVE'
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        : 'bg-rose-50 text-rose-700 border border-rose-200',
+                    ]"
+                  >
+                    {{ vp.accountState === 'ACTIVE' ? 'فعال' : vp.accountState }}
+                  </span>
+                </td>
+                <td class="p-3.5 pl-5 text-left">
+                  <button
+                    class="px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs transition-colors"
+                    @click="selectedVpId = vp.id; isFundVpModalOpen = true"
+                  >
+                    تخصیص نوین
+                  </button>
+                </td>
+              </tr>
+            </template>
+            <tr v-else>
+              <td colspan="6" class="py-12 text-center text-slate-400">
+                معاونی در سیستم ثبت نشده است.
               </td>
             </tr>
           </tbody>
@@ -323,6 +468,56 @@ async function handleFundTeacher() {
           @click="handleFundTeacher"
         >
           <RefreshCw v-if="fundingTeacher" class="w-3.5 h-3.5 animate-spin" />
+          <span>انتقال و شارژ اعتبار</span>
+        </button>
+      </template>
+    </AdminModal>
+
+    <!-- Modal: Fund Vice Principal Budget -->
+    <AdminModal
+      :is-open="isFundVpModalOpen"
+      title="تخصیص بودجه نوین به معاون سامانه"
+      @close="isFundVpModalOpen = false"
+    >
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5">معاون دریافت‌کننده:</label>
+          <select
+            v-model="selectedVpId"
+            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-blue-600 font-medium"
+          >
+            <option value="" disabled>معاون را انتخاب کنید...</option>
+            <option v-for="vp in vicePrincipals" :key="vp.id" :value="vp.id">
+              {{ vp.firstName }} {{ vp.lastName }} (کد ملی: {{ toPersianDigits(vp.nationalId) }})
+            </option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5">مقدار نوین جهت انتقال از استخر:</label>
+          <input
+            v-model="fundVpAmount"
+            type="number"
+            min="1"
+            placeholder="مثال: ۵۰۰"
+            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-blue-600 font-sans"
+          />
+        </div>
+      </div>
+
+      <template #footer>
+        <button
+          class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-200 transition-colors"
+          @click="isFundVpModalOpen = false"
+        >
+          انصراف
+        </button>
+        <button
+          :disabled="fundingVp || !selectedVpId || !fundVpAmount"
+          class="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-xs disabled:opacity-50 flex items-center gap-1.5"
+          @click="handleFundVicePrincipal"
+        >
+          <RefreshCw v-if="fundingVp" class="w-3.5 h-3.5 animate-spin" />
           <span>انتقال و شارژ اعتبار</span>
         </button>
       </template>

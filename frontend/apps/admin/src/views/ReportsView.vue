@@ -133,10 +133,13 @@ async function handleExport(format: 'csv' | 'xlsx' | 'pdf') {
         >
           <option value="">همه عملیات‌ها</option>
           <option value="POOL_FUND_TEACHER">تخصیص از استخر به معلم</option>
+          <option value="POOL_FUND_VICE_PRINCIPAL">تخصیص از استخر به معاون</option>
           <option value="SET_POOL_BALANCE">تنظیم موجودی استخر نوین</option>
           <option value="TEACHER_AWARD_STUDENT">اهدای پاداش معلم به دانش‌آموز</option>
           <option value="TEACHER_DEPARTURE_RETURN">بازگشت بودجه خروج معلم به استخر</option>
+          <option value="VICE_PRINCIPAL_DEPARTURE_RETURN">بازگشت بودجه خروج معاون به استخر</option>
           <option value="ADMIN_ADJUST_STUDENT">تنظیم مستقیم مدیر</option>
+          <option value="VICE_ADJUST_STUDENT">تنظیم مستقیم معاون</option>
           <option value="CHALLENGE_AWARD_STUDENT">پاداش تایید چالش</option>
           <option value="PROPOSAL_AWARD_STUDENT">پاداش تکمیل پیشنهاد</option>
           <option value="REWARD_RESERVE_POINTS">رزرو نوین برای جایزه</option>
