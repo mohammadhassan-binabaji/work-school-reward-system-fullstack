@@ -246,7 +246,7 @@ function getStatusBadge(status: ProposalStatus): { text: string; bg: string; col
 
       <button
         :disabled="submitting || submitSuccess"
-        class="w-full py-2.5 rounded-xl bg-neon-cyan/10 text-neon-cyan hover:text-white font-extrabold text-xs shadow-neon-cyan disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+        class="w-full py-2.5 rounded-xl bg-neon-cyan text-white hover:text-neon-cyan font-extrabold text-xs disabled:opacity-50 transition-all flex items-center justify-center gap-2"
         @click="handleCreateProposal"
       >
         <RefreshCw v-if="submitting" class="w-4 h-4 animate-spin" />
