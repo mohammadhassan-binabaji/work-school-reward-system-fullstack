@@ -314,7 +314,7 @@ function resetForAnotherAward() {
 
       <template v-else-if="assignments.length > 0">
         <!-- Step 1: Select Assignment (Class & Subject) -->
-        <div class="bg-white rounded-3xl p-4.5 border border-slate-200 shadow-xs space-y-2">
+        <div class="bg-white rounded-3xl p-4 border border-slate-200 shadow-xs space-y-2">
           <label class="block text-xs font-bold text-slate-700 flex items-center gap-1.5">
             <Users class="w-4 h-4 text-indigo-600" />
             <span>۱. انتخاب کلاس و درس:</span>
@@ -331,7 +331,7 @@ function resetForAnotherAward() {
         </div>
 
         <!-- Step 2: Select Student -->
-        <div class="bg-white rounded-3xl p-4.5 border border-slate-200 shadow-xs space-y-3">
+        <div class="bg-white rounded-3xl p-4 border border-slate-200 shadow-xs space-y-3">
           <div class="flex items-center justify-between">
             <label class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
               <UserCheck class="w-4 h-4 text-indigo-600" />
@@ -395,7 +395,7 @@ function resetForAnotherAward() {
         </div>
 
         <!-- Step 3: Custom Reason, Amount & Templates -->
-        <div class="bg-white rounded-3xl p-4.5 border border-slate-200 shadow-xs space-y-3.5">
+        <div class="bg-white rounded-3xl p-4 border border-slate-200 shadow-xs space-y-3.5">
           <label class="block text-xs font-bold text-slate-700 flex items-center gap-1.5">
             <BookOpen class="w-4 h-4 text-indigo-600" />
             <span>۳. فعالیت و مقدار نوین:</span>

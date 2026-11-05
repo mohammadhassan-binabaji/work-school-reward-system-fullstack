@@ -268,7 +268,7 @@ function getStatusBadge(status: ProposalStatus): { text: string; bg: string; col
       <div
         v-for="p in proposals"
         :key="p.id"
-        class="bg-dark-card rounded-3xl p-4.5 border border-slate-800 hover:border-slate-700 transition-all cursor-pointer relative"
+        class="bg-dark-card rounded-3xl p-4 border border-slate-800 hover:border-slate-700 transition-all cursor-pointer relative"
         @click="openChat(p)"
       >
         <!-- Header row: Title (Right) and Assigned Points (Left) -->

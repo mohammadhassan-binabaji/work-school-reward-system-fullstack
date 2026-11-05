@@ -54,7 +54,7 @@ onBeforeUnmount(() => visibilityTracker.disconnect());
     </div>
 
     <!-- Page Title -->
-    <div class="bg-dark-card rounded-3xl p-4.5 border border-slate-800 flex items-center gap-3">
+    <div class="bg-dark-card rounded-3xl p-4 border border-slate-800 flex items-center gap-3">
       <div class="w-10 h-10 rounded-2xl bg-neon-green/15 text-neon-green flex items-center justify-center">
         <Bell class="w-5 h-5" />
       </div>
