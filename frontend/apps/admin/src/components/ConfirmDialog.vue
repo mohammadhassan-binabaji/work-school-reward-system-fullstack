@@ -27,7 +27,12 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <AdminModal :is-open="isOpen" :title="title" max-width="max-w-sm" @close="emit('cancel')">
+  <AdminModal
+    :is-open="isOpen"
+    :title="title"
+    max-width="max-w-sm"
+    @close="!loading && emit('cancel')"
+  >
     <div class="space-y-4 text-center py-2">
       <div
         :class="[

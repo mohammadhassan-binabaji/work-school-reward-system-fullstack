@@ -1,14 +1,17 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { Bell, LogOut } from 'lucide-vue-next';
 import { useAuthStore } from '../stores/auth';
 import { useNotificationsStore } from '../stores/notifications';
 import { toPersianDigits, resolveFileUrl } from '@student-reward/shared';
+import StudentConfirmDialog from './StudentConfirmDialog.vue';
 
 const router = useRouter();
 const authStore = useAuthStore();
 const notifStore = useNotificationsStore();
+const isLogoutConfirmationOpen = ref(false);
+const isLoggingOut = ref(false);
 
 const studentName = computed(() => {
   if (!authStore.user) return 'دانش‌آموز';
@@ -21,9 +24,17 @@ const tierLabel = computed(() => {
   return `سطح ${toPersianDigits(tier.tierNumber)} (${tier.name})`;
 });
 
-async function handleLogout() {
-  await authStore.logout();
-  router.push('/login');
+async function confirmLogout() {
+  if (isLoggingOut.value) return;
+
+  isLoggingOut.value = true;
+  try {
+    await authStore.logout();
+    await router.push('/login');
+    isLogoutConfirmationOpen.value = false;
+  } finally {
+    isLoggingOut.value = false;
+  }
 }
 </script>
 
@@ -80,10 +91,20 @@ async function handleLogout() {
       <button
         class="w-9 h-9 rounded-xl bg-[#161C28] border border-slate-700/60 text-slate-400 hover:text-rose-400 flex items-center justify-center transition-colors"
         title="خروج از حساب"
-        @click="handleLogout"
+        @click="isLogoutConfirmationOpen = true"
       >
         <LogOut class="w-4 h-4" />
       </button>
     </div>
   </header>
+
+  <StudentConfirmDialog
+    :is-open="isLogoutConfirmationOpen"
+    title="خروج از حساب کاربری"
+    message="آیا مطمئنی می‌خواهی از حساب کاربری خارج شوی ؟"
+    confirm-label="بله، خارج می‌شوم"
+    :loading="isLoggingOut"
+    @confirm="confirmLogout"
+    @cancel="isLogoutConfirmationOpen = false"
+  />
 </template>

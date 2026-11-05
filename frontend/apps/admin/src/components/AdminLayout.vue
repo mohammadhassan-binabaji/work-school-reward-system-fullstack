@@ -24,6 +24,7 @@ import {
 import { useAuthStore } from '../stores/auth';
 import { useNotificationsStore } from '../stores/notifications';
 import { toPersianDigits, api, resolveFileUrl } from '@student-reward/shared';
+import ConfirmDialog from './ConfirmDialog.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -33,6 +34,8 @@ const notifStore = useNotificationsStore();
 const isMobileMenuOpen = ref(false);
 const triggeringSnapshot = ref(false);
 const snapshotMessage = ref<string | null>(null);
+const isLogoutConfirmationOpen = ref(false);
+const isLoggingOut = ref(false);
 
 const allNavItems = [
   { title: 'داشبورد مدیریتی', path: '/', icon: LayoutDashboard },
@@ -79,9 +82,17 @@ async function handleTriggerSnapshot() {
   }
 }
 
-async function handleLogout() {
-  await authStore.logout();
-  router.push('/login');
+async function confirmLogout() {
+  if (isLoggingOut.value) return;
+
+  isLoggingOut.value = true;
+  try {
+    await authStore.logout();
+    await router.push('/login');
+    isLogoutConfirmationOpen.value = false;
+  } finally {
+    isLoggingOut.value = false;
+  }
 }
 </script>
 
@@ -197,7 +208,7 @@ async function handleLogout() {
           <button
             class="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition-colors"
             title="خروج"
-            @click="handleLogout"
+            @click="isLogoutConfirmationOpen = true"
           >
             <LogOut class="w-4 h-4" />
           </button>
@@ -264,5 +275,17 @@ async function handleLogout() {
         </main>
       </div>
     </div>
+
+    <ConfirmDialog
+      :is-open="isLogoutConfirmationOpen"
+      title="خروج از حساب کاربری"
+      message="آیا برای خروج از حساب کاربری اطمینان دارید؟"
+      confirm-label="بله، خارج می‌شوم"
+      cancel-label="انصراف"
+      :is-destructive="true"
+      :loading="isLoggingOut"
+      @confirm="confirmLogout"
+      @cancel="isLogoutConfirmationOpen = false"
+    />
   </div>
 </template>

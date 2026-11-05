@@ -28,6 +28,7 @@ export function setupMobileNavigation(
   router: Router,
   options?: {
     isMandatoryUpdateActive?: () => boolean;
+    onExitConfirmationRequested?: () => void;
   },
 ): void {
   if (!Capacitor.isNativePlatform()) {
@@ -53,6 +54,11 @@ export function setupMobileNavigation(
     // Root screen: Dashboard or Login -> Exit application cleanly
     const currentPath = router.currentRoute.value.path;
     if (currentPath === '/' || currentPath === '/login') {
+      if (options?.onExitConfirmationRequested) {
+        options.onExitConfirmationRequested();
+        return;
+      }
+
       await App.exitApp();
       return;
     }

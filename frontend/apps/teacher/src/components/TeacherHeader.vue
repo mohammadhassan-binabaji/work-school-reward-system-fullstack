@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { Bell, LogOut, Coins } from 'lucide-vue-next';
+import { AlertTriangle, Bell, Coins, LogOut, X } from 'lucide-vue-next';
 import { useAuthStore } from '../stores/auth';
 import { useNotificationsStore } from '../stores/notifications';
 import { toPersianDigits, formatNovin, resolveFileUrl } from '@student-reward/shared';
@@ -9,15 +9,25 @@ import { toPersianDigits, formatNovin, resolveFileUrl } from '@student-reward/sh
 const router = useRouter();
 const authStore = useAuthStore();
 const notifStore = useNotificationsStore();
+const isLogoutConfirmationOpen = ref(false);
+const isLoggingOut = ref(false);
 
 const teacherName = computed(() => {
   if (!authStore.user) return 'همکار گرامی';
   return `${authStore.user.firstName} ${authStore.user.lastName}`;
 });
 
-async function handleLogout() {
-  await authStore.logout();
-  router.push('/login');
+async function confirmLogout() {
+  if (isLoggingOut.value) return;
+
+  isLoggingOut.value = true;
+  try {
+    await authStore.logout();
+    await router.push('/login');
+    isLogoutConfirmationOpen.value = false;
+  } finally {
+    isLoggingOut.value = false;
+  }
 }
 </script>
 
@@ -82,10 +92,66 @@ async function handleLogout() {
       <button
         class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 flex items-center justify-center transition-colors"
         title="خروج از حساب"
-        @click="handleLogout"
+        @click="isLogoutConfirmationOpen = true"
       >
         <LogOut class="w-4 h-4" />
       </button>
     </div>
   </header>
+
+  <Teleport to="body">
+    <div
+      v-if="isLogoutConfirmationOpen"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm"
+      role="presentation"
+      @click.self="!isLoggingOut && (isLogoutConfirmationOpen = false)"
+    >
+      <section
+        class="w-full max-w-sm rounded-3xl border border-slate-200 bg-white p-6 text-right shadow-2xl"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="teacher-logout-title"
+        dir="rtl"
+      >
+        <div class="mb-4 flex items-start justify-between">
+          <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-rose-50 text-rose-600">
+            <AlertTriangle class="h-5 w-5" />
+          </div>
+          <button
+            type="button"
+            class="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
+            aria-label="بستن"
+            :disabled="isLoggingOut"
+            @click="isLogoutConfirmationOpen = false"
+          >
+            <X class="h-4 w-4" />
+          </button>
+        </div>
+        <h2 id="teacher-logout-title" class="text-base font-extrabold text-slate-800">
+          خروج از حساب کاربری
+        </h2>
+        <p class="mt-2 text-sm leading-6 text-slate-600">
+          آیا برای خروج از حساب کاربری اطمینان دارید؟
+        </p>
+        <div class="mt-6 flex gap-2">
+          <button
+            type="button"
+            class="flex-1 rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-200 disabled:opacity-50"
+            :disabled="isLoggingOut"
+            @click="isLogoutConfirmationOpen = false"
+          >
+            انصراف
+          </button>
+          <button
+            type="button"
+            class="flex-1 rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-rose-700 disabled:cursor-wait disabled:opacity-60"
+            :disabled="isLoggingOut"
+            @click="confirmLogout"
+          >
+            {{ isLoggingOut ? 'در حال خروج...' : 'بله، خارج می‌شوم' }}
+          </button>
+        </div>
+      </section>
+    </div>
+  </Teleport>
 </template>
