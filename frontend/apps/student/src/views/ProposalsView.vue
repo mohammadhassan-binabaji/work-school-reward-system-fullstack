@@ -165,7 +165,7 @@ function getStatusBadge(status: ProposalStatus): { text: string; bg: string; col
       };
     case 'COMPLETED':
       return {
-        text: 'تکمیل شده',
+        text: 'تکمیل شده و نوین به حساب شما واریز شد',
         bg: 'bg-emerald-500/15',
         color: 'text-emerald-400',
         border: 'border-emerald-500/40',
@@ -246,7 +246,7 @@ function getStatusBadge(status: ProposalStatus): { text: string; bg: string; col
 
       <button
         :disabled="submitting || submitSuccess"
-        class="w-full py-2.5 rounded-xl bg-neon-green text-[#0B0E14] font-extrabold text-xs shadow-neon-green disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+        class="w-full py-2.5 rounded-xl bg-neon-cyan/10 text-neon-cyan hover:text-white font-extrabold text-xs shadow-neon-cyan disabled:opacity-50 transition-all flex items-center justify-center gap-2"
         @click="handleCreateProposal"
       >
         <RefreshCw v-if="submitting" class="w-4 h-4 animate-spin" />

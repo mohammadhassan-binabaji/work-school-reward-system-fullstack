@@ -166,7 +166,7 @@ function getCategoryColor(idx: number, iconKey?: string | null) {
           <div
             class="inline-block bg-[#0E131D] border border-slate-700/80 px-3 py-1.5 rounded-2xl text-[11px] text-slate-300 leading-tight"
           >
-            نوین‌ها توسط معلمان ثبت و به حساب شما افزوده می‌شوند.
+            نوین‌ها توسط اساتید ثبت و به حساب شما افزوده می‌شوند.
           </div>
         </div>
         <OwlMascot size="md" variant="guidance" />
