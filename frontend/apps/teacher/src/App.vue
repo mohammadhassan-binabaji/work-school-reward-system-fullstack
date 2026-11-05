@@ -28,7 +28,7 @@ onMounted(async () => {
 
     <!-- Main Authenticated Mobile Shell -->
     <template v-else>
-      <div class="w-full max-w-lg mx-auto flex flex-col min-h-screen relative shadow-lg bg-slate-50">
+      <div class="w-full max-w-lg mx-auto flex flex-col min-h-screen relative shadow-lg bg-slate-200">
         <TeacherHeader />
         <main class="flex-1 px-4 py-3">
           <router-view />
