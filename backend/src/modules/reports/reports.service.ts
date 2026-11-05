@@ -156,33 +156,12 @@ export class ReportsService {
         { actorId: currentUser.id },
       ];
     } else if (currentUser.role === Role.TEACHER) {
-      // Teacher can see logs related to their assigned students or actions performed by the teacher
-      const assignments = await this.prisma.teacherClassSubjectAssignment.findMany({
-        where: { teacherId: currentUser.id, status: 'ACTIVE' },
-        select: { classId: true },
-      });
-      const assignedClassIds = assignments.map((a) => a.classId);
-
-      const assignedStudents = await this.prisma.studentProfile.findMany({
-        where: { classId: { in: assignedClassIds } },
-        select: { id: true },
-      });
-      const studentIds = assignedStudents.map((s) => s.id);
-
-      const teacherConditions: any[] = [
+      // Teacher can see logs related to actions performed by the teacher
+      where.OR = [
         { actorId: currentUser.id },
         { sourceId: currentUser.id, sourceType: SourceType.TEACHER },
         { recipientId: currentUser.id, recipientType: RecipientType.TEACHER },
       ];
-
-      if (studentIds.length > 0) {
-        teacherConditions.push({
-          recipientId: { in: studentIds },
-          recipientType: { in: [RecipientType.STUDENT_CURRENT, RecipientType.STUDENT_RESERVED] },
-        });
-      }
-
-      where.OR = teacherConditions;
     } else if (currentUser.role === Role.ADMIN) {
       // School-wide admin filters
       if (filter.studentId) {
