@@ -6,12 +6,6 @@ const route = useRoute();
 
 const navItems = [
   {
-    title: 'اهدای نوین',
-    path: '/',
-    icon: Award,
-    isPrimary: true,
-  },
-  {
     title: 'کلاس‌های من',
     path: '/classes',
     icon: Users,
@@ -20,6 +14,12 @@ const navItems = [
     title: 'تاریخچه',
     path: '/history',
     icon: Clock,
+  },
+  {
+    title: 'اهدای نوین',
+    path: '/',
+    icon: Award,
+    isPrimary: true,
   },
   {
     title: 'رتبه‌بندی',
