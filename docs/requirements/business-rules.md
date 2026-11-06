@@ -7,6 +7,8 @@
 - Vice principals have personal point budgets funded from the system point pool.
 - Vice principal point adjustments to students are symmetric: positive adjustments debit the vice principal's balance and credit the student; negative adjustments debit the student and credit the vice principal's balance.
 - Vice principals cannot adjust more points than their available balance (when crediting) or more points than the student's current balance (when debiting).
+- Administrator point adjustments are accounted for against the system point pool: crediting a student debits the pool, and debiting a student credits the pool.
+- Administrator student credits cannot exceed the available system point pool balance, and student debits cannot exceed the student's current balance.
 - When a vice principal leaves the school, any remaining point balance automatically returns to the system point pool under `VICE_PRINCIPAL_DEPARTURE_RETURN`.
 - Vice principals have authority to manage rewards and approve/decline/complete reward requests, create/edit/delete activities, review challenge submissions, and review/approve/complete proposals.
 - Vice principals access only 6 views on the admin web console: Dashboard, Direct Adjust, Rewards, Activities, Proposals, and Notifications.

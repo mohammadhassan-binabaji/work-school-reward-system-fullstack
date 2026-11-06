@@ -81,7 +81,8 @@ The system enables teachers to award points to students for actions such as comp
 
 ### Student points and rewards
 
-- Administrators shall be able to add or subtract points from a student's balance.
+- Administrators shall be able to add or subtract points from a student's balance. Adding points shall decrease the system point pool by the same amount; subtracting points shall return the same amount to the system point pool.
+- The system shall reject an administrator's point addition when the system point pool does not have enough points, without changing either balance.
 - Administrators shall manage the reward catalog, including creating, pricing, editing, and removing rewards.
 - Administrators shall not change the price of an existing reward; to use a different price, they shall remove the old reward and create a new reward.
 - When an administrator removes a reward, its active requests shall be closed and their reserved points shall return to the respective students.

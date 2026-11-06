@@ -90,7 +90,7 @@ describe('Points Awarding Integration Tests', () => {
       .expect(400);
   });
 
-  it('allows admin direct point adjustments and prevents negative student balances (FR-023)', async () => {
+  it('keeps admin direct adjustments in sync with the system pool (FR-023)', async () => {
     const student = await request(app.getHttpServer())
       .post('/api/v1/users')
       .set('Cookie', adminCookie)
@@ -114,6 +114,17 @@ describe('Points Awarding Integration Tests', () => {
 
     expect(addRes.body.newCurrentBalance).toBe(50);
     expect(addRes.body.newHighestBalance).toBe(50);
+    const poolAfterAddition = await prisma.systemPointPool.findFirstOrThrow();
+    expect(poolAfterAddition.balance).toBe(950);
+
+    const additionAudit = await prisma.pointAuditLog.findFirstOrThrow({
+      where: { actionType: 'ADMIN_ADJUST_STUDENT', recipientId: studentId },
+    });
+    expect(additionAudit.sourceType).toBe('SYSTEM_POOL');
+    expect(additionAudit.sourceId).toBe(poolAfterAddition.id);
+    expect(additionAudit.recipientType).toBe('STUDENT_CURRENT');
+    expect(additionAudit.resultingSourceBalance).toBe(950);
+    expect(additionAudit.resultingRecipientBalance).toBe(50);
 
     // Subtract 20 points
     const subRes = await request(app.getHttpServer())
@@ -124,6 +135,18 @@ describe('Points Awarding Integration Tests', () => {
 
     expect(subRes.body.newCurrentBalance).toBe(30);
     expect(subRes.body.newHighestBalance).toBe(50); // Highest balance does not decrease
+    const poolAfterSubtraction = await prisma.systemPointPool.findFirstOrThrow();
+    expect(poolAfterSubtraction.balance).toBe(970);
+
+    const subtractionAudit = await prisma.pointAuditLog.findFirstOrThrow({
+      where: { actionType: 'ADMIN_ADJUST_STUDENT', sourceId: studentId },
+      orderBy: { createdAt: 'desc' },
+    });
+    expect(subtractionAudit.sourceType).toBe('STUDENT_CURRENT');
+    expect(subtractionAudit.recipientType).toBe('SYSTEM_POOL');
+    expect(subtractionAudit.recipientId).toBe(poolAfterSubtraction.id);
+    expect(subtractionAudit.resultingSourceBalance).toBe(30);
+    expect(subtractionAudit.resultingRecipientBalance).toBe(970);
 
     // Attempting to subtract 40 points when only 30 points remain should fail (prevent negative balance)
     await request(app.getHttpServer())
@@ -131,6 +154,32 @@ describe('Points Awarding Integration Tests', () => {
       .set('Cookie', adminCookie)
       .send({ studentId, amount: -40, reason: 'Excessive deduction' })
       .expect(400);
+
+    expect(
+      (await prisma.studentProfile.findUniqueOrThrow({ where: { id: studentId } })).currentBalance,
+    ).toBe(30);
+    expect((await prisma.systemPointPool.findFirstOrThrow()).balance).toBe(970);
+
+    const pool = await prisma.systemPointPool.findFirstOrThrow();
+    await prisma.systemPointPool.update({
+      where: { id: pool.id },
+      data: { balance: 10 },
+    });
+
+    // The pool cannot cover this grant; neither balance nor the adjustment audit may change.
+    await request(app.getHttpServer())
+      .post('/api/v1/points/admin-adjust')
+      .set('Cookie', adminCookie)
+      .send({ studentId, amount: 11, reason: 'Insufficient pool' })
+      .expect(400);
+
+    expect(
+      (await prisma.studentProfile.findUniqueOrThrow({ where: { id: studentId } })).currentBalance,
+    ).toBe(30);
+    expect((await prisma.systemPointPool.findFirstOrThrow()).balance).toBe(10);
+    expect(
+      await prisma.pointAuditLog.count({ where: { actionType: 'ADMIN_ADJUST_STUDENT' } }),
+    ).toBe(2);
   });
 
   it('manages task creation, option selection, and task deactivation (FR-017, FR-018)', async () => {

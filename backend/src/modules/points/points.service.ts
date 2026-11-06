@@ -194,7 +194,11 @@ export class PointsService {
   }
 
   // Fund Vice Principal Budget
-  async fundVicePrincipalBudget(dto: FundVicePrincipalBudgetDto, adminId: string, correlationId: string) {
+  async fundVicePrincipalBudget(
+    dto: FundVicePrincipalBudgetDto,
+    adminId: string,
+    correlationId: string,
+  ) {
     const vp = await this.prisma.user.findUnique({
       where: { id: dto.vicePrincipalId },
       include: { teacherProfile: true },
@@ -536,6 +540,36 @@ export class PointsService {
         });
       }
 
+      let pool = await tx.systemPointPool.findFirst();
+      if (!pool) {
+        pool = await tx.systemPointPool.create({ data: { balance: 0 } });
+      }
+
+      let updatedPool = pool;
+      if (dto.amount > 0) {
+        const debitedPool = await tx.systemPointPool.updateMany({
+          where: { id: pool.id, balance: { gte: dto.amount } },
+          data: { balance: { decrement: dto.amount } },
+        });
+
+        if (debitedPool.count !== 1) {
+          throw new BadRequestException({
+            statusCode: 400,
+            errorCode: 'INSUFFICIENT_POOL_BALANCE',
+            message: `System pool balance is insufficient to award ${dto.amount} points`,
+          });
+        }
+
+        updatedPool = await tx.systemPointPool.findUniqueOrThrow({
+          where: { id: pool.id },
+        });
+      } else {
+        updatedPool = await tx.systemPointPool.update({
+          where: { id: pool.id },
+          data: { balance: { increment: Math.abs(dto.amount) } },
+        });
+      }
+
       const currentBalance = student.studentProfile.currentBalance;
       const newBalance = currentBalance + dto.amount;
 
@@ -576,16 +610,17 @@ export class PointsService {
           actorId: adminId,
           actorRole: ActorRole.ADMIN,
           sourceType: dto.amount < 0 ? SourceType.STUDENT_CURRENT : SourceType.SYSTEM_POOL,
-          sourceId: dto.amount < 0 ? dto.studentId : null,
-          recipientType: dto.amount > 0 ? RecipientType.STUDENT_CURRENT : RecipientType.NONE,
-          recipientId: dto.amount > 0 ? dto.studentId : null,
+          sourceId: dto.amount < 0 ? dto.studentId : pool.id,
+          recipientType: dto.amount > 0 ? RecipientType.STUDENT_CURRENT : RecipientType.SYSTEM_POOL,
+          recipientId: dto.amount > 0 ? dto.studentId : pool.id,
           amount: Math.abs(dto.amount),
           actionType: ActionType.ADMIN_ADJUST_STUDENT,
           reasonDetail: dto.reason,
           metadata: { adminName },
-          resultingSourceBalance: dto.amount < 0 ? updatedStudent.currentBalance : null,
+          resultingSourceBalance:
+            dto.amount < 0 ? updatedStudent.currentBalance : updatedPool.balance,
           resultingRecipientBalance:
-            dto.amount > 0 ? updatedStudent.currentBalance : updatedStudent.currentBalance,
+            dto.amount > 0 ? updatedStudent.currentBalance : updatedPool.balance,
         },
         tx,
       );
