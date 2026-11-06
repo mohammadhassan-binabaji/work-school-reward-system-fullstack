@@ -89,6 +89,15 @@ const currentTierTheme = computed(() => {
   return getTierTheme(tier.value?.themeId, tier.value?.tierNumber || 1);
 });
 
+const previousTierTheme = computed(() => {
+  const currentTierNumber = tier.value?.tierNumber;
+  if (currentTierNumber == null) return null;
+  const previousTier = authStore.tierConfigurations.find(
+    (configuredTier) => configuredTier.tierNumber === currentTierNumber - 1,
+  );
+  return previousTier ? getTierTheme(previousTier.themeId, previousTier.tierNumber) : null;
+});
+
 const nextTierTheme = computed(() => {
   if (!nextTier.value) {
     // If student is at max tier, fallback to current tier theme
@@ -327,29 +336,29 @@ const filteredActivities = computed(() => {
         <!-- Mascot & Circular Progress Gauge -->
         <div class="relative flex items-center justify-center shrink-0">
           <svg class="w-40 h-40 transform -rotate-90" viewBox="0 0 120 120">
-            <!-- Background Ring Track & Inner Ring Fill (Current Tier) -->
+            <!-- Background Ring Track (Previous Tier) & Inner Ring Fill (Current Tier) -->
             <circle
               cx="60"
               cy="60"
               r="52"
-              :stroke="currentTierTheme.ringTrack"
+              :stroke="previousTierTheme?.ringTrack ?? '#1F2937'"
               stroke-width="5"
               :fill="currentTierTheme.ringFill"
               class="transition-colors duration-500"
             />
-            <!-- Active Progress Arc (Next Tier Primary & Glow Drop-Shadow) -->
+            <!-- Active Progress Arc (Current Tier Primary & Glow Drop-Shadow) -->
             <circle
               cx="60"
               cy="60"
               r="52"
-              :stroke="nextTierTheme.primary"
+              :stroke="currentTierTheme.primary"
               stroke-width="5"
               stroke-linecap="round"
               fill="transparent"
               :stroke-dasharray="326.73"
               :stroke-dashoffset="326.73 - (326.73 * progressPercent) / 100"
               :style="{
-                filter: `drop-shadow(0 0 6px ${nextTierTheme.border})`,
+                filter: `drop-shadow(0 0 6px ${currentTierTheme.border})`,
               }"
               class="transition-all duration-1000 ease-out"
             />
