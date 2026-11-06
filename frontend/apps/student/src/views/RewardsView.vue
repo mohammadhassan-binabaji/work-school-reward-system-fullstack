@@ -386,15 +386,20 @@ function getRequestStatusBadge(status: string): { label: string; style: string; 
       <div v-if="selectedReward" class="space-y-4">
         <!-- Full Image -->
         <div
-          class="w-full h-44 rounded-2xl bg-[#0F1420] border border-slate-800 flex items-center justify-center overflow-hidden"
+          v-if="selectedReward.imageUrl"
+          class="w-full rounded-2xl bg-[#0F1420] border border-slate-800 overflow-hidden"
         >
           <img
-            v-if="selectedReward.imageUrl"
             :src="resolveFileUrl(selectedReward.imageUrl)"
             :alt="selectedReward.name"
-            class="w-full h-full object-cover"
+            class="block w-full h-auto object-contain"
           />
-          <Gift v-else class="w-16 h-16 text-emerald-400/60" />
+        </div>
+        <div
+          v-else
+          class="w-full h-44 rounded-2xl bg-[#0F1420] border border-slate-800 flex items-center justify-center"
+        >
+          <Gift class="w-16 h-16 text-emerald-400/60" />
         </div>
 
         <!-- Price & Inventory Info -->

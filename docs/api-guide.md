@@ -43,7 +43,7 @@ This guide describes the core API endpoints and verification flows for the Stude
 - `POST /api/v1/points/vice-adjust` - Vice principal credits a student from their own balance or debits the student to return points to their own balance. Insufficient balances are rejected.
 
 ### 5. Reward Catalog & Redemption (`/api/v1/rewards`, `/api/v1/reward-requests`)
-- `POST/GET/PATCH/DELETE /api/v1/rewards` - Admins and vice principals manage the reward catalog (price is immutable).
+- `POST/GET/PATCH/DELETE /api/v1/rewards` - Admins and vice principals manage the reward catalog (price is immutable); create/update accept an image URL or a JPEG, PNG, or WebP upload up to 5 MB, and updates can clear the image.
 - `POST /api/v1/reward-requests` - Student redeems reward (immediate balance reservation). Returns `409` if the student already has a pending request for the same reward.
 - `POST /api/v1/reward-requests/:id/approve` - Admin or vice principal approves request.
 - `POST /api/v1/reward-requests/:id/decline` - Admin or vice principal declines request (refunds reserved points to student).

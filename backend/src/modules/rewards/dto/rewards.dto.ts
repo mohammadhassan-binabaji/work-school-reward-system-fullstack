@@ -8,7 +8,23 @@ import {
   IsBoolean,
   IsUUID,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+
+function transformNumber(value: unknown): unknown {
+  if (value === '') return null;
+  if (typeof value === 'string') {
+    const parsed = Number(value);
+    return Number.isNaN(parsed) ? value : parsed;
+  }
+  return value;
+}
+
+function transformBoolean(value: unknown): unknown {
+  if (value === 'true') return true;
+  if (value === 'false') return false;
+  return value;
+}
 
 export class CreateRewardDto {
   @ApiProperty({ example: 'Sticker Pack' })
@@ -30,12 +46,14 @@ export class CreateRewardDto {
 
   @ApiProperty({ example: 10, minimum: 1 })
   @IsNotEmpty()
+  @Transform(({ value }) => transformNumber(value))
   @IsInt()
   @Min(1)
   pointPrice: number;
 
   @ApiProperty({ example: false })
   @IsNotEmpty()
+  @Transform(({ value }) => transformBoolean(value))
   @IsBoolean()
   requiresApproval: boolean;
 
@@ -45,9 +63,10 @@ export class CreateRewardDto {
     description: 'Finite inventory for non-approval rewards',
   })
   @IsOptional()
+  @Transform(({ value }) => transformNumber(value))
   @IsInt()
   @Min(0)
-  inventoryQuantity?: number;
+  inventoryQuantity?: number | null;
 }
 
 export class UpdateRewardMetadataDto {
@@ -70,9 +89,10 @@ export class UpdateRewardMetadataDto {
 
   @ApiPropertyOptional()
   @IsOptional()
+  @Transform(({ value }) => transformNumber(value))
   @IsInt()
   @Min(0)
-  inventoryQuantity?: number;
+  inventoryQuantity?: number | null;
 }
 
 export class CreateRewardRequestDto {

@@ -1954,6 +1954,23 @@ paths:
                 pointPrice: { type: integer, minimum: 1 }
                 requiresApproval: { type: boolean }
                 inventoryQuantity: { type: integer, minimum: 0, nullable: true }
+          multipart/form-data:
+            schema:
+              type: object
+              required: [name, description, pointPrice, requiresApproval]
+              properties:
+                name: { type: string }
+                description: { type: string }
+                imageUrl:
+                  type: string
+                  description: Use either this URL or an uploaded image, not both.
+                image:
+                  type: string
+                  format: binary
+                  description: Optional JPEG, PNG, or WebP image up to 5 MB.
+                pointPrice: { type: integer, minimum: 1 }
+                requiresApproval: { type: boolean }
+                inventoryQuantity: { type: integer, minimum: 0, nullable: true }
       responses:
         '201':
           description: Created
@@ -1991,6 +2008,20 @@ paths:
         content:
           application/json:
             schema: { $ref: '#/components/schemas/UpdateRewardMetadataDto' }
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                description: { type: string }
+                imageUrl:
+                  type: string
+                  description: Use an empty string to remove the image; do not send together with image.
+                image:
+                  type: string
+                  format: binary
+                  description: Optional JPEG, PNG, or WebP image up to 5 MB.
+                inventoryQuantity: { type: integer, minimum: 0, nullable: true }
       responses:
         '200':
           description: Reward updated

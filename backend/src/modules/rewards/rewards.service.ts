@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Inject,
   NotFoundException,
   BadRequestException,
   ForbiddenException,
@@ -7,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { StorageService } from '../storage/storage.service';
 import { AuditLogService } from '../points/audit-log.service';
 import {
   CreateRewardDto,
@@ -28,16 +30,24 @@ import {
   RewardRequiresApprovalEvent,
 } from '../notifications/events/reward-events';
 
+interface UploadedRewardImage {
+  buffer: Buffer;
+  originalname: string;
+  mimetype: string;
+}
+
 @Injectable()
 export class RewardsService {
   constructor(
     private prisma: PrismaService,
     private auditLogService: AuditLogService,
     private eventEmitter: EventEmitter2,
+    @Inject('STORAGE_SERVICE')
+    private storageService: StorageService,
   ) {}
 
   // Catalog CRUD (FR-024, FR-085)
-  async createReward(dto: CreateRewardDto) {
+  async createReward(dto: CreateRewardDto, image?: UploadedRewardImage) {
     if (
       !dto.requiresApproval &&
       (dto.inventoryQuantity === undefined || dto.inventoryQuantity === null)
@@ -49,11 +59,15 @@ export class RewardsService {
       });
     }
 
+    const imageUrl = image
+      ? await this.storageService.uploadFile(image.buffer, image.originalname, image.mimetype)
+      : dto.imageUrl || null;
+
     return this.prisma.reward.create({
       data: {
         name: dto.name,
         description: dto.description,
-        imageUrl: dto.imageUrl || null,
+        imageUrl,
         pointPrice: dto.pointPrice,
         requiresApproval: dto.requiresApproval,
         inventoryQuantity: dto.requiresApproval ? null : dto.inventoryQuantity,
@@ -83,14 +97,32 @@ export class RewardsService {
   }
 
   // Price Immutability (FR-025)
-  async updateRewardMetadata(id: string, dto: UpdateRewardMetadataDto) {
-    await this.findRewardById(id);
+  async updateRewardMetadata(
+    id: string,
+    dto: UpdateRewardMetadataDto,
+    image?: UploadedRewardImage,
+  ) {
+    const reward = await this.findRewardById(id);
+    if (!reward.requiresApproval && dto.inventoryQuantity === null) {
+      throw new BadRequestException({
+        statusCode: 400,
+        errorCode: 'INVENTORY_REQUIRED_FOR_NON_APPROVAL',
+        message: 'Non-approval rewards require an inventory quantity',
+      });
+    }
+
+    const imageUrl = image
+      ? await this.storageService.uploadFile(image.buffer, image.originalname, image.mimetype)
+      : dto.imageUrl === undefined
+        ? undefined
+        : dto.imageUrl || null;
+
     return this.prisma.reward.update({
       where: { id },
       data: {
         name: dto.name,
         description: dto.description,
-        imageUrl: dto.imageUrl,
+        imageUrl,
         inventoryQuantity: dto.inventoryQuantity,
       },
     });
