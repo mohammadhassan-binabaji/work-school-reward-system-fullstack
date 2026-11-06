@@ -65,7 +65,9 @@ async function loadData() {
       api.get<Reward[]>('/rewards'),
       api.get<RewardRequest[]>('/reward-requests'),
     ]);
-    rewards.value = (rewardsList || []).filter((r) => r.status === 'ACTIVE');
+    rewards.value = (rewardsList || [])
+      .filter((r) => r.status === 'ACTIVE')
+      .sort((a, b) => a.pointPrice - b.pointPrice);
     myRequests.value = requestsList || [];
   } catch (e) {
     console.error('Failed to load rewards data', e);
@@ -277,17 +279,21 @@ function getRequestStatusBadge(status: string): { label: string; style: string; 
               {{ r.name }}
             </h3>
 
-            <!-- Price with Star -->
-            <div class="mt-2 flex items-center gap-1 text-neon-gold text-xs font-extrabold">
-              <Star class="w-3.5 h-3.5 fill-neon-gold" />
-              <span>{{ formatNovin(r.pointPrice) }}</span>
-            </div>
+            <div class="mt-2 flex items-center justify-between gap-1">
+              <!-- Price with Star -->
+              <div class="flex items-center gap-1 text-neon-gold text-xs font-extrabold">
+                <Star class="w-3.5 h-3.5 fill-neon-gold" />
+                <span>{{ formatNovin(r.pointPrice) }}</span>
+              </div>
 
-            <!-- Inventory -->
-            <span class="text-[10px] text-slate-400 block mt-1">
-              موجودی:
-              {{ r.inventoryQuantity !== null ? toPersianDigits(r.inventoryQuantity) : 'نامحدود' }}
-            </span>
+              <!-- Finite Inventory -->
+              <span
+                v-if="r.inventoryQuantity !== null"
+                class="text-[10px] text-slate-400 whitespace-nowrap"
+              >
+                موجودی: {{ toPersianDigits(r.inventoryQuantity) }}
+              </span>
+            </div>
           </div>
 
           <!-- Bottom Pill Button -->
@@ -318,14 +324,13 @@ function getRequestStatusBadge(status: string): { label: string; style: string; 
           v-for="req in myRequests"
           :key="req.id"
           :class="[
-            'bg-dark-card rounded-3xl p-4 border transition-all cursor-pointer relative overflow-hidden',
+            'bg-dark-card rounded-3xl p-4 border relative overflow-hidden',
             req.status === 'DECLINED'
-              ? 'border-rose-500/50 hover:bg-rose-500/5'
+              ? 'border-rose-500/50'
               : req.status === 'COMPLETED'
-              ? 'border-emerald-500/40 hover:bg-emerald-500/5'
-              : 'border-cyan-500/40 hover:bg-cyan-500/5',
+              ? 'border-emerald-500/40'
+              : 'border-cyan-500/40',
           ]"
-          @click="openHistoryDetail(req)"
         >
           <div class="flex items-start justify-between gap-3">
             <div class="flex-1">
@@ -352,13 +357,17 @@ function getRequestStatusBadge(status: string): { label: string; style: string; 
           </div>
 
           <!-- Declined Preview Banner -->
-          <div
+          <button
             v-if="req.status === 'DECLINED'"
-            class="mt-3 p-2 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-[11px] flex items-center justify-between"
+            type="button"
+            class="group mt-3 w-full p-2 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-[11px] flex items-center justify-between text-right transition-colors hover:bg-rose-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300/70"
+            @click="openHistoryDetail(req)"
           >
             <span>علت رد: {{ req.declineReason || 'نوین به حسابتان بازگردانده شد' }}</span>
-            <span class="text-[10px] underline font-bold">مشاهده جزییات ›</span>
-          </div>
+            <span class="text-[10px] font-bold group-hover:underline group-focus-visible:underline">
+              مشاهده جزییات ›
+            </span>
+          </button>
         </div>
       </div>
 
@@ -421,7 +430,7 @@ function getRequestStatusBadge(status: string): { label: string; style: string; 
         >
           <div class="flex items-center gap-2 font-bold">
             <AlertTriangle class="w-4 h-4 text-amber-400 shrink-0" />
-            <span>توجه: نوین پس از ثبت درخواست رزرو خواهد شد</span>
+            <span>توجه: جایزه به نام شما پس از ثبت درخواست در مدرسه رزرو خواهد شد</span>
           </div>
           <p class="text-[11px] text-amber-200/80 leading-relaxed">
             درخواست دریافت جایزه غیرقابل لغو توسط دانش‌آموز است. در صورت تایید مدیر، جایزه را به صورت فیزیکی تحویل خواهید گرفت.

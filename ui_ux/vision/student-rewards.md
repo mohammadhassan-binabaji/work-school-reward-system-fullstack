@@ -40,7 +40,7 @@ This document analyzes the visual design and user experience intent of the provi
 
 * **Top App Bar:** Displays the title «جوایز» in bold white typography and the student's current «نوین» balance in heavy Persian numerals inside a glowing dark pill badge (e.g., ۱۱۰۰ ★).
 * **Sub-Navigation Toggle / Collapsible Header Section:** Immediately below the header (or integrated as a collapsible/sticky bar at the top of the «جوایز» view), a 2-segment dark glassmorphic toggle with a glowing neon active indicator switches between:
-  * **«جوایز فعال» (Active Awards — Default View):** 2-column grid of available rewards framed in dark cards with subtle neon borders, showing cost, inventory («موجودی»), and redemption CTA buttons.
+  * **«جوایز فعال» (Active Awards — Default View):** 2-column grid of available rewards framed in dark cards with subtle neon borders, ordered by ascending point cost (preserving the existing order for equal prices) and showing cost, finite inventory («موجودی») beside the cost, and redemption CTA buttons. Unlimited rewards omit the inventory label.
   * **«تاریخچه» (History View):** Grid or list of requested reward cards displaying the item image, title, cost, and glowing semantic neon status badge—explicitly omitting the «دریافت» (Redeem) button and omitting the «موجودی» (Inventory) count.
 * **Bottom Sheet Layer:** A sliding dark-matte modal sheet with a glowing top border edge anchored to the bottom of the viewport used for (a) viewing reward details/descriptions in «جوایز فعال», (b) confirming irreversible redemption requests, and (c) viewing admin decline reasons and refund notices in «تاریخچه».
 
@@ -74,33 +74,33 @@ This document analyzes the visual design and user experience intent of the provi
 
 * **Primary Information:** Student's total balance (1100 ★) in the top header; Reward Title (bold crisp white text) and Affordability/Action state (vibrant neon-green «دریافت» button vs. dark muted gray «امتیاز ناکافی» button) on each card.
 * **Secondary Information:** Reward cost (1000 امتیاز, 2500 امتیاز) in bright cyan/white text accompanied by a glowing gold star icon.
-* **Supporting Information:** Remaining inventory count (موجودی: 29, موجودی: 15) in smaller muted cool-gray text; dark atmospheric media container with a glowing gift box or 3D mascot-styled illustration at the top of each card.
+* **Supporting Information:** Finite remaining inventory count (موجودی: 29, موجودی: 15) in smaller muted cool-gray text beside the cost; unlimited rewards omit this count. A dark atmospheric media container with a glowing gift box or 3D mascot-styled illustration appears at the top of each card.
 
 **DESIGN INTENT:**
 
 * **In «جوایز فعال» (Active Awards Tab):**
   * **Primary:** Reward Title (white), Affordability/Eligibility CTA State (Available vs. Insufficient «نوین» vs. Already Pending vs. Out of Stock).
   * **Secondary:** Cost in «نوین» (e.g., ۱۰۰۰ نوین ★) with a gold star accent.
-  * **Supporting:** Remaining Inventory (موجودی: ۲۹) in muted slate-gray.
+  * **Supporting:** Finite remaining inventory (موجودی: ۲۹) in muted slate-gray, displayed beside the cost; omit inventory for unlimited rewards.
   * **Progressive Disclosure (Bottom Sheet on Card Tap):** Full reward image and detailed description / pickup instructions on a dark elevated sheet.
 
 * **In «تاریخچه» (History Tab):**
   * **Primary:** Reward Title (white) and glowing Neon Request Status Badge (Pending to Approve 🔵, Pending to Receive 🔵, Completed 🟢, Declined 🔴).
   * **Secondary:** Cost in «نوین» (۱۰۰۰ نوین ★).
   * **Intentionally Omitted:** Inventory count («موجودی») and Redeem button («دریافت») are strictly hidden on History cards.
-  * **Progressive Disclosure (Bottom Sheet on Card Tap for Declined 🔴 items):** Admin rejection reason text + static confirmation message that deducted «نوین» have been returned to the student's balance, styled inside a red-orange neon-bordered alert box.
+  * **Progressive Disclosure (Declined Preview Banner Tap):** Only the declined-request preview banner opens the bottom sheet with the Admin rejection reason and static confirmation that deducted «نوین» have been returned to the student's balance, styled inside a red-orange neon-bordered alert box. Other history card areas are not clickable.
 
 ## 7. Components & Content Patterns
 
 **OBSERVATION:**
 
 * **Balance Pill Badge (Header):** Rounded dark translucent pill with a thin glowing border containing bold white numeric value and a glowing gold star icon.
-* **Reward Card (2-Column Grid Item):** Dark charcoal/navy card surface (`#131720` approx.) framed by a subtle glowing neon border; top half features a dark inner container with a subtle radial glow behind the reward graphic/icon; bottom half contains right-aligned white Title, Cost, muted gray Inventory, and a full-width pill CTA button.
+* **Reward Card (2-Column Grid Item):** Dark charcoal/navy card surface (`#131720` approx.) framed by a subtle glowing neon border; top half features a dark inner container with a subtle radial glow behind the reward graphic/icon; bottom half contains right-aligned white Title, Cost with finite muted-gray Inventory alongside it when available, and a full-width pill CTA button. Active catalog cards are ordered by ascending point cost.
 
 **DESIGN INTENT (Component Specifications):**
 
 1. **Active Catalog Card (in «جوایز فعال»):**
-   * Displays thumbnail image/illustration on a dark glowing backdrop, white Title, Cost ([عدد] نوین ★), muted gray Inventory (موجودی: [عدد]), and a bottom pill button.
+   * Displays thumbnail image/illustration on a dark glowing backdrop, white Title, Cost ([عدد] نوین ★), finite muted-gray Inventory (موجودی: [عدد]) beside the cost when available, and a bottom pill button. Unlimited rewards do not show an inventory label.
    * **4 Distinct Button States on Active Catalog Cards:**
      * **State A — Eligible & Available:** Vibrant Neon-Green button (`#39FF14` / `#4ADE80` approx.) with dark/black bold text or glowing green border with white text: «دریافت» (Redeem).
      * **State B — Insufficient Balance:** Disabled Dark Slate-Gray button (`#1E2430` approx.) with subtle border and muted gray text: «نوین ناکافی» (Insufficient Novin).
@@ -113,7 +113,7 @@ This document analyzes the visual design and user experience intent of the provi
      * **🔵 در انتظار تایید (Pending to Approve)** — Glowing Electric Cyan-Blue badge and card border accent (`#00E5FF` / `#38BDF8` approx., matching the weekly chart's cyan-blue glow).
      * **🔵 در انتظار دریافت (Pending to Receive)** — Glowing Electric Cyan-Blue badge (visually differentiated via a solid cyan fill or box-ready icon so students know it is approved and ready to collect).
      * **🟢 تکمیل شده / تحویل شده (Completed)** — Glowing Neon Lime-Green badge and card border accent (`#4ADE80` approx., matching the rank card's green neon glow).
-     * **🔴 رد شده (Declined)** — Glowing Fiery Red-Orange badge and card border accent (`#FF453A` approx., matching the top score card's red-orange neon glow, with a subtle visual cue like an info icon ⓘ or «مشاهده علت» indicating the card can be tapped for details).
+     * **🔴 رد شده (Declined)** — Glowing Fiery Red-Orange badge and card border accent (`#FF453A` approx., matching the top score card's red-orange neon glow). A declined preview banner provides the «مشاهده جزییات» action; the rest of the card is not clickable.
 
 3. **Active Award Detail Bottom Sheet (Triggered by tapping card body in «جوایز فعال»):**
    * Dark obsidian surface with a subtle neon top-border glow and drag handle.
@@ -122,7 +122,7 @@ This document analyzes the visual design and user experience intent of the provi
    * Detailed description text in readable light gray (rules, approval requirement note, or pickup instructions).
    * Sticky bottom CTA button («دریافت» in glowing neon green or corresponding disabled dark state) inside the thumb zone, plus confirmation step warning that points are deducted immediately and cannot be canceled.
 
-4. **History Detail / Declined Reason Bottom Sheet (Triggered by tapping a card in «تاریخچه»):**
+4. **History Detail / Declined Reason Bottom Sheet (Triggered by tapping a declined preview banner in «تاریخچه»):**
    * **For Declined (رد شده 🔴) cards:** Displays the reward summary on a dark sheet with a red-orange neon border accent, the glowing red status badge, the Admin's Rejection Reason text in white, and a prominent Static Refund Notice inside a dark pill container with a neon accent (e.g., «نوین‌های کسر شده برای این درخواست به حساب شما بازگردانده شد.» — The deducted Novin points have been returned to your balance).
    * Dark pill Close button («بستن») with a subtle neon border at the bottom of the sheet for easy one-handed dismissal.
 
@@ -140,9 +140,9 @@ This document analyzes the visual design and user experience intent of the provi
   * **Card Body Tap vs. Button Tap (in «جوایز فعال»):**
     * Tapping the dark card body/image opens the Reward Detail Bottom Sheet (showing full image and detailed description).
     * Tapping the neon-green «دریافت» button opens the Redemption Confirmation Bottom Sheet (or initiates redemption from inside the Detail Bottom Sheet) so students don't accidentally spend «نوین» while scrolling.
-  * **History Card Tap (in «تاریخچه»):**
-    * Tapping a Declined (🔴) red-glowing card opens the Declined Explanation Bottom Sheet displaying the specific rejection reason and the static refund confirmation text.
-    * Tapping other history cards (Pending to Receive, Pending to Approve, Completed) can optionally open the dark bottom sheet showing the item description/pickup instructions.
+  * **History Card Interaction (in «تاریخچه»):**
+    * History cards are not clickable. Only the declined preview banner opens the Declined Explanation Bottom Sheet displaying the specific rejection reason and static refund confirmation text.
+    * Hovering the declined preview banner changes its background to a theme-appropriate red neon tint; «مشاهده جزییات» is not underlined normally and becomes underlined on hover.
   * **Bottom Sheet Dismissal:** Swiping down on the dark sheet, tapping the darkened backdrop scrim, or tapping the bottom «بستن» / «انصراف» button closes the sheet one-handed.
 
 ## 9. Visual Language
@@ -195,7 +195,8 @@ All user-confirmed requirements for Page 1 («جوایز»):
   * «تاریخچه» (History)
 
 * **Active Awards Rules («جوایز فعال»):**
-  * Displays dark neon-bordered reward cards with image, white title, «نوین» cost with gold star, muted inventory count («موجودی»), and neon-green redeem button («دریافت»).
+  * Displays dark neon-bordered reward cards sorted by ascending «نوین» cost, with image, white title, «نوین» cost with gold star, and neon-green redeem button («دریافت»).
+  * Show finite inventory («موجودی») beside the cost; omit the inventory label for unlimited rewards.
   * Tapping the reward card body opens a Dark Bottom Sheet displaying the full image and detailed description.
   * Students can request a reward only if they have sufficient «نوین», inventory > 0, and do not already have a pending request for that exact same reward.
   * Students can request a different reward even if they have another reward currently pending.
@@ -210,9 +211,10 @@ All user-confirmed requirements for Page 1 («جوایز»):
   * Declined (🔴 Fiery Red-Orange)
 
 * History cards must NOT have a «دریافت» (Redeem) button and must NOT display an inventory availability count («موجودی»).
-* When a student taps a Declined (🔴) card in «تاریخچه», it opens a Dark Bottom Sheet with red-orange neon accents showing:
+* History cards are not clickable. Only the preview banner on a Declined (🔴) request opens a Dark Bottom Sheet with red-orange neon accents showing:
   * The specific rejection reason text.
   * A static message stating that the deducted «نوین» have been returned to their balance (shown only inside this bottom sheet).
+* The declined preview banner has a theme-appropriate hover background; «مشاهده جزییات» is underlined only on hover.
 
 
 ## 13. Observed Patterns
