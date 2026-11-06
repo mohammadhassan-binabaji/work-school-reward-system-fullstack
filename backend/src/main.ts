@@ -9,11 +9,51 @@ import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const configService = app.get(ConfigService);
+  const allowedOrigins = configService.get<string[]>('app.allowedOrigins') || [];
 
   app.use(cookieParser());
+  app.use((req, res, next) => {
+    const origin = req.get('origin');
+    const isSafeMethod = ['GET', 'HEAD', 'OPTIONS'].includes(req.method);
+    const isCapacitorOrigin = origin === 'https://localhost';
+
+    if (origin && !allowedOrigins.includes(origin)) {
+      return res.status(403).json({
+        statusCode: 403,
+        errorCode: 'ORIGIN_NOT_ALLOWED',
+        message: 'Request origin is not allowed',
+      });
+    }
+
+    if (!isSafeMethod && req.cookies?.sessionId) {
+      if (!origin || new URL(origin).host !== req.get('host')) {
+        return res.status(403).json({
+          statusCode: 403,
+          errorCode: 'ORIGIN_NOT_ALLOWED',
+          message: 'Cookie-authenticated requests must originate from this application',
+        });
+      }
+    } else if (
+      !isSafeMethod &&
+      origin &&
+      !isCapacitorOrigin &&
+      new URL(origin).host !== req.get('host')
+    ) {
+      return res.status(403).json({
+        statusCode: 403,
+        errorCode: 'ORIGIN_NOT_ALLOWED',
+        message: 'Browser requests must use the same-origin API proxy',
+      });
+    }
+
+    next();
+  });
   app.enableCors({
-    origin: true,
+    origin: allowedOrigins,
     credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
+    methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   });
 
   app.useGlobalPipes(
@@ -38,7 +78,6 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('docs', app, document);
 
-  const configService = app.get(ConfigService);
   const port = configService.get<number>('app.port') || 3000;
 
   await app.listen(port);

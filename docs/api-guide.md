@@ -3,6 +3,9 @@
 This guide describes the core API endpoints and verification flows for the Student Reward System Backend.
 
 ## Authentication & Headers
+**Current session policy:** Browser frontends use the host-only, HttpOnly `sessionId` cookie and never receive the session ID in JavaScript. The student Android app uses an opaque `Authorization` credential protected at rest by Android Keystore. Cookie-authenticated state-changing requests require `X-CSRF-Token` from `GET /api/v1/auth/csrf`. Redis TTL is one hour without “remember me,” 30 days for remembered students, and seven days for remembered admin/teacher accounts.
+
+The header-based alternatives listed below remain for compatibility; browser frontends should use the cookie strategy described above:
 - All authenticated endpoints require either:
   - Cookie: `sessionId=<uuid>`
   - Header: `Authorization: Bearer <sessionId>` or `X-Session-Id: <uuid>`
@@ -13,6 +16,8 @@ This guide describes the core API endpoints and verification flows for the Stude
 ### 1. Authentication (`/api/v1/auth`)
 - `POST /api/v1/auth/initial-admin` - Bootstrap initial administrator account.
 - `POST /api/v1/auth/login` - Authenticate using 10-digit National ID and password.
+- `POST /api/v1/auth/mobile-login` - Student Android login; returns a session credential without setting a cookie.
+- `GET /api/v1/auth/csrf` - Get the CSRF token for a browser session.
 - `POST /api/v1/auth/logout` - Invalidate active session in Redis.
 - `GET /api/v1/auth/me` - Get profile of the current authenticated user.
 

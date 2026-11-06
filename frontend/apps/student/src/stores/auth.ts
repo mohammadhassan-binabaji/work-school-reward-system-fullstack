@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { api, type UserMe, type Role, type TierConfiguration } from '@student-reward/shared';
+import { clearNativeSession, isAndroidApp, storeNativeSession } from '../services/nativeAuth';
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<UserMe | null>(null);
@@ -9,7 +10,7 @@ export const useAuthStore = defineStore('auth', () => {
   const tierConfigurations = ref<TierConfiguration[]>([]);
   const tiersLoading = ref(false);
 
-  const isAuthenticated = computed(() => !!user.value && !!api.getSessionId());
+  const isAuthenticated = computed(() => !!user.value && (!isAndroidApp() || !!api.getSessionId()));
   const isStudent = computed(() => user.value?.role === 'STUDENT');
   const currentBalance = computed(() => user.value?.studentProfile?.currentBalance ?? 0);
   const reservedBalance = computed(() => user.value?.studentProfile?.reservedBalance ?? 0);
@@ -46,8 +47,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function fetchMe(): Promise<boolean> {
-    const sessionId = api.getSessionId();
-    if (!sessionId) {
+    if (isAndroidApp() && !api.getSessionId()) {
       user.value = null;
       return false;
     }
@@ -55,6 +55,9 @@ export const useAuthStore = defineStore('auth', () => {
     loading.value = true;
     error.value = null;
     try {
+      if (!isAndroidApp()) {
+        await api.loadCsrfToken();
+      }
       const [userData] = await Promise.all([
         api.get<UserMe>('/auth/me'),
         fetchTierConfigurations(),
@@ -63,33 +66,78 @@ export const useAuthStore = defineStore('auth', () => {
       return true;
     } catch (err: any) {
       console.warn('Failed to fetch user profile:', err);
-      api.clearSession();
       user.value = null;
+      if (isAndroidApp() && err?.statusCode === 401) {
+        try {
+          await clearNativeSession();
+        } catch (cleanupError) {
+          console.error('Failed to clear the expired Android session:', cleanupError);
+        }
+      }
       return false;
     } finally {
       loading.value = false;
     }
   }
 
-  async function login(nationalId: string, password: string): Promise<{ success: boolean; message?: string }> {
+  async function login(
+    nationalId: string,
+    password: string,
+    rememberMe = false,
+  ): Promise<{ success: boolean; message?: string }> {
     loading.value = true;
     error.value = null;
+    let mobileSessionId: string | null = null;
     try {
-      const res = await api.post<{ sessionId: string; role: Role; user: any }>('/auth/login', {
+      const nativeApp = isAndroidApp();
+      const res = await api.post<{ sessionId?: string; role: Role; user: any }>(
+        nativeApp ? '/auth/mobile-login' : '/auth/login',
+        {
         nationalId,
         password,
-      });
+          rememberMe,
+          client: 'student',
+        },
+      );
 
       if (res.role !== 'STUDENT') {
-        api.clearSession();
         error.value = 'این پنل فقط مخصوص دانش‌آموزان است.';
         return { success: false, message: error.value };
       }
 
-      api.setSessionId(res.sessionId);
-      await fetchMe();
+      if (nativeApp) {
+        if (!res.sessionId) {
+          throw new Error('نشست امن برنامه دانش‌آموز دریافت نشد.');
+        }
+        mobileSessionId = res.sessionId;
+        await storeNativeSession(res.sessionId, rememberMe);
+      }
+
+      if (!(await fetchMe())) {
+        await api.post('/auth/logout').catch((logoutError) => {
+          console.error('Failed to revoke student session after profile loading failed:', logoutError);
+        });
+        try {
+          await clearNativeSession();
+        } catch (cleanupError) {
+          console.error('Failed to clear the Android session after profile loading failed:', cleanupError);
+        }
+        error.value = 'ورود انجام شد، اما دریافت اطلاعات حساب ناموفق بود. دوباره تلاش کنید.';
+        return { success: false, message: error.value };
+      }
       return { success: true };
     } catch (err: any) {
+      if (mobileSessionId) {
+        api.setNativeSessionId(mobileSessionId);
+        await api.post('/auth/logout').catch((logoutError) => {
+          console.error('Failed to revoke Android session after login completion failed:', logoutError);
+        });
+        try {
+          await clearNativeSession();
+        } catch (cleanupError) {
+          console.error('Failed to clear the Android session after login failed:', cleanupError);
+        }
+      }
       error.value = err.message || 'ورود با خطا مواجه شد';
       return { success: false, message: error.value || undefined };
     } finally {
@@ -100,11 +148,15 @@ export const useAuthStore = defineStore('auth', () => {
   async function logout(): Promise<void> {
     try {
       await api.post('/auth/logout');
-    } catch (e) {
-      // Ignore logout errors
+    } catch (error) {
+      console.error('Failed to log out student session:', error);
     } finally {
-      api.clearSession();
       user.value = null;
+      try {
+        await clearNativeSession();
+      } catch (error) {
+        console.error('Failed to clear the protected Android session:', error);
+      }
     }
   }
 

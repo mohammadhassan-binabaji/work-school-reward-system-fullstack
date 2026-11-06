@@ -1,5 +1,14 @@
-import { Controller, Post, Get, Body, Res, Req, HttpCode, HttpStatus } from '@nestjs/common';
-import { Response, Request } from 'express';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Res,
+  HttpCode,
+  HttpStatus,
+  BadRequestException,
+} from '@nestjs/common';
+import { Response } from 'express';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiCookieAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { InitialAdminDto, LoginDto, LoginResponseDto } from './dto/auth.dto';
@@ -29,16 +38,29 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
   async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
     const result = await this.authService.login(dto);
+    this.setSessionCookie(res, result.sessionId, result.rememberMe, result.sessionTtlSeconds);
 
-    // Set HTTP-only session cookie
-    res.cookie('sessionId', result.sessionId, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 86400 * 1000,
-    });
+    return { role: result.role, user: result.user };
+  }
 
-    return result;
+  @Public()
+  @Post('mobile-login')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Authenticate the native student app and return its opaque session credential',
+  })
+  @ApiResponse({ status: 200, description: 'Authenticated successfully', type: LoginResponseDto })
+  async mobileLogin(@Body() dto: LoginDto) {
+    if (dto.client !== 'student') {
+      throw new BadRequestException('The mobile login endpoint is reserved for the student client');
+    }
+
+    const result = await this.authService.login(dto);
+    return {
+      sessionId: result.sessionId,
+      role: result.role,
+      user: result.user,
+    };
   }
 
   @Post('logout')
@@ -50,8 +72,15 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     await this.authService.logout(sessionId);
-    res.clearCookie('sessionId');
+    res.clearCookie('sessionId', this.cookieOptions());
     return { success: true };
+  }
+
+  @Get('csrf')
+  @ApiCookieAuth()
+  @ApiOperation({ summary: 'Get the CSRF token for the current browser session' })
+  getCsrfToken(@CurrentUser('csrfToken') csrfToken: string) {
+    return { csrfToken };
   }
 
   @Get('me')
@@ -61,5 +90,26 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Current user profile' })
   async getMe(@CurrentUser('id') userId: string) {
     return this.authService.getMe(userId);
+  }
+
+  private setSessionCookie(
+    res: Response,
+    sessionId: string,
+    rememberMe: boolean,
+    sessionTtlSeconds: number,
+  ): void {
+    res.cookie('sessionId', sessionId, {
+      ...this.cookieOptions(),
+      ...(rememberMe ? { maxAge: sessionTtlSeconds * 1000 } : {}),
+    });
+  }
+
+  private cookieOptions() {
+    return {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax' as const,
+      path: '/api/v1',
+    };
   }
 }

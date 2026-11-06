@@ -3,6 +3,7 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { LogIn, Lock, User, RefreshCw, AlertCircle } from 'lucide-vue-next';
 import { useAuthStore } from '../stores/auth';
+import { isAndroidApp, offerPasswordSave } from '../services/nativeAuth';
 import brandImage from '../assets/images/owl-brand.png';
 
 const router = useRouter();
@@ -10,11 +11,14 @@ const authStore = useAuthStore();
 
 const nationalId = ref('');
 const password = ref('');
+const rememberMe = ref(false);
 const errorMessage = ref<string | null>(null);
+const passwordSaveMessage = ref<string | null>(null);
 const loading = ref(false);
 
 async function handleLogin() {
   errorMessage.value = null;
+  passwordSaveMessage.value = null;
 
   if (!nationalId.value.trim() || nationalId.value.trim().length !== 10) {
     errorMessage.value = 'کد ملی باید دقیقاً ۱۰ رقم باشد.';
@@ -28,8 +32,17 @@ async function handleLogin() {
 
   loading.value = true;
   try {
-    const res = await authStore.login(nationalId.value.trim(), password.value);
+    const res = await authStore.login(nationalId.value.trim(), password.value, rememberMe.value);
     if (res.success) {
+      if (isAndroidApp()) {
+        try {
+          await offerPasswordSave(nationalId.value.trim(), password.value);
+        } catch (error) {
+          console.error('Android password-manager save flow failed:', error);
+          passwordSaveMessage.value = 'ورود انجام شد، اما ذخیره رمز در مدیر گذرواژه انجام نشد.';
+          return;
+        }
+      }
       router.push('/');
     } else {
       errorMessage.value = res.message || 'ورود ناموفق بود';
@@ -37,6 +50,10 @@ async function handleLogin() {
   } finally {
     loading.value = false;
   }
+}
+
+function continueAfterPasswordSaveFailure() {
+  router.push('/');
 }
 </script>
 
@@ -69,8 +86,9 @@ async function handleLogin() {
     </div>
 
     <!-- Login Card -->
-    <div
+    <form
       class="w-full bg-dark-card rounded-3xl p-6 border-1.5 neon-border-green shadow-2xl space-y-4"
+      @submit.prevent="handleLogin"
     >
       <div>
         <label class="block text-xs font-bold text-slate-300 mb-1.5">کد ملی (۱۰ رقم):</label>
@@ -79,9 +97,11 @@ async function handleLogin() {
             v-model="nationalId"
             type="text"
             maxlength="10"
+            name="username"
+            autocomplete="username"
+            inputmode="numeric"
             placeholder="مثال: ۱۲۳۴۵۶۷۸۹۰"
             class="w-full bg-[#0F1420] border border-slate-700 rounded-2xl pr-10 pl-4 py-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-neon-green transition-colors font-sans"
-            @keyup.enter="handleLogin"
           />
           <User class="w-4 h-4 text-slate-400 absolute right-3.5 top-3.5" />
         </div>
@@ -93,13 +113,19 @@ async function handleLogin() {
           <input
             v-model="password"
             type="password"
+            name="password"
+            autocomplete="current-password"
             placeholder="رمز عبور حساب کاربری"
             class="w-full bg-[#0F1420] border border-slate-700 rounded-2xl pr-10 pl-4 py-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-neon-green transition-colors"
-            @keyup.enter="handleLogin"
           />
           <Lock class="w-4 h-4 text-slate-400 absolute right-3.5 top-3.5" />
         </div>
       </div>
+
+      <label class="flex items-center gap-2 text-xs font-semibold text-slate-300 cursor-pointer">
+        <input v-model="rememberMe" type="checkbox" class="accent-neon-green" />
+        <span>مرا به خاطر بسپار</span>
+      </label>
 
       <!-- Error alert -->
       <div
@@ -110,17 +136,27 @@ async function handleLogin() {
         <span>{{ errorMessage }}</span>
       </div>
 
+      <div
+        v-if="passwordSaveMessage"
+        class="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs"
+      >
+        <p>{{ passwordSaveMessage }}</p>
+        <button type="button" class="mt-2 font-bold underline" @click="continueAfterPasswordSaveFailure">
+          ادامه به سامانه
+        </button>
+      </div>
+
       <!-- Submit button -->
       <button
-        :disabled="loading"
+        :disabled="loading || !!passwordSaveMessage"
         class="w-full py-3.5 rounded-2xl bg-neon-green text-[#0B0E14] font-black text-xs shadow-neon-green hover:bg-neon-green-light disabled:opacity-50 transition-all flex items-center justify-center gap-2 mt-2"
-        @click="handleLogin"
+        type="submit"
       >
         <RefreshCw v-if="loading" class="w-4 h-4 animate-spin" />
         <LogIn v-else class="w-4 h-4" />
         <span>{{ loading ? 'در حال ورود...' : 'ورود به سامانه' }}</span>
       </button>
-    </div>
+    </form>
 
     <!-- Info note -->
     <p class="text-[11px] text-slate-500 text-center mt-6">

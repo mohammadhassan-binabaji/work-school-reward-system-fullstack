@@ -9,6 +9,7 @@ export interface SessionData {
   username: string;
   role: Role;
   accountState: 'ACTIVE' | 'INACTIVE' | 'DEACTIVATED' | 'DEPARTED';
+  csrfToken: string;
 }
 
 @Injectable()
@@ -40,10 +41,10 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     return this.client;
   }
 
-  async createSession(sessionId: string, data: SessionData, ttlSeconds = 86400): Promise<void> {
+  async createSession(sessionId: string, data: SessionData, ttlSeconds = 3600): Promise<void> {
     await this.client.set(`session:${sessionId}`, JSON.stringify(data), 'EX', ttlSeconds);
     await this.client.sadd(`user_sessions:${data.userId}`, sessionId);
-    await this.client.expire(`user_sessions:${data.userId}`, ttlSeconds);
+    await this.client.expire(`user_sessions:${data.userId}`, 30 * 24 * 60 * 60);
   }
 
   async getSession(sessionId: string): Promise<SessionData | null> {
@@ -78,7 +79,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     await this.client.del(`user_sessions:${userId}`);
   }
 
-  async extendSession(sessionId: string, ttlSeconds = 86400): Promise<void> {
+  async extendSession(sessionId: string, ttlSeconds = 3600): Promise<void> {
     await this.client.expire(`session:${sessionId}`, ttlSeconds);
   }
 }

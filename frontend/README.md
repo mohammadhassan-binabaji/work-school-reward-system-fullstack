@@ -185,9 +185,9 @@ npm run typecheck
 
 | اپلیکیشن | پوشه خروجی | دامنه پیشنهادی در محیط استقرار | تارگت و نوع دستگاه |
 | :--- | :--- | :--- | :--- |
-| دانش‌آموز | `apps/student/dist` | `student.schoolscore.parswebapp.ir` | Mobile Web (Touch / Gamified) |
-| معلم | `apps/teacher/dist` | `teacher.schoolscore.parswebapp.ir` | Mobile Web (Fast Scoring) |
-| مدیر | `apps/admin/dist` | `admin.schoolscore.parswebapp.ir` | Desktop Web (Admin Operations) |
+| دانش‌آموز | `apps/student/dist` | `student.mhbj.ir` | Mobile Web (Touch / Gamified) |
+| معلم | `apps/teacher/dist` | `teacher.mhbj.ir` | Mobile Web (Fast Scoring) |
+| مدیر | `apps/admin/dist` | `admin.mhbj.ir` | Desktop Web (Admin Operations) |
 
 ### نحوه سرو فایل‌های بیلد در محیط پروداکشن (Nginx / Static Hosting)
 هر یک از اپلیکیشن‌ها یک Single-Page Application (SPA) استاندارد هستند. نمونه کانفیگ برای وب‌سرور Nginx:
@@ -201,6 +201,15 @@ server {
 
     location / {
         try_files $uri $uri/ /index.html;
+    }
+
+    # Route browser API calls through the same origin; repeat in each app server block.
+    location /api/v1/ {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 
     # سرو فایل استاتیک نگارش اپلیکیشن اندروید با هدر جلوگیری از کش
@@ -218,7 +227,7 @@ server {
 
 اپلیکیشن دانش‌آموز به پروژه نیتیو اندروید با استفاده از **Capacitor 8** مجهز شده است:
 * **مسیر پروژه اندروید:** `frontend/apps/student/android`
-* **شناسه بسته اندروید:** `com.studentreward.student`
+* **شناسه بسته اندروید:** `ir.mhbj.student`
 * **دستورات کلیدی:**
   ```bash
   # بیلد وب و همگام‌سازی است‌ها با پروژه اندروید
@@ -236,8 +245,17 @@ server {
 
 ## ۹. احراز هویت و امنیت (Authentication & Security)
 
+### نشست‌های ورود و «مرا به خاطر بسپار»
+
+* در نسخه وب هر سه برنامه، API از مسیر هم‌مبدأ `/api/v1` پشت Nginx فراخوانی می‌شود. در هر سه virtual host، مسیر `/api/v1/` را به بک‌اند NestJS پروکسی کنید و هدر `Host` را حفظ کنید؛ نیازی به CORS cross-site برای مرورگر نیست.
+* ورود وب با کوکی میزبان‌محدود `sessionId` با ویژگی‌های `HttpOnly`, `SameSite=Lax` و در محیط تولید `Secure` انجام می‌شود. شناسه نشست در JavaScript یا storage مرورگر قرار نمی‌گیرد.
+* بدون انتخاب «مرا به خاطر بسپار»، کوکی session-only است و نشست Redis پس از یک ساعت منقضی می‌شود. با انتخاب آن، دانش‌آموز ۳۰ روز و مدیر/معلم ۷ روز ماندگاری دارد.
+* درخواست‌های تغییردهنده وضعیت با کوکی باید `X-CSRF-Token` معتبر بفرستند؛ کلاینت پس از ورود یا بازیابی نشست آن را از `/auth/csrf` دریافت می‌کند.
+* اپ اندروید دانش‌آموزی از endpoint مجزای `/auth/mobile-login` استفاده می‌کند. نشست انتخاب‌شده برای ماندگاری با Android Keystore رمزگذاری‌شده نگهداری می‌شود؛ رمز عبور جداگانه و فقط با تأیید کاربر به Android Credential Manager پیشنهاد ذخیره می‌شود.
+* برای استفاده از گذرواژه ذخیره‌شده در اپ و وب، ورودی‌های شناسه و گذرواژه باید نام‌های `username` و `password` و مقادیر `autocomplete="username"` و `autocomplete="current-password"` را حفظ کنند. فایل Digital Asset Links را پس از مشخص‌شدن fingerprint واقعی کلید امضای انتشار پیکربندی کنید؛ fingerprint فرضی منتشر نکنید.
+
 * ورود کاربران در تمامی اپلیکیشن‌ها از طریق **کد ملی ۱۰ رقمی** و **رمز عبور** انجام می‌شود.
-* کلاینت متمرکز `api.ts` شناسه نشست (`sessionId`) را پس از ورود ذخیره کرده و در تمامی درخواست‌ها در هدر `Authorization: Bearer <sessionId>` و هدر `x-session-id` ارسال می‌کند، علاوه بر اینکه کوکی‌های HTTP-Only نیز با `credentials: include` ارسال می‌شوند.
+* کلاینت وب از کوکی HttpOnly و CSRF استفاده می‌کند و session ID را در مرورگر ذخیره نمی‌کند؛ کلاینت Android از هدر Authorization با نشست محافظت‌شده توسط Keystore استفاده می‌کند.
 * در صورتی که کاربری با نقش نامربوط وارد پنل دیگری شود (مثلاً دانش‌آموز بخواهد وارد پنل معلم یا مدیر شود)، سیستم با پیام خطای متناسب فارسی مانع ورود وی می‌گردد.
 * هنگام انقضای نشست (کد خطای ۴۰۱ یا `SESSION_EXPIRED`) کاربر به صورت خودکار به صفحه ورود هدایت می‌شود.
 

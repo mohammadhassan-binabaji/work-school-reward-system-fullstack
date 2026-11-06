@@ -1,5 +1,9 @@
-import { Injectable, ConflictException, UnauthorizedException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import {
+  Injectable,
+  ConflictException,
+  UnauthorizedException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { RedisService } from '../../common/redis/redis.service';
@@ -7,13 +11,18 @@ import { PasswordService } from './password.service';
 import { InitialAdminDto, LoginDto } from './dto/auth.dto';
 import { Role } from '@prisma/client';
 
+const SESSION_TTL_SECONDS = {
+  temporary: 60 * 60,
+  rememberedStudent: 30 * 24 * 60 * 60,
+  rememberedStaff: 7 * 24 * 60 * 60,
+} as const;
+
 @Injectable()
 export class AuthService {
   constructor(
     private prisma: PrismaService,
     private redisService: RedisService,
     private passwordService: PasswordService,
-    private configService: ConfigService,
   ) {}
 
   async createInitialAdmin(dto: InitialAdminDto) {
@@ -91,8 +100,36 @@ export class AuthService {
       });
     }
 
+    if (dto.client === 'admin' && user.role !== Role.ADMIN && user.role !== Role.VICE_PRINCIPAL) {
+      throw new ForbiddenException({
+        statusCode: 403,
+        errorCode: 'LOGIN_ROLE_MISMATCH',
+        message: 'This account cannot sign in to the admin portal',
+      });
+    }
+    if (dto.client === 'teacher' && user.role !== Role.TEACHER) {
+      throw new ForbiddenException({
+        statusCode: 403,
+        errorCode: 'LOGIN_ROLE_MISMATCH',
+        message: 'This account cannot sign in to the teacher portal',
+      });
+    }
+    if (dto.client === 'student' && user.role !== Role.STUDENT) {
+      throw new ForbiddenException({
+        statusCode: 403,
+        errorCode: 'LOGIN_ROLE_MISMATCH',
+        message: 'This account cannot sign in to the student app',
+      });
+    }
+
     const sessionId = uuidv4();
-    const sessionTtl = this.configService.get<number>('app.sessionTtlSeconds') || 86400;
+    const csrfToken = uuidv4();
+    const rememberMe = dto.rememberMe === true;
+    const sessionTtl = !rememberMe
+      ? SESSION_TTL_SECONDS.temporary
+      : user.role === Role.STUDENT
+        ? SESSION_TTL_SECONDS.rememberedStudent
+        : SESSION_TTL_SECONDS.rememberedStaff;
 
     await this.redisService.createSession(
       sessionId,
@@ -102,6 +139,7 @@ export class AuthService {
         username: user.username,
         role: user.role,
         accountState: user.accountState,
+        csrfToken,
       },
       sessionTtl,
     );
@@ -109,6 +147,9 @@ export class AuthService {
     return {
       sessionId,
       role: user.role,
+      rememberMe,
+      sessionTtlSeconds: sessionTtl,
+      csrfToken,
       user: {
         id: user.id,
         nationalId: user.nationalId,

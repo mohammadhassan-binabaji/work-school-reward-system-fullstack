@@ -1,7 +1,15 @@
-import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  UnauthorizedException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { RedisService } from '../redis/redis.service';
 import { IS_PUBLIC_KEY } from '../decorators/roles.decorator';
+
+const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
 @Injectable()
 export class SessionAuthGuard implements CanActivate {
@@ -20,7 +28,7 @@ export class SessionAuthGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest();
-    const sessionId = this.extractSessionId(request);
+    const { sessionId, source } = this.extractSessionId(request);
 
     if (!sessionId) {
       throw new UnauthorizedException({
@@ -47,6 +55,18 @@ export class SessionAuthGuard implements CanActivate {
       });
     }
 
+    if (
+      source === 'cookie' &&
+      !SAFE_METHODS.has(request.method) &&
+      (!session.csrfToken || request.headers['x-csrf-token'] !== session.csrfToken)
+    ) {
+      throw new ForbiddenException({
+        statusCode: 403,
+        errorCode: 'CSRF_INVALID',
+        message: 'A valid CSRF token is required for cookie-authenticated requests',
+      });
+    }
+
     request.user = {
       id: session.userId,
       userId: session.userId,
@@ -55,22 +75,27 @@ export class SessionAuthGuard implements CanActivate {
       role: session.role,
       accountState: session.accountState,
       sessionId,
+      csrfToken: session.csrfToken,
+      authSource: source,
     };
 
     return true;
   }
 
-  private extractSessionId(request: any): string | null {
+  private extractSessionId(request: any): {
+    sessionId: string | null;
+    source: 'cookie' | 'header' | null;
+  } {
     if (request.cookies && request.cookies.sessionId) {
-      return request.cookies.sessionId;
+      return { sessionId: request.cookies.sessionId, source: 'cookie' };
     }
     const authHeader = request.headers['authorization'];
     if (authHeader && authHeader.startsWith('Bearer ')) {
-      return authHeader.substring(7);
+      return { sessionId: authHeader.substring(7), source: 'header' };
     }
     if (request.headers['x-session-id']) {
-      return request.headers['x-session-id'];
+      return { sessionId: request.headers['x-session-id'], source: 'header' };
     }
-    return null;
+    return { sessionId: null, source: null };
   }
 }

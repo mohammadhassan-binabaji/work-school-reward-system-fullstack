@@ -15,13 +15,14 @@ export async function loginUser(
 ): Promise<AuthContext> {
   const res = await request(app.getHttpServer())
     .post('/api/v1/auth/login')
-    .send({ nationalId, password })
+    .send({ nationalId, password, rememberMe: false })
     .expect(200);
 
-  const sessionId = res.body.sessionId;
-  const cookie = res.headers['set-cookie']
-    ? res.headers['set-cookie'][0]
-    : `sessionId=${sessionId}`;
+  const cookie = res.headers['set-cookie'] ? res.headers['set-cookie'][0] : '';
+  const sessionId = cookie.match(/(?:^|;\s*)sessionId=([^;]+)/)?.[1];
+  if (!sessionId) {
+    throw new Error('Login response did not set the session cookie');
+  }
 
   return {
     user: res.body.user,

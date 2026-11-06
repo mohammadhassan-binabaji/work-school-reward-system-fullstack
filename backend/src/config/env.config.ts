@@ -12,7 +12,7 @@ export interface AppConfig {
   minioSecretKey: string;
   minioBucket: string;
   sessionSecret: string;
-  sessionTtlSeconds: number;
+  allowedOrigins: string[];
   activityBanDurationDays: number;
 }
 
@@ -31,6 +31,12 @@ export const appConfig = registerAs('app', (): AppConfig => ({
   minioBucket: process.env.MINIO_BUCKET || 'student-rewards',
   sessionSecret:
     process.env.SESSION_SECRET || 'default-insecure-session-secret-change-in-production',
-  sessionTtlSeconds: parseInt(process.env.SESSION_TTL_SECONDS || '86400', 10),
+  allowedOrigins: (
+    process.env.WEB_ORIGINS ||
+    'https://student.mhbj.ir,https://teacher.mhbj.ir,https://admin.mhbj.ir,https://localhost,http://localhost:5173,http://localhost:5174,http://localhost:5175'
+  )
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean),
   activityBanDurationDays: parseInt(process.env.ACTIVITY_BAN_DURATION_DAYS || '30', 10),
 }));

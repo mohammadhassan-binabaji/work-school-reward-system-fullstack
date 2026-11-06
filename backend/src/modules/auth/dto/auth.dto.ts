@@ -1,5 +1,13 @@
-import { IsNotEmpty, Matches, IsString, MinLength } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import {
+  IsNotEmpty,
+  Matches,
+  IsString,
+  MinLength,
+  IsOptional,
+  IsBoolean,
+  IsIn,
+} from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class InitialAdminDto {
   @ApiProperty({ example: '1234567890', description: '10-digit National ID' })
@@ -39,13 +47,23 @@ export class LoginDto {
   @IsNotEmpty()
   @IsString()
   password: string;
+
+  @ApiPropertyOptional({ default: false })
+  @IsOptional()
+  @IsBoolean()
+  rememberMe?: boolean;
+
+  @ApiPropertyOptional({ enum: ['admin', 'teacher', 'student'] })
+  @IsOptional()
+  @IsIn(['admin', 'teacher', 'student'])
+  client?: 'admin' | 'teacher' | 'student';
 }
 
 export class LoginResponseDto {
-  @ApiProperty({ example: '3fa85f64-5717-4562-b3fc-2c963f66afa6' })
-  sessionId: string;
+  @ApiPropertyOptional({ example: '3fa85f64-5717-4562-b3fc-2c963f66afa6' })
+  sessionId?: string;
 
-  @ApiProperty({ example: 'ADMIN', enum: ['ADMIN', 'TEACHER', 'STUDENT'] })
+  @ApiProperty({ example: 'ADMIN', enum: ['ADMIN', 'TEACHER', 'STUDENT', 'VICE_PRINCIPAL'] })
   role: string;
 
   @ApiProperty()

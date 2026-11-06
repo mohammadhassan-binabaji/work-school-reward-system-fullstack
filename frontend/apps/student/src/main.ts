@@ -1,15 +1,30 @@
 import { createApp } from 'vue';
 import { createPinia } from 'pinia';
+import { Capacitor } from '@capacitor/core';
+import { api } from '@student-reward/shared';
 import App from './App.vue';
 import { router } from './router';
 import { setupPwa } from './pwa';
+import { restoreNativeSession } from './services/nativeAuth';
 import './style.css';
 
-const app = createApp(App);
-const pinia = createPinia();
+async function bootstrap() {
+  const isAndroid = Capacitor.getPlatform() === 'android';
+  api.setBaseUrl(isAndroid ? import.meta.env.VITE_API_BASE_URL : '/api/v1');
 
-app.use(pinia);
-app.use(router);
-app.mount('#app');
+  if (isAndroid) {
+    try {
+      await restoreNativeSession();
+    } catch (error) {
+      console.error('Could not restore the Android session credential:', error);
+    }
+  }
 
-setupPwa();
+  const app = createApp(App);
+  app.use(createPinia());
+  app.use(router);
+  app.mount('#app');
+  setupPwa();
+}
+
+void bootstrap();

@@ -9,6 +9,7 @@ const authStore = useAuthStore();
 
 const nationalId = ref('');
 const password = ref('');
+const rememberMe = ref(false);
 const errorMessage = ref<string | null>(null);
 const loading = ref(false);
 
@@ -27,7 +28,7 @@ async function handleLogin() {
 
   loading.value = true;
   try {
-    const res = await authStore.login(nationalId.value.trim(), password.value);
+    const res = await authStore.login(nationalId.value.trim(), password.value, rememberMe.value);
     if (res.success) {
       router.push('/');
     } else {
@@ -57,7 +58,7 @@ async function handleLogin() {
     </div>
 
     <!-- Login Card -->
-    <div class="w-full bg-white rounded-3xl p-6 border border-slate-200 shadow-md space-y-4">
+    <form class="w-full bg-white rounded-3xl p-6 border border-slate-200 shadow-md space-y-4" @submit.prevent="handleLogin">
       <div>
         <label class="block text-xs font-bold text-slate-700 mb-1.5">کد ملی (۱۰ رقم):</label>
         <div class="relative">
@@ -65,9 +66,11 @@ async function handleLogin() {
             v-model="nationalId"
             type="text"
             maxlength="10"
+            name="username"
+            autocomplete="username"
+            inputmode="numeric"
             placeholder="مثال: ۱۱۱۱۱۱۱۱۱۱"
             class="w-full bg-slate-50 border border-slate-200 rounded-2xl pr-10 pl-4 py-3 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-600 transition-colors font-sans"
-            @keyup.enter="handleLogin"
           />
           <User class="w-4 h-4 text-slate-400 absolute right-3.5 top-3.5" />
         </div>
@@ -79,13 +82,19 @@ async function handleLogin() {
           <input
             v-model="password"
             type="password"
+            name="password"
+            autocomplete="current-password"
             placeholder="رمز عبور حساب کاربری"
             class="w-full bg-slate-50 border border-slate-200 rounded-2xl pr-10 pl-4 py-3 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-600 transition-colors"
-            @keyup.enter="handleLogin"
           />
           <Lock class="w-4 h-4 text-slate-400 absolute right-3.5 top-3.5" />
         </div>
       </div>
+
+      <label class="flex items-center gap-2 text-xs font-semibold text-slate-600 cursor-pointer">
+        <input v-model="rememberMe" type="checkbox" class="accent-blue-600" />
+        <span>مرا به خاطر بسپار</span>
+      </label>
 
       <!-- Error alert -->
       <div
@@ -100,13 +109,13 @@ async function handleLogin() {
       <button
         :disabled="loading"
         class="w-full py-3.5 rounded-2xl bg-blue-600 text-white font-extrabold text-xs shadow-md hover:bg-blue-700 disabled:opacity-50 transition-all flex items-center justify-center gap-2 mt-2"
-        @click="handleLogin"
+        type="submit"
       >
         <RefreshCw v-if="loading" class="w-4 h-4 animate-spin" />
         <LogIn v-else class="w-4 h-4" />
         <span>{{ loading ? 'در حال احراز هویت...' : 'ورود به پنل مدیریت' }}</span>
       </button>
-    </div>
+    </form>
 
     <!-- Security notice -->
     <p class="text-[11px] text-slate-400 text-center mt-6">

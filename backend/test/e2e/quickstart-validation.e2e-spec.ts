@@ -77,7 +77,9 @@ describe('Quickstart End-to-End Validation Suite (All 8 Scenarios)', () => {
         })
         .expect(200);
 
-      expect(loginRes.body).toHaveProperty('sessionId');
+      expect(loginRes.body).not.toHaveProperty('sessionId');
+      expect(loginRes.headers['set-cookie'][0]).toContain('HttpOnly');
+      expect(loginRes.headers['set-cookie'][0]).not.toContain('Max-Age');
       expect(loginRes.body.user.nationalId).toBe('1111111111');
       expect(loginRes.headers).toHaveProperty('x-correlation-id');
       expect(loginRes.headers['x-correlation-id']).toBe('test-corr-123');

@@ -7,26 +7,20 @@ export const useAuthStore = defineStore('adminAuth', () => {
   const loading = ref(false);
   const error = ref<string | null>(null);
 
-  const isAuthenticated = computed(() => !!user.value && !!api.getSessionId());
+  const isAuthenticated = computed(() => !!user.value);
   const isAdmin = computed(() => user.value?.role === 'ADMIN');
   const isVicePrincipal = computed(() => user.value?.role === 'VICE_PRINCIPAL');
 
   async function fetchMe(): Promise<boolean> {
-    const sessionId = api.getSessionId();
-    if (!sessionId) {
-      user.value = null;
-      return false;
-    }
-
     loading.value = true;
     error.value = null;
     try {
+      await api.loadCsrfToken();
       const data = await api.get<UserMe>('/auth/me');
       user.value = data;
       return true;
     } catch (err: any) {
       console.warn('Failed to fetch admin profile:', err);
-      api.clearSession();
       user.value = null;
       return false;
     } finally {
@@ -34,23 +28,33 @@ export const useAuthStore = defineStore('adminAuth', () => {
     }
   }
 
-  async function login(nationalId: string, password: string): Promise<{ success: boolean; message?: string }> {
+  async function login(
+    nationalId: string,
+    password: string,
+    rememberMe = false,
+  ): Promise<{ success: boolean; message?: string }> {
     loading.value = true;
     error.value = null;
     try {
-      const res = await api.post<{ sessionId: string; role: Role; user: any }>('/auth/login', {
+      const res = await api.post<{ role: Role; user: any }>('/auth/login', {
         nationalId,
         password,
+        rememberMe,
+        client: 'admin',
       });
 
       if (res.role !== 'ADMIN' && res.role !== 'VICE_PRINCIPAL') {
-        api.clearSession();
         error.value = 'این پنل فقط مخصوص مدیران و معاونان سیستم است.';
         return { success: false, message: error.value };
       }
 
-      api.setSessionId(res.sessionId);
-      await fetchMe();
+      if (!(await fetchMe())) {
+        await api.post('/auth/logout').catch((logoutError) => {
+          console.error('Failed to revoke admin session after profile loading failed:', logoutError);
+        });
+        error.value = 'ورود انجام شد، اما دریافت اطلاعات حساب ناموفق بود. دوباره تلاش کنید.';
+        return { success: false, message: error.value };
+      }
       return { success: true };
     } catch (err: any) {
       error.value = err.message || 'ورود با خطا مواجه شد';
@@ -63,8 +67,8 @@ export const useAuthStore = defineStore('adminAuth', () => {
   async function logout(): Promise<void> {
     try {
       await api.post('/auth/logout');
-    } catch (e) {
-      // Ignore
+    } catch (error) {
+      console.error('Failed to log out admin session:', error);
     } finally {
       api.clearSession();
       user.value = null;

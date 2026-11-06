@@ -15,7 +15,13 @@ components:
       type: apiKey
       in: header
       name: Authorization
-      description: Stateful Session ID formatted as `Bearer <session_id>` (or via `session_id` HTTP-only cookie).
+      description: Native-app session credential sent in the Authorization header.
+
+    CookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionId
+      description: HttpOnly browser session cookie.
 
   headers:
     X-Correlation-Id:
@@ -152,19 +158,43 @@ components:
           type: string
           format: password
           example: "SecureP@ssw0rd!"
+        rememberMe:
+          type: boolean
+          default: false
+          description: Keeps browser sessions for the configured role-specific duration.
+        client:
+          type: string
+          enum: [admin, teacher, student]
+          description: Identifies the intended frontend and enforces role compatibility.
 
     LoginResponse:
       type: object
       required:
-        - sessionId
+        - role
         - user
       properties:
         sessionId:
           type: string
-          example: "sess_a8f93e2b1c4d"
+          description: Returned only by the native student login endpoint; browser login sets an HttpOnly cookie instead.
         role:
           type: string
           enum: [ADMIN, TEACHER, STUDENT, VICE_PRINCIPAL]
+        user:
+          $ref: '#/components/schemas/UserResponse'
+
+    MobileLoginResponse:
+      type: object
+      required:
+        - sessionId
+        - role
+        - user
+      properties:
+        sessionId:
+          type: string
+          description: Opaque native-app session credential; store only in Android Keystore-protected storage.
+        role:
+          type: string
+          enum: [STUDENT]
         user:
           $ref: '#/components/schemas/UserResponse'
 
@@ -1208,7 +1238,7 @@ paths:
   /auth/login:
     post:
       summary: User Login
-      description: Authenticates user by 10-digit national ID and password, establishing a stateful session in Redis (FR-003, FR-004).
+      description: Authenticates a browser client. Sets an HttpOnly host-only cookie; sessionId is not returned in JSON. Without rememberMe the cookie is session-only and Redis TTL is one hour. Remembered student sessions last 30 days; remembered staff sessions last 7 days.
       security: []
       requestBody:
         required: true
@@ -1222,7 +1252,7 @@ paths:
             Set-Cookie:
               schema:
                 type: string
-                example: "sessionId=sess_a8f93e2b1c4d; Path=/; HttpOnly; SameSite=Strict"
+                example: "sessionId=<opaque>; Path=/api/v1; HttpOnly; Secure; SameSite=Lax"
           content:
             application/json:
               schema: { $ref: '#/components/schemas/LoginResponse' }
@@ -1232,11 +1262,59 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/ErrorResponse' }
 
+  /auth/mobile-login:
+    post:
+      summary: Native student app login
+      description: Authenticates the Capacitor student app without cookies and returns an opaque session credential for Android Keystore-protected storage.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200':
+          description: Authentication successful
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MobileLoginResponse' }
+        '401':
+          description: Invalid national ID or password
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  /auth/csrf:
+    get:
+      summary: Get the browser CSRF token
+      description: Returns the token bound to the current authenticated browser session. Send it in X-CSRF-Token on unsafe cookie-authenticated requests.
+      security:
+        - CookieAuth: []
+      responses:
+        '200':
+          description: CSRF token
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [csrfToken]
+                properties:
+                  csrfToken:
+                    type: string
+
   /auth/logout:
     post:
       summary: Logout
       security:
+        - CookieAuth: []
         - SessionAuth: []
+      parameters:
+        - name: X-CSRF-Token
+          in: header
+          required: false
+          description: Required when authenticating with the browser cookie; not used by native clients.
+          schema:
+            type: string
       responses:
         '200':
           description: Session invalidated
@@ -1245,6 +1323,7 @@ paths:
     get:
       summary: Current Authenticated User Info
       security:
+        - CookieAuth: []
         - SessionAuth: []
       responses:
         '200':

@@ -8,33 +8,41 @@ export interface ApiError {
 
 export class ApiClient {
   private baseUrl: string;
+  private nativeSessionId: string | null = null;
+  private csrfToken: string | null = null;
 
   constructor(baseUrl?: string) {
-    this.baseUrl = baseUrl || (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL) || 'http://localhost:3000/api/v1';
+    this.baseUrl = baseUrl || (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL) || '/api/v1';
     // Remove trailing slash if any
     this.baseUrl = this.baseUrl.replace(/\/+$/, '');
   }
 
-  public getSessionId(): string | null {
-    if (typeof window === 'undefined') return null;
-    return localStorage.getItem('session_id') || sessionStorage.getItem('session_id');
+  public setBaseUrl(baseUrl: string): void {
+    this.baseUrl = baseUrl.replace(/\/+$/, '');
   }
 
-  public setSessionId(id: string, persist = true): void {
-    if (typeof window === 'undefined') return;
-    if (persist) {
-      localStorage.setItem('session_id', id);
-    } else {
-      sessionStorage.setItem('session_id', id);
+  public getSessionId(): string | null {
+    return this.nativeSessionId;
+  }
+
+  public setNativeSessionId(id: string): void {
+    this.nativeSessionId = id;
+    this.csrfToken = null;
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('session_id');
+      sessionStorage.removeItem('session_id');
     }
   }
 
   public clearSession(): void {
-    if (typeof window === 'undefined') return;
-    localStorage.removeItem('session_id');
-    sessionStorage.removeItem('session_id');
-    localStorage.removeItem('user_role');
-    localStorage.removeItem('user_info');
+    this.nativeSessionId = null;
+    this.csrfToken = null;
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('session_id');
+      sessionStorage.removeItem('session_id');
+      localStorage.removeItem('user_role');
+      localStorage.removeItem('user_info');
+    }
   }
 
   private getHeaders(isFormData = false): HeadersInit {
@@ -45,9 +53,34 @@ export class ApiClient {
     const sessionId = this.getSessionId();
     if (sessionId) {
       headers['Authorization'] = `Bearer ${sessionId}`;
-      headers['x-session-id'] = sessionId;
     }
     return headers;
+  }
+
+  private getMutationHeaders(path: string, isFormData = false): HeadersInit {
+    const headers = this.getHeaders(isFormData) as Record<string, string>;
+    if (
+      this.nativeSessionId ||
+      path === '/auth/login' ||
+      path === '/auth/mobile-login' ||
+      path === '/auth/initial-admin'
+    ) {
+      return headers;
+    }
+
+    if (this.csrfToken) {
+      headers['X-CSRF-Token'] = this.csrfToken;
+    }
+    return headers;
+  }
+
+  private getCredentialsMode(path?: string): RequestCredentials {
+    return this.nativeSessionId || path === '/auth/mobile-login' ? 'omit' : 'include';
+  }
+
+  public async loadCsrfToken(): Promise<void> {
+    const { csrfToken } = await this.get<{ csrfToken: string }>('/auth/csrf');
+    this.csrfToken = csrfToken;
   }
 
   private async handleResponse<T>(res: Response): Promise<T> {
@@ -87,10 +120,19 @@ export class ApiClient {
   }
 
   private translateErrorMessage(msg: string, code?: string, status?: number): string {
-    if (code === 'SESSION_EXPIRED' || status === 401) {
+    if (code === 'LOGIN_ROLE_MISMATCH') {
+      return 'این حساب کاربری به این پنل دسترسی ندارد.';
+    }
+    if (code === 'CSRF_INVALID' || code === 'ORIGIN_NOT_ALLOWED') {
+      return 'اعتبار درخواست تأیید نشد. صفحه را تازه‌سازی کرده و دوباره تلاش کنید.';
+    }
+    if (code === 'INVALID_CREDENTIALS') {
+      return 'کد ملی یا رمز عبور اشتباه است.';
+    }
+    if (code === 'SESSION_EXPIRED') {
       return 'نشست کاربری شما منقضی شده است. لطفاً دوباره وارد شوید.';
     }
-    if (code === 'UNAUTHORIZED_CLASS_ACCESS' || status === 403) {
+    if (code === 'UNAUTHORIZED_CLASS_ACCESS') {
       return 'شما دسترسی لازم برای انجام این عملیات را ندارید.';
     }
     if (code === 'ACCOUNT_INACTIVE') {
@@ -156,50 +198,54 @@ export class ApiClient {
     const res = await fetch(url, {
       method: 'GET',
       headers: this.getHeaders(),
-      credentials: 'include',
+      credentials: this.getCredentialsMode(path),
     });
     return this.handleResponse<T>(res);
   }
 
   public async post<T>(path: string, body?: any): Promise<T> {
     const url = `${this.baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
+    const headers = await this.getMutationHeaders(path);
     const res = await fetch(url, {
       method: 'POST',
-      headers: this.getHeaders(),
+      headers,
       body: body ? JSON.stringify(body) : undefined,
-      credentials: 'include',
+      credentials: this.getCredentialsMode(path),
     });
     return this.handleResponse<T>(res);
   }
 
   public async patch<T>(path: string, body?: any): Promise<T> {
     const url = `${this.baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
+    const headers = await this.getMutationHeaders(path);
     const res = await fetch(url, {
       method: 'PATCH',
-      headers: this.getHeaders(),
+      headers,
       body: body ? JSON.stringify(body) : undefined,
-      credentials: 'include',
+      credentials: this.getCredentialsMode(path),
     });
     return this.handleResponse<T>(res);
   }
 
   public async put<T>(path: string, body?: any): Promise<T> {
     const url = `${this.baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
+    const headers = await this.getMutationHeaders(path);
     const res = await fetch(url, {
       method: 'PUT',
-      headers: this.getHeaders(),
+      headers,
       body: body ? JSON.stringify(body) : undefined,
-      credentials: 'include',
+      credentials: this.getCredentialsMode(path),
     });
     return this.handleResponse<T>(res);
   }
 
   public async delete<T>(path: string): Promise<T> {
     const url = `${this.baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
+    const headers = await this.getMutationHeaders(path);
     const res = await fetch(url, {
       method: 'DELETE',
-      headers: this.getHeaders(),
-      credentials: 'include',
+      headers,
+      credentials: this.getCredentialsMode(path),
     });
     return this.handleResponse<T>(res);
   }
@@ -209,36 +255,36 @@ export class ApiClient {
     const formData = new FormData();
     formData.append('file', file);
 
-    const headers = this.getHeaders(true);
+    const headers = await this.getMutationHeaders(path, true);
     const res = await fetch(url, {
       method: 'POST',
       headers,
       body: formData,
-      credentials: 'include',
+      credentials: this.getCredentialsMode(path),
     });
     return this.handleResponse<T>(res);
   }
 
   public async uploadFormData<T>(path: string, formData: FormData): Promise<T> {
     const url = `${this.baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
-    const headers = this.getHeaders(true);
+    const headers = await this.getMutationHeaders(path, true);
     const res = await fetch(url, {
       method: 'POST',
       headers,
       body: formData,
-      credentials: 'include',
+      credentials: this.getCredentialsMode(path),
     });
     return this.handleResponse<T>(res);
   }
 
   public async patchFormData<T>(path: string, formData: FormData): Promise<T> {
     const url = `${this.baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
-    const headers = this.getHeaders(true);
+    const headers = await this.getMutationHeaders(path, true);
     const res = await fetch(url, {
       method: 'PATCH',
       headers,
       body: formData,
-      credentials: 'include',
+      credentials: this.getCredentialsMode(path),
     });
     return this.handleResponse<T>(res);
   }
@@ -252,12 +298,12 @@ export class ApiClient {
       }
     });
 
-    const headers = this.getHeaders(true);
+    const headers = await this.getMutationHeaders(path, true);
     const res = await fetch(url, {
       method: 'POST',
       headers,
       body: formData,
-      credentials: 'include',
+      credentials: this.getCredentialsMode(path),
     });
     return this.handleResponse<T>(res);
   }
@@ -278,7 +324,7 @@ export class ApiClient {
     const res = await fetch(url, {
       method: 'GET',
       headers: this.getHeaders(),
-      credentials: 'include',
+      credentials: this.getCredentialsMode(path),
     });
     if (!res.ok) {
       throw new Error('دانلود فایل با خطا مواجه شد');

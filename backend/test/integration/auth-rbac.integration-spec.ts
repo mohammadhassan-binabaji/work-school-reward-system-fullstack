@@ -191,4 +191,90 @@ describe('Auth & RBAC Integration Tests', () => {
       .set('Cookie', adminCookie)
       .expect(401);
   });
+
+  it('uses role-specific Redis TTLs and keeps browser session IDs out of the login response', async () => {
+    const cases = [
+      {
+        nationalId: '1111111111',
+        password: 'AdminPassword123!',
+        client: 'admin',
+        rememberMe: true,
+        expectedTtl: 7 * 86400,
+      },
+      {
+        nationalId: '2222222222',
+        password: 'Password123!',
+        client: 'teacher',
+        rememberMe: true,
+        expectedTtl: 7 * 86400,
+      },
+      {
+        nationalId: '3333333333',
+        password: 'Password123!',
+        client: 'student',
+        rememberMe: true,
+        expectedTtl: 30 * 86400,
+      },
+      {
+        nationalId: '3333333333',
+        password: 'Password123!',
+        client: 'student',
+        rememberMe: false,
+        expectedTtl: 3600,
+      },
+    ];
+
+    for (const testCase of cases) {
+      const { expectedTtl, ...credentials } = testCase;
+      const login = await request(app.getHttpServer())
+        .post('/api/v1/auth/login')
+        .send(credentials)
+        .expect(200);
+      expect(login.body).not.toHaveProperty('sessionId');
+
+      const cookie = login.headers['set-cookie'][0];
+      expect(cookie).toContain('Path=/api/v1');
+      const sessionId = cookie.match(/(?:^|;\s*)sessionId=([^;]+)/)?.[1];
+      expect(sessionId).toBeDefined();
+      const ttl = await redis.getClient().ttl(`session:${sessionId}`);
+      expect(ttl).toBeGreaterThan(expectedTtl - 5);
+      expect(ttl).toBeLessThanOrEqual(expectedTtl);
+      if (testCase.rememberMe) {
+        expect(cookie).toContain(`Max-Age=${expectedTtl}`);
+      } else {
+        expect(cookie).not.toContain('Max-Age=');
+      }
+    }
+  });
+
+  it('rejects cookie-authenticated mutations without a valid CSRF token', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/logout')
+      .set('Cookie', adminCookie)
+      .set('x-csrf-token', 'invalid')
+      .expect(403);
+  });
+
+  it('returns a native student session without setting a browser cookie', async () => {
+    const login = await request(app.getHttpServer())
+      .post('/api/v1/auth/mobile-login')
+      .send({
+        nationalId: '3333333333',
+        password: 'Password123!',
+        client: 'student',
+        rememberMe: true,
+      })
+      .expect(200);
+
+    expect(login.body.sessionId).toBeDefined();
+    expect(login.headers['set-cookie']).toBeUndefined();
+    const ttl = await redis.getClient().ttl(`session:${login.body.sessionId}`);
+    expect(ttl).toBeGreaterThan(30 * 86400 - 5);
+    expect(ttl).toBeLessThanOrEqual(30 * 86400);
+
+    await request(app.getHttpServer())
+      .get('/api/v1/auth/me')
+      .set('Authorization', `Bearer ${login.body.sessionId}`)
+      .expect(200);
+  });
 });
