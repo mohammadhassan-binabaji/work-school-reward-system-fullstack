@@ -12,14 +12,26 @@ export const useNotificationsStore = defineStore('teacherNotifications', () => {
   const loading = ref(false);
   const currentPage = ref(1);
   const totalPages = ref(0);
+  let unreadCountRequest: Promise<void> | null = null;
 
-  async function fetchUnreadCount(): Promise<void> {
-    try {
-      const res = await api.get<{ unreadCount: number }>('/notifications/unread-count');
-      unreadCount.value = res.unreadCount;
-    } catch {
-      // Ignore
+  function fetchUnreadCount(): Promise<void> {
+    if (unreadCountRequest) {
+      return unreadCountRequest;
     }
+
+    unreadCountRequest = Promise.resolve()
+      .then(() => api.get<{ unreadCount: number }>('/notifications/unread-count'))
+      .then((res) => {
+        unreadCount.value = res.unreadCount;
+      })
+      .catch((error) => {
+        console.warn('Failed to fetch teacher unread notification count:', error);
+      })
+      .finally(() => {
+        unreadCountRequest = null;
+      });
+
+    return unreadCountRequest;
   }
 
   async function fetchNotifications(page = currentPage.value): Promise<void> {

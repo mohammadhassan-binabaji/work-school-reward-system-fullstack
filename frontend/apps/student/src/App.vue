@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { App as CapacitorApp } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
+import { createNotificationCountRefresh } from '@student-reward/shared';
 import { useAuthStore } from './stores/auth';
 import { useNotificationsStore } from './stores/notifications';
 import { useVersionStore } from './stores/version';
@@ -17,10 +19,37 @@ const authStore = useAuthStore();
 const notifStore = useNotificationsStore();
 const versionStore = useVersionStore();
 const isExitConfirmationOpen = ref(false);
+const notificationRefresh = createNotificationCountRefresh({
+  fetchUnreadCount: () => notifStore.fetchUnreadCount(),
+  subscribeToAppState: Capacitor.isNativePlatform()
+    ? async (listener) => {
+        const handle = await CapacitorApp.addListener('appStateChange', ({ isActive }) => {
+          listener(isActive);
+        });
+        return () => {
+          void handle.remove().catch((error) => {
+            console.error('Failed to remove the app state listener:', error);
+          });
+        };
+      }
+    : undefined,
+});
+const stopAuthWatch = watch(
+  () => authStore.isAuthenticated,
+  (isAuthenticated) => notificationRefresh.setAuthenticated(isAuthenticated),
+  { immediate: true },
+);
+const removeRouteHook = router.afterEach((to, _from, failure) => {
+  if (!failure && to.meta.requiresAuth && authStore.isAuthenticated) {
+    void notifStore.fetchUnreadCount();
+  }
+});
 
 const isAuthPage = computed(() => route.path === '/login');
 
 onMounted(async () => {
+  notificationRefresh.start(authStore.isAuthenticated);
+
   setupMobileNavigation(router, {
     isMandatoryUpdateActive: () => versionStore.isMandatoryUpdate,
     onExitConfirmationRequested: () => {
@@ -32,10 +61,12 @@ onMounted(async () => {
   versionStore.checkVersion().catch((e) => {
     console.warn('Initial app version check failed:', e);
   });
+});
 
-  if (authStore.isAuthenticated) {
-    await notifStore.fetchUnreadCount();
-  }
+onUnmounted(() => {
+  stopAuthWatch();
+  removeRouteHook();
+  notificationRefresh.stop();
 });
 
 async function confirmAppExit() {

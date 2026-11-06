@@ -1,21 +1,40 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { router } from './router';
 import { useAuthStore } from './stores/auth';
 import { useNotificationsStore } from './stores/notifications';
 import TeacherHeader from './components/TeacherHeader.vue';
 import TeacherBottomNav from './components/TeacherBottomNav.vue';
+import { createNotificationCountRefresh } from '@student-reward/shared';
 
 const route = useRoute();
 const authStore = useAuthStore();
 const notifStore = useNotificationsStore();
+const notificationRefresh = createNotificationCountRefresh({
+  fetchUnreadCount: () => notifStore.fetchUnreadCount(),
+});
+const stopAuthWatch = watch(
+  () => authStore.isAuthenticated,
+  (isAuthenticated) => notificationRefresh.setAuthenticated(isAuthenticated),
+  { immediate: true },
+);
+const removeRouteHook = router.afterEach((to, _from, failure) => {
+  if (!failure && to.meta.requiresAuth && authStore.isAuthenticated) {
+    void notifStore.fetchUnreadCount();
+  }
+});
 
 const isAuthPage = computed(() => route.path === '/login');
 
-onMounted(async () => {
-  if (authStore.isAuthenticated) {
-    await notifStore.fetchUnreadCount();
-  }
+onMounted(() => {
+  notificationRefresh.start(authStore.isAuthenticated);
+});
+
+onUnmounted(() => {
+  stopAuthWatch();
+  removeRouteHook();
+  notificationRefresh.stop();
 });
 </script>
 
