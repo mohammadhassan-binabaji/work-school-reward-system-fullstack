@@ -182,6 +182,224 @@ describe('Points Awarding Integration Tests', () => {
     ).toBe(2);
   });
 
+  it('applies admin bulk adjustments atomically across students and the system pool', async () => {
+    const createStudent = async (nationalId: string, username: string) => {
+      const response = await request(app.getHttpServer())
+        .post('/api/v1/users')
+        .set('Cookie', adminCookie)
+        .send({
+          nationalId,
+          firstName: 'Bulk',
+          lastName: username,
+          username,
+          password: 'Password123!',
+          role: 'STUDENT',
+        })
+        .expect(201);
+      return response.body.id as string;
+    };
+    const firstStudentId = await createStudent('3333333334', 'bulk_first');
+    const secondStudentId = await createStudent('3333333335', 'bulk_second');
+
+    await request(app.getHttpServer())
+      .post('/api/v1/points/admin-adjust')
+      .set('Cookie', adminCookie)
+      .send({ studentId: firstStudentId, amount: 20, reason: 'Opening balance' })
+      .expect(200);
+    await request(app.getHttpServer())
+      .post('/api/v1/points/admin-adjust')
+      .set('Cookie', adminCookie)
+      .send({ studentId: secondStudentId, amount: 5, reason: 'Opening balance' })
+      .expect(200);
+
+    const poolBeforeFailedDeduction = await prisma.systemPointPool.findFirstOrThrow();
+    const auditCountBeforeFailedDeduction = await prisma.pointAuditLog.count({
+      where: { actionType: 'ADMIN_ADJUST_STUDENT' },
+    });
+    await request(app.getHttpServer())
+      .post('/api/v1/points/admin-adjust/bulk')
+      .set('Cookie', adminCookie)
+      .send({
+        studentIds: [firstStudentId, secondStudentId],
+        amount: -10,
+        reason: 'Bulk deduction',
+      })
+      .expect(400);
+
+    expect(
+      (await prisma.studentProfile.findUniqueOrThrow({ where: { id: firstStudentId } }))
+        .currentBalance,
+    ).toBe(20);
+    expect(
+      (await prisma.studentProfile.findUniqueOrThrow({ where: { id: secondStudentId } }))
+        .currentBalance,
+    ).toBe(5);
+    expect((await prisma.systemPointPool.findFirstOrThrow()).balance).toBe(
+      poolBeforeFailedDeduction.balance,
+    );
+    expect(
+      await prisma.pointAuditLog.count({ where: { actionType: 'ADMIN_ADJUST_STUDENT' } }),
+    ).toBe(auditCountBeforeFailedDeduction);
+
+    const successfulBatch = await request(app.getHttpServer())
+      .post('/api/v1/points/admin-adjust/bulk')
+      .set('Cookie', adminCookie)
+      .send({
+        studentIds: [firstStudentId, secondStudentId],
+        amount: -5,
+        reason: 'Bulk deduction',
+      })
+      .expect(200);
+    expect(successfulBatch.body.adjustedStudents).toHaveLength(2);
+    expect(
+      (await prisma.studentProfile.findUniqueOrThrow({ where: { id: firstStudentId } }))
+        .currentBalance,
+    ).toBe(15);
+    expect(
+      (await prisma.studentProfile.findUniqueOrThrow({ where: { id: secondStudentId } }))
+        .currentBalance,
+    ).toBe(0);
+    expect((await prisma.systemPointPool.findFirstOrThrow()).balance).toBe(
+      poolBeforeFailedDeduction.balance + 10,
+    );
+
+    const pool = await prisma.systemPointPool.findFirstOrThrow();
+    await prisma.systemPointPool.update({ where: { id: pool.id }, data: { balance: 9 } });
+    const auditCountBeforeFailedCredit = await prisma.pointAuditLog.count({
+      where: { actionType: 'ADMIN_ADJUST_STUDENT' },
+    });
+    await request(app.getHttpServer())
+      .post('/api/v1/points/admin-adjust/bulk')
+      .set('Cookie', adminCookie)
+      .send({
+        studentIds: [firstStudentId, secondStudentId],
+        amount: 5,
+        reason: 'Insufficient aggregate pool',
+      })
+      .expect(400);
+    expect(
+      (await prisma.studentProfile.findUniqueOrThrow({ where: { id: firstStudentId } }))
+        .currentBalance,
+    ).toBe(15);
+    expect(
+      (await prisma.studentProfile.findUniqueOrThrow({ where: { id: secondStudentId } }))
+        .currentBalance,
+    ).toBe(0);
+    expect((await prisma.systemPointPool.findFirstOrThrow()).balance).toBe(9);
+    expect(
+      await prisma.pointAuditLog.count({ where: { actionType: 'ADMIN_ADJUST_STUDENT' } }),
+    ).toBe(auditCountBeforeFailedCredit);
+  });
+
+  it('applies vice-principal bulk adjustments atomically across student and vice-principal balances', async () => {
+    const vicePrincipalRes = await request(app.getHttpServer())
+      .post('/api/v1/users')
+      .set('Cookie', adminCookie)
+      .send({
+        nationalId: '2222222242',
+        firstName: 'Bulk',
+        lastName: 'Vice',
+        username: 'vice_bulk',
+        password: 'Password123!',
+        role: 'VICE_PRINCIPAL',
+      })
+      .expect(201);
+    const vicePrincipalId = vicePrincipalRes.body.id as string;
+    await prisma.teacherProfile.update({
+      where: { id: vicePrincipalId },
+      data: { pointBalance: 10 },
+    });
+
+    const createStudent = async (nationalId: string, username: string) => {
+      const response = await request(app.getHttpServer())
+        .post('/api/v1/users')
+        .set('Cookie', adminCookie)
+        .send({
+          nationalId,
+          firstName: 'Vice Bulk',
+          lastName: username,
+          username,
+          password: 'Password123!',
+          role: 'STUDENT',
+        })
+        .expect(201);
+      return response.body.id as string;
+    };
+    const firstStudentId = await createStudent('3333333344', 'vice_bulk_first');
+    const secondStudentId = await createStudent('3333333345', 'vice_bulk_second');
+    await request(app.getHttpServer())
+      .post('/api/v1/points/admin-adjust')
+      .set('Cookie', adminCookie)
+      .send({ studentId: firstStudentId, amount: 10, reason: 'Opening balance' })
+      .expect(200);
+    const viceAuth = await loginUser(app, '2222222242', 'Password123!');
+    const auditCountBeforeFailures = await prisma.pointAuditLog.count({
+      where: { actionType: 'VICE_ADJUST_STUDENT', actorId: vicePrincipalId },
+    });
+
+    await request(app.getHttpServer())
+      .post('/api/v1/points/vice-adjust/bulk')
+      .set('Cookie', viceAuth.cookie)
+      .send({
+        studentIds: [firstStudentId, secondStudentId],
+        amount: -5,
+        reason: 'Bulk deduction',
+      })
+      .expect(400);
+    expect(
+      (await prisma.studentProfile.findUniqueOrThrow({ where: { id: firstStudentId } }))
+        .currentBalance,
+    ).toBe(10);
+    expect(
+      (await prisma.teacherProfile.findUniqueOrThrow({ where: { id: vicePrincipalId } }))
+        .pointBalance,
+    ).toBe(10);
+    expect(
+      await prisma.pointAuditLog.count({
+        where: { actionType: 'VICE_ADJUST_STUDENT', actorId: vicePrincipalId },
+      }),
+    ).toBe(auditCountBeforeFailures);
+
+    await request(app.getHttpServer())
+      .post('/api/v1/points/vice-adjust/bulk')
+      .set('Cookie', viceAuth.cookie)
+      .send({
+        studentIds: [firstStudentId, secondStudentId],
+        amount: 6,
+        reason: 'Insufficient aggregate balance',
+      })
+      .expect(400);
+    expect(
+      (await prisma.teacherProfile.findUniqueOrThrow({ where: { id: vicePrincipalId } }))
+        .pointBalance,
+    ).toBe(10);
+
+    const success = await request(app.getHttpServer())
+      .post('/api/v1/points/vice-adjust/bulk')
+      .set('Cookie', viceAuth.cookie)
+      .send({
+        studentIds: [firstStudentId, secondStudentId],
+        amount: 5,
+        reason: 'Bulk award',
+      })
+      .expect(200);
+    expect(success.body.adjustedStudents).toHaveLength(2);
+    expect(success.body.vicePrincipalRemainingBalance).toBe(0);
+    expect(
+      (await prisma.studentProfile.findUniqueOrThrow({ where: { id: firstStudentId } }))
+        .currentBalance,
+    ).toBe(15);
+    expect(
+      (await prisma.studentProfile.findUniqueOrThrow({ where: { id: secondStudentId } }))
+        .currentBalance,
+    ).toBe(5);
+    expect(
+      await prisma.pointAuditLog.count({
+        where: { actionType: 'VICE_ADJUST_STUDENT', actorId: vicePrincipalId },
+      }),
+    ).toBe(2);
+  });
+
   it('manages task creation, option selection, and task deactivation (FR-017, FR-018)', async () => {
     // Admin creates task
     const taskRes = await request(app.getHttpServer())
@@ -324,5 +542,129 @@ describe('Points Awarding Integration Tests', () => {
         reason: 'Too many points',
       })
       .expect(400);
+  });
+
+  it('awards teacher points to multiple students atomically', async () => {
+    const teacherRes = await request(app.getHttpServer())
+      .post('/api/v1/users')
+      .set('Cookie', adminCookie)
+      .send({
+        nationalId: '2222222232',
+        firstName: 'Bulk',
+        lastName: 'Teacher',
+        username: 'teacher_bulk',
+        password: 'Password123!',
+        role: 'TEACHER',
+      })
+      .expect(201);
+    const teacherId = teacherRes.body.id as string;
+
+    await request(app.getHttpServer())
+      .post('/api/v1/points/pool/fund-teacher')
+      .set('Cookie', adminCookie)
+      .send({ teacherId, amount: 10 })
+      .expect(200);
+
+    const classRes = await request(app.getHttpServer())
+      .post('/api/v1/classes')
+      .set('Cookie', adminCookie)
+      .send({ name: 'Bulk Class', gradeLevel: 'Grade 8' })
+      .expect(201);
+    const classId = classRes.body.id as string;
+    const subjectRes = await request(app.getHttpServer())
+      .post('/api/v1/subjects')
+      .set('Cookie', adminCookie)
+      .send({ name: 'Bulk Mathematics' })
+      .expect(201);
+    const subjectId = subjectRes.body.id as string;
+    await request(app.getHttpServer())
+      .post('/api/v1/assignments')
+      .set('Cookie', adminCookie)
+      .send({ teacherId, classId, subjectId })
+      .expect(201);
+
+    const createStudent = async (nationalId: string, username: string, studentClassId: string) => {
+      const response = await request(app.getHttpServer())
+        .post('/api/v1/users')
+        .set('Cookie', adminCookie)
+        .send({
+          nationalId,
+          firstName: 'Bulk',
+          lastName: username,
+          username,
+          password: 'Password123!',
+          role: 'STUDENT',
+          classId: studentClassId,
+        })
+        .expect(201);
+      return response.body.id as string;
+    };
+    const firstStudentId = await createStudent('4444444431', 'bulk_student1', classId);
+    const secondStudentId = await createStudent('4444444432', 'bulk_student2', classId);
+    const otherClassId = (
+      await request(app.getHttpServer())
+        .post('/api/v1/classes')
+        .set('Cookie', adminCookie)
+        .send({ name: 'Other Bulk Class', gradeLevel: 'Grade 8' })
+        .expect(201)
+    ).body.id as string;
+    const otherStudentId = await createStudent('4444444433', 'bulk_other_student', otherClassId);
+    const teacherAuth = await loginUser(app, '2222222232', 'Password123!');
+    const bulkPayload = {
+      studentIds: [firstStudentId, secondStudentId],
+      classId,
+      subjectId,
+      amount: 5,
+      reason: 'مشارکت گروهی',
+    };
+
+    await request(app.getHttpServer())
+      .post('/api/v1/points/teacher-award/bulk')
+      .set('Cookie', teacherAuth.cookie)
+      .send({ ...bulkPayload, studentIds: [firstStudentId, otherStudentId] })
+      .expect(400);
+    expect(
+      (await prisma.studentProfile.findUniqueOrThrow({ where: { id: firstStudentId } }))
+        .currentBalance,
+    ).toBe(0);
+    expect(
+      await prisma.pointAuditLog.count({
+        where: { actionType: 'TEACHER_AWARD_STUDENT', actorId: teacherId },
+      }),
+    ).toBe(0);
+
+    await request(app.getHttpServer())
+      .post('/api/v1/points/teacher-award/bulk')
+      .set('Cookie', teacherAuth.cookie)
+      .send({ ...bulkPayload, amount: 6 })
+      .expect(400);
+    expect(
+      (await prisma.teacherProfile.findUniqueOrThrow({ where: { id: teacherId } })).pointBalance,
+    ).toBe(10);
+    expect(
+      (await prisma.studentProfile.findUniqueOrThrow({ where: { id: firstStudentId } }))
+        .currentBalance,
+    ).toBe(0);
+
+    const award = await request(app.getHttpServer())
+      .post('/api/v1/points/teacher-award/bulk')
+      .set('Cookie', teacherAuth.cookie)
+      .send(bulkPayload)
+      .expect(200);
+    expect(award.body.awardedStudents).toHaveLength(2);
+    expect(award.body.teacherRemainingBudget).toBe(0);
+    expect(
+      (await prisma.studentProfile.findUniqueOrThrow({ where: { id: firstStudentId } }))
+        .currentBalance,
+    ).toBe(5);
+    expect(
+      (await prisma.studentProfile.findUniqueOrThrow({ where: { id: secondStudentId } }))
+        .currentBalance,
+    ).toBe(5);
+    expect(
+      await prisma.pointAuditLog.count({
+        where: { actionType: 'TEACHER_AWARD_STUDENT', actorId: teacherId },
+      }),
+    ).toBe(2);
   });
 });

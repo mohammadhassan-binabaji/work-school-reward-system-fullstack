@@ -62,8 +62,10 @@ The system enables teachers to award points to students for actions such as comp
 - Administrators shall transfer points from the system-wide point pool to a teacher's point balance.
 - A teacher shall be able to award positive points to a student only when the student belongs to a class where that teacher is assigned.
 - Administrators shall define tasks for point transfers, such as doing homework, and configure one or more point-amount options for each task.
-- When awarding points, a teacher shall select one of the administrator-defined tasks and one of its predefined point-amount options.
-- Teachers shall not be able to enter a custom task or a custom point amount.
+- Teachers may use an administrator-defined task and one of its point-amount options, or enter a custom reason and positive point amount.
+- A teacher shall be able to award the same point amount to multiple active students in the selected assigned class in one operation.
+- The entered amount shall be applied in full to each selected student.
+- A teacher bulk award shall fail without awarding any points if a selected student is ineligible or the teacher's available balance cannot cover the full batch.
 - Awarding points shall reduce the teacher's balance by the exact amount awarded.
 - The system shall prevent a teacher from awarding more points than the teacher's available balance.
 
@@ -71,6 +73,10 @@ The system enables teachers to award points to students for actions such as comp
 
 - Administrators shall transfer points from the system-wide point pool to a vice principal's point balance.
 - Vice principals shall be able to directly adjust a student's point balance using their personal point balance.
+- Administrators and vice principals shall be able to search active students by name or national ID and select multiple students for one direct adjustment.
+- Search shall match national IDs entered with Persian, Arabic-Indic, or ASCII digits; select-all shall select the students currently visible after filtering.
+- The same adjustment amount shall be applied to each selected student.
+- A bulk adjustment shall fail without changing any student or source balance if any selected student cannot satisfy it or the funding source cannot cover the full batch.
 - Crediting points to a student shall reduce the vice principal's point balance by the exact amount awarded.
 - Debiting points from a student shall return the deducted points directly to the vice principal's point balance.
 - The system shall prevent a vice principal from awarding more points than their available balance, and from debiting more points than the student's current balance.
@@ -82,6 +88,7 @@ The system enables teachers to award points to students for actions such as comp
 ### Student points and rewards
 
 - Administrators shall be able to add or subtract points from a student's balance. Adding points shall decrease the system point pool by the same amount; subtracting points shall return the same amount to the system point pool.
+- Administrators shall be able to select multiple active students for a single direct adjustment; the entered amount shall apply to each student.
 - The system shall reject an administrator's point addition when the system point pool does not have enough points, without changing either balance.
 - Administrators shall manage the reward catalog, including creating, pricing, editing, and removing rewards.
 - Administrators shall not change the price of an existing reward; to use a different price, they shall remove the old reward and create a new reward.

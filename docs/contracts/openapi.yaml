@@ -271,6 +271,69 @@ components:
           nullable: true
           example: "پاسخ صحیح به تمرین صفحه ۲۵"
 
+    TeacherBulkAwardRequest:
+      type: object
+      required: [studentIds, classId, subjectId, amount, reason]
+      properties:
+        studentIds:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          description: Active students enrolled in the specified class.
+          items: { type: string, format: uuid }
+        classId:
+          type: string
+          format: uuid
+        subjectId:
+          type: string
+          format: uuid
+        amount:
+          type: integer
+          minimum: 1
+          description: Points awarded to each selected student.
+          example: 10
+        reason:
+          type: string
+          maxLength: 150
+          example: "مشارکت فعال در کلاس ریاضی"
+        description:
+          type: string
+          maxLength: 500
+          nullable: true
+          example: "پاسخ صحیح به تمرین صفحه ۲۵"
+
+    AdminBulkAdjustmentRequest:
+      type: object
+      required: [studentIds, amount, reason]
+      properties:
+        studentIds:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          description: Active students to adjust.
+          items: { type: string, format: uuid }
+        amount:
+          type: integer
+          description: Non-zero positive or negative integer adjustment applied to each student.
+        reason:
+          type: string
+
+    ViceBulkAdjustmentRequest:
+      type: object
+      required: [studentIds, amount, reason]
+      properties:
+        studentIds:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          description: Active students to adjust.
+          items: { type: string, format: uuid }
+        amount:
+          type: integer
+          description: Non-zero positive or negative integer adjustment applied to each student.
+        reason:
+          type: string
+
     RewardDto:
       type: object
       required:
@@ -1948,6 +2011,25 @@ paths:
         '200':
           description: Points awarded successfully
 
+  /points/teacher-award/bulk:
+    post:
+      summary: Award Points from Teacher to Multiple Students
+      description: Atomically applies the same positive point amount to each eligible student in the assigned class. The entire batch fails without changes if any student is ineligible or the teacher's available balance cannot cover the full batch.
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TeacherBulkAwardRequest' }
+      responses:
+        '200':
+          description: Points awarded to all selected students successfully
+        '400':
+          description: One or more students are ineligible or the teacher budget is insufficient; no changes are made
+        '403':
+          description: Teacher is not actively assigned to this class and subject
+
   /points/admin-adjust:
     post:
       summary: Direct Administrator Point Adjustment
@@ -1968,6 +2050,23 @@ paths:
       responses:
         '200':
           description: Balance adjusted (FR-023)
+
+  /points/admin-adjust/bulk:
+    post:
+      summary: Direct Administrator Point Adjustment for Multiple Students
+      description: Atomically applies the same signed adjustment to all selected active students. The batch fails without changes if any target cannot satisfy the adjustment or the system pool cannot fund a credit.
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AdminBulkAdjustmentRequest' }
+      responses:
+        '200':
+          description: All student balances adjusted successfully
+        '400':
+          description: Invalid student, insufficient student balance, or insufficient system pool; no changes are made
 
   /points/vice-adjust:
     post:
@@ -1991,6 +2090,23 @@ paths:
           description: Student and vice principal balances adjusted
         '400':
           description: Insufficient vice principal or student balance
+
+  /points/vice-adjust/bulk:
+    post:
+      summary: Direct Vice Principal Point Adjustment for Multiple Students
+      description: Atomically applies the same signed adjustment to all selected active students. The batch fails without changes if any target cannot satisfy the adjustment or the vice principal cannot fund a credit.
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ViceBulkAdjustmentRequest' }
+      responses:
+        '200':
+          description: All student balances adjusted successfully
+        '400':
+          description: Invalid student, insufficient student balance, or insufficient vice-principal balance; no changes are made
 
   # ==========================================
   # REWARDS & REDEMPTION

@@ -16,6 +16,7 @@ import { useAuthStore } from '../stores/auth';
 import {
   api,
   toPersianDigits,
+  toAsciiDigits,
   formatNovin,
   type TeacherAssignment,
   type Class,
@@ -35,7 +36,7 @@ const loadingStudents = ref(false);
 
 // Form selections
 const selectedAssignmentId = ref('');
-const selectedStudentId = ref('');
+const selectedStudentIds = ref<string[]>([]);
 const studentSearchQuery = ref('');
 const selectedTaskId = ref('');
 const selectedOptionId = ref('');
@@ -47,7 +48,7 @@ const customAmount = ref<number | null>(null);
 const submitting = ref(false);
 const awardSuccess = ref(false);
 const awardedAmount = ref(0);
-const awardedStudentName = ref('');
+const awardedStudentCount = ref(0);
 const errorMessage = ref<string | null>(null);
 
 // Unique classes from assignments
@@ -69,12 +70,12 @@ const currentAssignment = computed(() => {
 // Filtered students by class and search
 const availableStudents = computed(() => {
   if (!currentClassDetails.value?.students) return [];
-  const query = studentSearchQuery.value.trim().toLowerCase();
+  const query = toAsciiDigits(studentSearchQuery.value).trim().toLowerCase();
   return currentClassDetails.value.students.filter((s) => {
     if (s.user.accountState !== 'ACTIVE') return false;
     if (!query) return true;
     const name = `${s.user.firstName} ${s.user.lastName}`.toLowerCase();
-    return name.includes(query) || s.user.nationalId.includes(query);
+    return name.includes(query) || toAsciiDigits(s.user.nationalId).includes(query);
   });
 });
 
@@ -85,14 +86,6 @@ const currentTask = computed(() => {
 
 const currentOption = computed(() => {
   return currentTask.value?.options.find((o) => o.id === selectedOptionId.value) || null;
-});
-
-const selectedStudent = computed(() => {
-  return (
-    currentClassDetails.value?.students?.find(
-      (s) => s.id === selectedStudentId.value,
-    ) || null
-  );
 });
 
 onMounted(async () => {
@@ -124,7 +117,7 @@ async function loadInitialData() {
     }
 
     if (queryStudent) {
-      selectedStudentId.value = queryStudent;
+      selectedStudentIds.value = [queryStudent];
     }
   } catch (err: any) {
     console.error('Error loading initial data', err);
@@ -146,9 +139,8 @@ watch(
       currentClassDetails.value = cls;
 
       // Reset student if not in this class
-      if (!cls.students?.some((s) => s.id === selectedStudentId.value)) {
-        selectedStudentId.value = '';
-      }
+      const classStudentIds = new Set(cls.students?.map((s) => s.id) || []);
+      selectedStudentIds.value = selectedStudentIds.value.filter((id) => classStudentIds.has(id));
     } catch (e) {
       console.error('Failed to load class students', e);
     } finally {
@@ -189,6 +181,20 @@ watch(
   },
 );
 
+function toggleStudent(studentId: string) {
+  selectedStudentIds.value = selectedStudentIds.value.includes(studentId)
+    ? selectedStudentIds.value.filter((id) => id !== studentId)
+    : [...selectedStudentIds.value, studentId];
+}
+
+function toggleFilteredStudents() {
+  const visibleIds = availableStudents.value.map((student) => student.id);
+  const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedStudentIds.value.includes(id));
+  selectedStudentIds.value = allVisibleSelected
+    ? selectedStudentIds.value.filter((id) => !visibleIds.includes(id))
+    : Array.from(new Set([...selectedStudentIds.value, ...visibleIds]));
+}
+
 async function handleAward() {
   errorMessage.value = null;
 
@@ -196,8 +202,8 @@ async function handleAward() {
     errorMessage.value = 'لطفاً کلاس و درس مربوطه را انتخاب کنید.';
     return;
   }
-  if (!selectedStudentId.value) {
-    errorMessage.value = 'لطفاً دانش‌آموز مورد نظر را انتخاب کنید.';
+  if (!selectedStudentIds.value.length) {
+    errorMessage.value = 'لطفاً حداقل یک دانش‌آموز را انتخاب کنید.';
     return;
   }
   if (!customReason.value.trim()) {
@@ -210,15 +216,17 @@ async function handleAward() {
     return;
   }
 
-  if (authStore.pointBalance < amount) {
+  const studentIds = [...selectedStudentIds.value];
+  const totalAmount = amount * studentIds.length;
+  if (authStore.pointBalance < totalAmount) {
     errorMessage.value = 'موجودی نوین شما برای این پاداش کافی نیست.';
     return;
   }
 
   submitting.value = true;
   try {
-    await api.post('/points/teacher-award', {
-      studentId: selectedStudentId.value,
+    await api.post('/points/teacher-award/bulk', {
+      studentIds,
       classId: currentAssignment.value.classId,
       subjectId: currentAssignment.value.subjectId,
       amount,
@@ -227,9 +235,7 @@ async function handleAward() {
     });
 
     awardedAmount.value = amount;
-    awardedStudentName.value = selectedStudent.value
-      ? `${selectedStudent.value.user.firstName} ${selectedStudent.value.user.lastName}`
-      : 'دانش‌آموز';
+    awardedStudentCount.value = studentIds.length;
 
     awardSuccess.value = true;
     await authStore.fetchMe();
@@ -242,7 +248,7 @@ async function handleAward() {
 
 function resetForAnotherAward() {
   awardSuccess.value = false;
-  selectedStudentId.value = '';
+  selectedStudentIds.value = [];
   selectedTaskId.value = '';
   selectedOptionId.value = '';
   customReason.value = '';
@@ -266,9 +272,7 @@ function resetForAnotherAward() {
               {{ formatNovin(authStore.pointBalance) }}
             </span>
           </div>
-          <p class="text-[11px] text-indigo-200 mt-1">
-            نوین‌ها پس از تایید فوری به حساب دانش‌آموز افزوده می‌شوند.
-          </p>
+          <p class="text-[11px] text-indigo-200 mt-1">نوین‌ها پس از تایید فوری به حساب دانش‌آموز افزوده می‌شوند.</p>
         </div>
         <div class="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center shrink-0">
           <Award class="w-8 h-8 text-indigo-200" />
@@ -277,13 +281,8 @@ function resetForAnotherAward() {
     </div>
 
     <!-- Success Message Screen -->
-    <div
-      v-if="awardSuccess"
-      class="bg-white rounded-3xl p-6 border border-emerald-200 shadow-sm text-center space-y-4"
-    >
-      <div
-        class="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto"
-      >
+    <div v-if="awardSuccess" class="bg-white rounded-3xl p-6 border border-emerald-200 shadow-sm text-center space-y-4">
+      <div class="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
         <CheckCircle2 class="w-10 h-10" />
       </div>
 
@@ -292,8 +291,8 @@ function resetForAnotherAward() {
         <p class="text-xs text-slate-600">
           مقدار
           <strong class="text-emerald-600 font-black">{{ formatNovin(awardedAmount) }}</strong>
-          به حساب
-          <strong class="text-slate-800">{{ awardedStudentName }}</strong>
+          به هر یک از
+          <strong class="text-slate-800">{{ toPersianDigits(awardedStudentCount) }} دانش‌آموز</strong>
           افزوده شد.
         </p>
       </div>
@@ -335,10 +334,11 @@ function resetForAnotherAward() {
           <div class="flex items-center justify-between">
             <label class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
               <UserCheck class="w-4 h-4 text-indigo-600" />
-              <span>۲. انتخاب دانش‌آموز:</span>
+              <span>۲. انتخاب دانش‌آموزان:</span>
             </label>
             <span class="text-[11px] text-slate-400">
-              ({{ toPersianDigits(availableStudents.length) }} دانش‌آموز)
+              ({{ toPersianDigits(selectedStudentIds.length) }} انتخاب‌شده از
+              {{ toPersianDigits(availableStudents.length) }} دانش‌آموز)
             </span>
           </div>
 
@@ -353,6 +353,22 @@ function resetForAnotherAward() {
             <Search class="w-4 h-4 text-slate-400 absolute right-3 top-2.5" />
           </div>
 
+          <div class="flex justify-end">
+            <button
+              type="button"
+              class="text-[11px] font-bold text-indigo-600 hover:text-indigo-700 disabled:opacity-40"
+              :disabled="availableStudents.length === 0"
+              @click="toggleFilteredStudents"
+            >
+              {{
+                availableStudents.length > 0 &&
+                availableStudents.every((student) => selectedStudentIds.includes(student.id))
+                  ? 'لغو انتخاب نتایج'
+                  : 'انتخاب همه نتایج'
+              }}
+            </button>
+          </div>
+
           <!-- Students Scrollable List -->
           <div class="max-h-48 overflow-y-auto space-y-1.5 pr-1">
             <div v-if="loadingStudents" class="py-4 text-center text-xs text-slate-400">
@@ -365,16 +381,14 @@ function resetForAnotherAward() {
                 :key="s.id"
                 :class="[
                   'p-2.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all',
-                  selectedStudentId === s.id
+                  selectedStudentIds.includes(s.id)
                     ? 'bg-indigo-50 border-indigo-600 text-indigo-950 font-bold'
                     : 'bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-700',
                 ]"
-                @click="selectedStudentId = s.id"
+                @click="toggleStudent(s.id)"
               >
                 <div>
-                  <span class="text-xs font-bold block">
-                    {{ s.user.firstName }} {{ s.user.lastName }}
-                  </span>
+                  <span class="text-xs font-bold block"> {{ s.user.firstName }} {{ s.user.lastName }} </span>
                   <span class="text-[10px] text-slate-400 font-normal">
                     کد ملی: {{ toPersianDigits(s.user.nationalId) }}
                   </span>
@@ -388,9 +402,7 @@ function resetForAnotherAward() {
               </div>
             </template>
 
-            <div v-else class="py-4 text-center text-xs text-slate-400">
-              دانش‌آموزی با این مشخصات یافت نشد.
-            </div>
+            <div v-else class="py-4 text-center text-xs text-slate-400">دانش‌آموزی با این مشخصات یافت نشد.</div>
           </div>
         </div>
 
@@ -409,7 +421,10 @@ function resetForAnotherAward() {
                 v-if="selectedTaskId"
                 type="button"
                 class="text-indigo-600 hover:underline text-[10px]"
-                @click="selectedTaskId = ''; onTaskSelectChange()"
+                @click="
+                  selectedTaskId = '';
+                  onTaskSelectChange();
+                "
               >
                 پاک کردن الگو
               </button>
@@ -442,9 +457,7 @@ function resetForAnotherAward() {
 
           <!-- Template Option Pills (if template chosen) -->
           <div v-if="currentTask && currentTask.options.length > 0" class="space-y-1.5 pt-0.5">
-            <span class="text-[11px] text-slate-500 font-medium block">
-              مقادیر پیشنهادی این الگو:
-            </span>
+            <span class="text-[11px] text-slate-500 font-medium block"> مقادیر پیشنهادی این الگو: </span>
             <div class="grid grid-cols-2 gap-2">
               <button
                 v-for="opt in currentTask.options"
@@ -461,10 +474,7 @@ function resetForAnotherAward() {
                 <span class="text-xs font-black">{{ formatNovin(opt.points) }}</span>
                 <span
                   v-if="opt.label"
-                  :class="[
-                    'text-[10px] mt-0.5',
-                    selectedOptionId === opt.id ? 'text-indigo-100' : 'text-slate-500',
-                  ]"
+                  :class="['text-[10px] mt-0.5', selectedOptionId === opt.id ? 'text-indigo-100' : 'text-slate-500']"
                 >
                   {{ opt.label }}
                 </span>
@@ -491,17 +501,13 @@ function resetForAnotherAward() {
                 placeholder="مثلاً ۱۰"
                 class="w-full bg-slate-50 border border-slate-200 rounded-xl pr-3 pl-12 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-indigo-600 font-bold"
               />
-              <span class="absolute left-3 top-2 text-[10px] text-slate-400 pointer-events-none">
-                نوین
-              </span>
+              <span class="absolute left-3 top-2 text-[10px] text-slate-400 pointer-events-none"> نوین </span>
             </div>
           </div>
 
           <!-- Description / Note Input (Optional) -->
           <div class="space-y-1">
-            <label class="block text-[11px] text-slate-600 font-bold">
-              توضیحات تکمیلی (اختیاری):
-            </label>
+            <label class="block text-[11px] text-slate-600 font-bold"> توضیحات تکمیلی (اختیاری): </label>
             <textarea
               v-model="customDescription"
               rows="2"
@@ -523,7 +529,9 @@ function resetForAnotherAward() {
 
         <!-- Submit Button -->
         <button
-          :disabled="submitting || !selectedStudentId || !customReason.trim() || !customAmount || customAmount <= 0"
+          :disabled="
+            submitting || !selectedStudentIds.length || !customReason.trim() || !customAmount || customAmount <= 0
+          "
           class="w-full py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs shadow-md disabled:opacity-40 transition-all flex items-center justify-center gap-2"
           @click="handleAward"
         >

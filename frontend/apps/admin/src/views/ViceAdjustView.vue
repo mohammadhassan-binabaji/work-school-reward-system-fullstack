@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
-import { SlidersHorizontal, RefreshCw, CheckCircle2, AlertCircle, Coins, Wallet } from 'lucide-vue-next';
+import { ref, onMounted, computed } from 'vue';
+import { SlidersHorizontal, RefreshCw, CheckCircle2, AlertCircle, Coins, Wallet, Search } from 'lucide-vue-next';
 import { useAuthStore } from '../stores/auth';
-import { api, toPersianDigits, formatNovin } from '@student-reward/shared';
+import { api, toPersianDigits, toAsciiDigits, formatNovin } from '@student-reward/shared';
 
 const authStore = useAuthStore();
 interface StudentAdjustmentTarget {
@@ -15,7 +15,8 @@ interface StudentAdjustmentTarget {
 const students = ref<StudentAdjustmentTarget[]>([]);
 const loading = ref(true);
 
-const selectedStudentId = ref('');
+const selectedStudentIds = ref<string[]>([]);
+const studentSearchQuery = ref('');
 const adjustAmount = ref<number | ''>('');
 const adjustType = ref<'credit' | 'debit'>('credit');
 const adjustReason = ref('');
@@ -25,6 +26,33 @@ const successMessage = ref<string | null>(null);
 const errorMessage = ref<string | null>(null);
 
 const vpBalance = ref(0);
+
+const filteredStudents = computed(() => {
+  const query = normalizeSearch(studentSearchQuery.value);
+  if (!query) return students.value;
+  return students.value.filter((student) => {
+    const name = normalizeSearch(`${student.firstName} ${student.lastName}`);
+    return name.includes(query) || toAsciiDigits(student.nationalId).includes(toAsciiDigits(query));
+  });
+});
+
+function normalizeSearch(value: string) {
+  return toAsciiDigits(value).toLowerCase().trim();
+}
+
+function toggleStudent(studentId: string) {
+  selectedStudentIds.value = selectedStudentIds.value.includes(studentId)
+    ? selectedStudentIds.value.filter((id) => id !== studentId)
+    : [...selectedStudentIds.value, studentId];
+}
+
+function toggleFilteredStudents() {
+  const visibleIds = filteredStudents.value.map((student) => student.id);
+  const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedStudentIds.value.includes(id));
+  selectedStudentIds.value = allVisibleSelected
+    ? selectedStudentIds.value.filter((id) => !visibleIds.includes(id))
+    : Array.from(new Set([...selectedStudentIds.value, ...visibleIds]));
+}
 
 onMounted(async () => {
   await Promise.all([loadStudents(), loadProfile()]);
@@ -50,8 +78,8 @@ async function loadStudents() {
 async function handleAdjust() {
   errorMessage.value = null;
 
-  if (!selectedStudentId.value) {
-    errorMessage.value = 'لطفاً دانش‌آموز را انتخاب کنید.';
+  if (!selectedStudentIds.value.length) {
+    errorMessage.value = 'لطفاً حداقل یک دانش‌آموز را انتخاب کنید.';
     return;
   }
 
@@ -68,17 +96,19 @@ async function handleAdjust() {
   const requestedAmount = Number(adjustAmount.value);
 
   // Client-side balance check for credit (giving to student from VP balance)
-  if (adjustType.value === 'credit' && requestedAmount > vpBalance.value) {
-    errorMessage.value = `موجودی شما (${formatNovin(vpBalance.value)}) برای اهدای ${formatNovin(requestedAmount)} کافی نیست.`;
+  const totalRequestedAmount = requestedAmount * selectedStudentIds.value.length;
+  if (adjustType.value === 'credit' && totalRequestedAmount > vpBalance.value) {
+    errorMessage.value = `موجودی شما (${formatNovin(vpBalance.value)}) برای اهدای مجموع ${formatNovin(totalRequestedAmount)} کافی نیست.`;
     return;
   }
 
   const finalAmount = adjustType.value === 'credit' ? requestedAmount : -requestedAmount;
+  const studentIds = [...selectedStudentIds.value];
 
   submitting.value = true;
   try {
-    const res = await api.post<{ vicePrincipalRemainingBalance: number }>('/points/vice-adjust', {
-      studentId: selectedStudentId.value,
+    const res = await api.post<{ vicePrincipalRemainingBalance: number }>('/points/vice-adjust/bulk', {
+      studentIds,
       amount: finalAmount,
       reason: adjustReason.value.trim(),
     });
@@ -89,8 +119,9 @@ async function handleAdjust() {
       await loadProfile();
     }
 
-    successMessage.value = `تنظیم موجودی دانش‌آموز (${formatNovin(finalAmount, { showSign: true })}) با موفقیت اعمال شد.`;
-    selectedStudentId.value = '';
+    successMessage.value = `تنظیم موجودی (${formatNovin(finalAmount, { showSign: true })}) برای ${toPersianDigits(studentIds.length)} دانش‌آموز با موفقیت اعمال شد.`;
+    selectedStudentIds.value = [];
+    studentSearchQuery.value = '';
     adjustAmount.value = '';
     adjustReason.value = '';
     setTimeout(() => (successMessage.value = null), 4000);
@@ -116,7 +147,9 @@ async function handleAdjust() {
     </div>
 
     <!-- VP Balance Card -->
-    <div class="bg-linear-to-l from-blue-600 to-indigo-700 rounded-3xl p-5 text-white shadow-lg flex items-center justify-between">
+    <div
+      class="bg-linear-to-l from-blue-600 to-indigo-700 rounded-3xl p-5 text-white shadow-lg flex items-center justify-between"
+    >
       <div class="flex items-center gap-3.5">
         <div class="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-xs flex items-center justify-center">
           <Wallet class="w-6 h-6 text-white" />
@@ -154,18 +187,68 @@ async function handleAdjust() {
 
     <!-- Form Card -->
     <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-xs space-y-4">
-      <!-- Select Student -->
+      <!-- Select Students -->
       <div>
-        <label class="block text-xs font-bold text-slate-700 mb-1.5">انتخاب دانش‌آموز:</label>
-        <select
-          v-model="selectedStudentId"
-          class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 font-medium focus:outline-none focus:border-blue-600"
-        >
-          <option value="" disabled>دانش‌آموز مورد نظر را انتخاب کنید...</option>
-          <option v-for="s in students" :key="s.id" :value="s.id">
-            {{ s.firstName }} {{ s.lastName }} (کد ملی: {{ toPersianDigits(s.nationalId) }})
-          </option>
-        </select>
+        <div class="flex items-center justify-between mb-1.5">
+          <label class="text-xs font-bold text-slate-700">انتخاب دانش‌آموزان:</label>
+          <span class="text-[11px] text-slate-400"> {{ toPersianDigits(selectedStudentIds.length) }} انتخاب‌شده </span>
+        </div>
+        <div class="relative">
+          <input
+            v-model="studentSearchQuery"
+            type="text"
+            placeholder="جستجوی نام یا کد ملی دانش‌آموز..."
+            class="w-full bg-slate-50 border border-slate-200 rounded-xl pr-9 pl-3 py-2.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-600"
+          />
+          <Search class="w-4 h-4 text-slate-400 absolute right-3 top-2.5" />
+        </div>
+        <div class="flex items-center justify-between mt-2 mb-1">
+          <span class="text-[11px] text-slate-400"> {{ toPersianDigits(filteredStudents.length) }} دانش‌آموز </span>
+          <button
+            type="button"
+            class="text-[11px] font-bold text-blue-600 hover:text-blue-700"
+            :disabled="filteredStudents.length === 0"
+            @click="toggleFilteredStudents"
+          >
+            {{
+              filteredStudents.length > 0 &&
+              filteredStudents.every((student) => selectedStudentIds.includes(student.id))
+                ? 'لغو انتخاب نتایج'
+                : 'انتخاب همه نتایج'
+            }}
+          </button>
+        </div>
+        <div class="max-h-48 overflow-y-auto space-y-1.5 pr-1">
+          <button
+            v-for="student in filteredStudents"
+            :key="student.id"
+            type="button"
+            :class="[
+              'w-full p-2.5 rounded-xl border flex items-center justify-between text-right transition-all',
+              selectedStudentIds.includes(student.id)
+                ? 'bg-blue-50 border-blue-500 text-blue-950'
+                : 'bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-700',
+            ]"
+            @click="toggleStudent(student.id)"
+          >
+            <span class="text-xs font-bold">
+              {{ student.firstName }} {{ student.lastName }}
+              <span class="block text-[10px] text-slate-400 font-normal">
+                کد ملی: {{ toPersianDigits(student.nationalId) }}
+              </span>
+            </span>
+            <CheckCircle2
+              :class="[
+                'w-4 h-4 shrink-0',
+                selectedStudentIds.includes(student.id) ? 'text-blue-600' : 'text-slate-300',
+              ]"
+            />
+          </button>
+          <div v-if="!loading && filteredStudents.length === 0" class="py-4 text-center text-xs text-slate-400">
+            دانش‌آموزی با این مشخصات یافت نشد.
+          </div>
+          <div v-if="loading" class="py-4 text-center text-xs text-slate-400">در حال دریافت فهرست دانش‌آموزان...</div>
+        </div>
       </div>
 
       <!-- Action Type Toggle -->
@@ -229,7 +312,7 @@ async function handleAdjust() {
       <!-- Submit Button -->
       <button
         type="button"
-        :disabled="submitting || loading"
+        :disabled="submitting || loading || !selectedStudentIds.length"
         class="w-full py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-black transition-all shadow-md shadow-blue-600/20 flex items-center justify-center gap-2"
         @click="handleAdjust"
       >

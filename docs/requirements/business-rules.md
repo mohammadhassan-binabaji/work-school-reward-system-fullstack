@@ -23,11 +23,12 @@
 - Deleting a class unassigns all students belonging to that class without altering their point balance or reward requests, and removes all teacher assignments to that class.
 - Deleting a subject removes all teacher-class-subject assignments referencing that subject.
 - Teacher reward eligibility is based on the student's membership in a class assigned to that teacher.
-- Teacher awards are positive only.
-- Teachers must select an administrator-defined task and one of its predefined point-amount options when awarding points.
-- Teachers cannot enter custom tasks or custom point amounts.
-- Teacher award spending is limited by the teacher's available balance.
+- Teacher awards are positive only and may use either a configured task/point option or a custom reason and positive amount.
+- A teacher's bulk award applies the full amount to each selected student in the selected class.
+- A teacher's bulk award succeeds only if all selected students are eligible and the teacher can fund the full batch; otherwise no points are awarded.
+- Teacher award spending is limited by the teacher's available balance across the entire batch.
 - Teacher points are an award budget and are not the same as student reward points.
+- Admin and vice-principal bulk adjustments apply the full amount to each selected student and succeed only if every selected student and the corresponding source balance can satisfy the full operation.
 - Student reward requests reserve points at request time.
 - Students cannot cancel reward requests at any stage.
 - A student cannot create a new reward request for a reward when the student already has a pending request (`Pending to Approve` or `Pending to Receive`) for that same reward.

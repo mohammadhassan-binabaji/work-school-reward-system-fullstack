@@ -10,6 +10,7 @@ import {
   ValidateNested,
   NotEquals,
   ArrayMinSize,
+  ArrayUnique,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
@@ -126,6 +127,43 @@ export class TeacherAwardPointsDto {
   description?: string;
 }
 
+export class TeacherBulkAwardPointsDto {
+  @ApiProperty({ type: [String], format: 'uuid' })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayUnique()
+  @IsUUID('4', { each: true })
+  studentIds: string[];
+
+  @ApiProperty({ format: 'uuid' })
+  @IsNotEmpty()
+  @IsUUID()
+  classId: string;
+
+  @ApiProperty({ format: 'uuid' })
+  @IsNotEmpty()
+  @IsUUID()
+  subjectId: string;
+
+  @ApiProperty({ example: 10, minimum: 1, description: 'Points awarded to each student' })
+  @IsNotEmpty()
+  @IsInt()
+  @Min(1)
+  amount: number;
+
+  @ApiProperty({ example: 'مشارکت فعال در درس ریاضی', maxLength: 150 })
+  @IsNotEmpty()
+  @IsString()
+  @MaxLength(150)
+  reason: string;
+
+  @ApiPropertyOptional({ example: 'پاسخ صحیح به تمرین صفحه ۲۵', maxLength: 500 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  description?: string;
+}
+
 export class AdminAdjustStudentBalanceDto {
   @ApiProperty({ format: 'uuid' })
   @IsNotEmpty()
@@ -144,13 +182,61 @@ export class AdminAdjustStudentBalanceDto {
   reason: string;
 }
 
+export class AdminBulkAdjustStudentBalanceDto {
+  @ApiProperty({ type: [String], format: 'uuid' })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayUnique()
+  @IsUUID('4', { each: true })
+  studentIds: string[];
+
+  @ApiProperty({ example: 20, description: 'Positive to credit, negative to debit each student' })
+  @IsNotEmpty()
+  @IsInt()
+  @NotEquals(0)
+  amount: number;
+
+  @ApiProperty({ example: 'Correction for grading error' })
+  @IsNotEmpty()
+  @IsString()
+  reason: string;
+}
+
 export class ViceAdjustStudentBalanceDto {
   @ApiProperty({ format: 'uuid' })
   @IsNotEmpty()
   @IsUUID()
   studentId: string;
 
-  @ApiProperty({ example: 20, description: 'Positive to credit student (debits VP balance), negative to debit student (credits VP balance)' })
+  @ApiProperty({
+    example: 20,
+    description:
+      'Positive to credit student (debits VP balance), negative to debit student (credits VP balance)',
+  })
+  @IsNotEmpty()
+  @IsInt()
+  @NotEquals(0)
+  amount: number;
+
+  @ApiProperty({ example: 'Correction or direct vice principal adjustment' })
+  @IsNotEmpty()
+  @IsString()
+  reason: string;
+}
+
+export class ViceBulkAdjustStudentBalanceDto {
+  @ApiProperty({ type: [String], format: 'uuid' })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayUnique()
+  @IsUUID('4', { each: true })
+  studentIds: string[];
+
+  @ApiProperty({
+    example: 20,
+    description:
+      'Positive to credit each student (debits VP balance), negative to debit each student (credits VP balance)',
+  })
   @IsNotEmpty()
   @IsInt()
   @NotEquals(0)

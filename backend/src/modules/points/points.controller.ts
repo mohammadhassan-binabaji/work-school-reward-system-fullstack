@@ -20,8 +20,11 @@ import {
   CreatePointTaskDto,
   UpdatePointTaskDto,
   TeacherAwardPointsDto,
+  TeacherBulkAwardPointsDto,
   AdminAdjustStudentBalanceDto,
+  AdminBulkAdjustStudentBalanceDto,
   ViceAdjustStudentBalanceDto,
+  ViceBulkAdjustStudentBalanceDto,
   SetPoolBalanceDto,
 } from './dto/points.dto';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -126,6 +129,20 @@ export class PointsController {
     return this.pointsService.teacherAwardPoints(dto, teacherId, req.correlationId || '');
   }
 
+  @Roles('TEACHER')
+  @Post('teacher-award/bulk')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Teacher awards points to multiple eligible students in one atomic operation',
+  })
+  async teacherBulkAward(
+    @Body() dto: TeacherBulkAwardPointsDto,
+    @CurrentUser('id') teacherId: string,
+    @Req() req: RequestWithCorrelation,
+  ) {
+    return this.pointsService.teacherBulkAwardPoints(dto, teacherId, req.correlationId || '');
+  }
+
   @Roles('ADMIN')
   @Post('admin-adjust')
   @HttpCode(HttpStatus.OK)
@@ -138,15 +155,51 @@ export class PointsController {
     return this.pointsService.adminAdjustStudentBalance(dto, adminId, req.correlationId || '');
   }
 
+  @Roles('ADMIN')
+  @Post('admin-adjust/bulk')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Atomically adjust balances for multiple students (Admin only)' })
+  async adminBulkAdjust(
+    @Body() dto: AdminBulkAdjustStudentBalanceDto,
+    @CurrentUser('id') adminId: string,
+    @Req() req: RequestWithCorrelation,
+  ) {
+    return this.pointsService.adminBulkAdjustStudentBalances(dto, adminId, req.correlationId || '');
+  }
+
   @Roles('VICE_PRINCIPAL')
   @Post('vice-adjust')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Vice principal student balance adjustment from own balance (Vice Principal only)' })
+  @ApiOperation({
+    summary: 'Vice principal student balance adjustment from own balance (Vice Principal only)',
+  })
   async viceAdjust(
     @Body() dto: ViceAdjustStudentBalanceDto,
     @CurrentUser('id') vicePrincipalId: string,
     @Req() req: RequestWithCorrelation,
   ) {
-    return this.pointsService.viceAdjustStudentBalance(dto, vicePrincipalId, req.correlationId || '');
+    return this.pointsService.viceAdjustStudentBalance(
+      dto,
+      vicePrincipalId,
+      req.correlationId || '',
+    );
+  }
+
+  @Roles('VICE_PRINCIPAL')
+  @Post('vice-adjust/bulk')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Atomically adjust balances for multiple students (Vice Principal only)',
+  })
+  async viceBulkAdjust(
+    @Body() dto: ViceBulkAdjustStudentBalanceDto,
+    @CurrentUser('id') vicePrincipalId: string,
+    @Req() req: RequestWithCorrelation,
+  ) {
+    return this.pointsService.viceBulkAdjustStudentBalances(
+      dto,
+      vicePrincipalId,
+      req.correlationId || '',
+    );
   }
 }

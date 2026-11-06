@@ -7,6 +7,13 @@ export function toPersianDigits(n: number | string | null | undefined): string {
   return String(n).replace(/[0-9]/g, (w) => persianDigits[+w]);
 }
 
+export function toAsciiDigits(value: string): string {
+  return value.replace(/[۰-۹٠-٩]/g, (digit) => {
+    const code = digit.charCodeAt(0);
+    return String(code >= 0x06f0 && code <= 0x06f9 ? code - 0x06f0 : code - 0x0660);
+  });
+}
+
 export function formatNovin(amount: number | null | undefined, options?: { showSign?: boolean; suffix?: boolean }): string {
   if (amount === null || amount === undefined) return '۰ نوین';
   const val = Math.abs(amount);
