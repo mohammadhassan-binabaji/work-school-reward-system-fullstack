@@ -38,6 +38,7 @@
     "cookie-parser": "^1.4.6",
     "exceljs": "^4.4.0",
     "fast-csv": "^5.0.1",
+    "firebase-admin": "^13.10.0",
     "ioredis": "^5.4.1",
     "pdfmake": "^0.2.10",
     "reflect-metadata": "^0.2.2",

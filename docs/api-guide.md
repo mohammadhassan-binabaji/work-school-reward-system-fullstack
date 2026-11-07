@@ -87,6 +87,10 @@ The header-based alternatives listed below remain for compatibility; browser fro
 ### 11. Notifications (`/api/v1/notifications`)
 - `GET /api/v1/notifications` and `GET /api/v1/notifications/unread-count` - Read the authenticated user's own inbox and unread count.
 - `PATCH /api/v1/notifications/:id/read` and `PATCH /api/v1/notifications/read-all` - Mark only the authenticated user's notifications as read.
+- `GET /api/v1/notifications/events` - Receive authenticated, user-scoped SSE notification events; refresh notification data through REST.
+- `POST/DELETE /api/v1/notifications/push-devices` - Register or unregister FCM tokens for authenticated student Android installations.
 - Reward approval requests, proposals and proposal messages, and activity verification submissions notify every active administrator and vice principal. Vice principals cannot read another user's inbox.
+
+Firebase Android setup and notification delivery behavior are documented in [Real-time and Android Push Notifications](./notifications-realtime.md).
 
 Vice principals are denied user, academic, pool, point-task, guidance-card, tier, ranking, and report APIs, even if they call those endpoints directly.

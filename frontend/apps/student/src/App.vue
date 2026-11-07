@@ -3,11 +3,12 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { App as CapacitorApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
-import { createNotificationCountRefresh } from '@student-reward/shared';
+import { createNotificationCountRefresh, createNotificationEventStream } from '@student-reward/shared';
 import { useAuthStore } from './stores/auth';
 import { useNotificationsStore } from './stores/notifications';
 import { useVersionStore } from './stores/version';
 import { setupMobileNavigation } from './services/mobileNavigation';
+import { createStudentPushNotifications } from './services/pushNotifications';
 import StudentHeader from './components/StudentHeader.vue';
 import StudentBottomNav from './components/StudentBottomNav.vue';
 import StudentConfirmDialog from './components/StudentConfirmDialog.vue';
@@ -34,9 +35,32 @@ const notificationRefresh = createNotificationCountRefresh({
       }
     : undefined,
 });
+function reconcileNotifications(): void {
+  void notifStore.fetchUnreadCount();
+  if (route.path === '/notifications') {
+    void notifStore.fetchNotifications(1);
+  }
+}
+const notificationEvents = createNotificationEventStream({
+  onNotification: reconcileNotifications,
+  onConnected: reconcileNotifications,
+});
+const studentPushNotifications = createStudentPushNotifications(() => {
+  void router.isReady().then(() => router.push('/notifications'));
+});
+let removeAppStateListener: (() => void) | undefined;
 const stopAuthWatch = watch(
   () => authStore.isAuthenticated,
-  (isAuthenticated) => notificationRefresh.setAuthenticated(isAuthenticated),
+  (isAuthenticated) => {
+    notificationRefresh.setAuthenticated(isAuthenticated);
+    if (isAuthenticated) {
+      notificationEvents.start();
+      void studentPushNotifications.start();
+    } else {
+      notificationEvents.stop();
+      void studentPushNotifications.stop();
+    }
+  },
   { immediate: true },
 );
 const removeRouteHook = router.afterEach((to, _from, failure) => {
@@ -49,6 +73,24 @@ const isAuthPage = computed(() => route.path === '/login');
 
 onMounted(async () => {
   notificationRefresh.start(authStore.isAuthenticated);
+
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const handle = await CapacitorApp.addListener('appStateChange', ({ isActive }) => {
+        notificationEvents.setActive(isActive);
+        if (isActive && authStore.isAuthenticated) {
+          void studentPushNotifications.start();
+        }
+      });
+      removeAppStateListener = () => {
+        void handle.remove().catch((error) => {
+          console.error('Failed to remove notification app-state listener:', error);
+        });
+      };
+    } catch (error) {
+      console.error('Failed to subscribe to notification app-state changes:', error);
+    }
+  }
 
   setupMobileNavigation(router, {
     isMandatoryUpdateActive: () => versionStore.isMandatoryUpdate,
@@ -67,6 +109,9 @@ onUnmounted(() => {
   stopAuthWatch();
   removeRouteHook();
   notificationRefresh.stop();
+  notificationEvents.stop();
+  void studentPushNotifications.stop();
+  removeAppStateListener?.();
 });
 
 async function confirmAppExit() {

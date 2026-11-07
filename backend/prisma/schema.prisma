@@ -150,6 +150,7 @@ model User {
   proposalMessages           TaskProposalMessage[]
   dailySnapshots             DailyStudentSnapshot[]
   notifications              Notification[]                  @relation("UserNotifications")
+  pushDevices                PushDevice[]
 
   @@map("users")
 }
@@ -469,3 +470,14 @@ model Notification {
   @@map("notifications")
 }
 
+model PushDevice {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique @db.VarChar(4096)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([userId])
+  @@map("push_devices")
+}

@@ -15,10 +15,12 @@
     "cap:build": "npm run build && cap sync android"
   },
   "dependencies": {
+    "@capacitor-firebase/messaging": "^8.6.0",
     "@capacitor/android": "^8.5.3",
     "@capacitor/app": "^8.1.2",
     "@capacitor/core": "^8.5.3",
     "@student-reward/shared": "*",
+    "firebase": "^12.19.0",
     "lucide-vue-next": "^0.378.0",
     "pinia": "^2.1.7",
     "vue": "^3.4.27",

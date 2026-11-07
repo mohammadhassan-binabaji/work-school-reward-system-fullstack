@@ -12,7 +12,8 @@ export class ApiClient {
   private csrfToken: string | null = null;
 
   constructor(baseUrl?: string) {
-    this.baseUrl = baseUrl || (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL) || '/api/v1';
+    this.baseUrl =
+      baseUrl || (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL) || '/api/v1';
     // Remove trailing slash if any
     this.baseUrl = this.baseUrl.replace(/\/+$/, '');
   }
@@ -203,6 +204,22 @@ export class ApiClient {
     return this.handleResponse<T>(res);
   }
 
+  public async openEventStream(path: string, signal: AbortSignal): Promise<Response> {
+    const url = `${this.baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
+    const headers: Record<string, string> = {};
+    const sessionId = this.getSessionId();
+    if (sessionId) {
+      headers['Authorization'] = `Bearer ${sessionId}`;
+    }
+
+    return fetch(url, {
+      method: 'GET',
+      headers,
+      credentials: this.getCredentialsMode(path),
+      signal,
+    });
+  }
+
   public async post<T>(path: string, body?: any): Promise<T> {
     const url = `${this.baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
     const headers = await this.getMutationHeaders(path);
@@ -239,12 +256,13 @@ export class ApiClient {
     return this.handleResponse<T>(res);
   }
 
-  public async delete<T>(path: string): Promise<T> {
+  public async delete<T>(path: string, body?: any): Promise<T> {
     const url = `${this.baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
     const headers = await this.getMutationHeaders(path);
     const res = await fetch(url, {
       method: 'DELETE',
       headers,
+      body: body ? JSON.stringify(body) : undefined,
       credentials: this.getCredentialsMode(path),
     });
     return this.handleResponse<T>(res);

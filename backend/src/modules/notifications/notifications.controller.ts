@@ -1,4 +1,16 @@
-import { Controller, Get, Patch, Param, Query, ParseUUIDPipe } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  MessageEvent,
+  Patch,
+  Param,
+  Query,
+  ParseUUIDPipe,
+  Post,
+  Sse,
+} from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -6,21 +18,58 @@ import {
   ApiBearerAuth,
   ApiCookieAuth,
   ApiParam,
+  ApiCreatedResponse,
+  ApiExcludeEndpoint,
 } from '@nestjs/swagger';
+import { Observable } from 'rxjs';
 import { NotificationsService } from './notifications.service';
+import { NotificationEventsService } from './notification-events.service';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { GetNotificationsQueryDto } from './dto/get-notifications-query.dto';
 import { PaginatedNotificationsDto } from './dto/paginated-notifications.dto';
 import { UnreadCountResponseDto } from './dto/unread-count-response.dto';
 import { NotificationResponseDto } from './dto/notification-response.dto';
 import { BulkReadResponseDto } from './dto/bulk-read-response.dto';
+import { PushDeviceDto } from './dto/push-device.dto';
 
 @ApiTags('notifications')
 @ApiBearerAuth()
 @ApiCookieAuth()
 @Controller('api/v1/notifications')
 export class NotificationsController {
-  constructor(private readonly notificationsService: NotificationsService) {}
+  constructor(
+    private readonly notificationsService: NotificationsService,
+    private readonly notificationEvents: NotificationEventsService,
+  ) {}
+
+  @Sse('events')
+  @ApiExcludeEndpoint()
+  stream(@CurrentUser('id') userId: string): Observable<MessageEvent> {
+    return this.notificationEvents.streamFor(userId);
+  }
+
+  @Post('push-devices')
+  @Roles('STUDENT')
+  @ApiOperation({ summary: 'Register an Android installation for push notifications' })
+  @ApiCreatedResponse({ description: 'Push device registered' })
+  async registerPushDevice(
+    @CurrentUser('id') userId: string,
+    @Body() dto: PushDeviceDto,
+  ): Promise<{ success: true }> {
+    await this.notificationsService.registerPushDevice(userId, dto.token);
+    return { success: true };
+  }
+
+  @Delete('push-devices')
+  @Roles('STUDENT')
+  @ApiOperation({ summary: 'Unregister an Android installation from push notifications' })
+  async unregisterPushDevice(
+    @CurrentUser('id') userId: string,
+    @Body() dto: PushDeviceDto,
+  ): Promise<{ removedCount: number }> {
+    return this.notificationsService.unregisterPushDevice(userId, dto.token);
+  }
 
   @Get()
   @ApiOperation({ summary: 'Retrieve authenticated user notification inbox' })

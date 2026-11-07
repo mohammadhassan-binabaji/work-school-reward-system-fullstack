@@ -276,6 +276,45 @@ describe('Notifications Integration Tests', () => {
     });
   });
 
+  describe('Android push device registration', () => {
+    it('supports multiple student devices and removes only the authenticated user device', async () => {
+      await request(app.getHttpServer())
+        .post('/api/v1/notifications/push-devices')
+        .set('Cookie', studentCookie)
+        .send({ token: 'student-device-token-1' })
+        .expect(201);
+      await request(app.getHttpServer())
+        .post('/api/v1/notifications/push-devices')
+        .set('Cookie', studentCookie)
+        .send({ token: 'student-device-token-2' })
+        .expect(201);
+
+      expect(await prisma.pushDevice.count({ where: { userId: studentId } })).toBe(2);
+
+      await request(app.getHttpServer())
+        .delete('/api/v1/notifications/push-devices')
+        .set('Cookie', student2Cookie)
+        .send({ token: 'student-device-token-1' })
+        .expect(200)
+        .expect({ removedCount: 0 });
+
+      await request(app.getHttpServer())
+        .delete('/api/v1/notifications/push-devices')
+        .set('Cookie', studentCookie)
+        .send({ token: 'student-device-token-1' })
+        .expect(200)
+        .expect({ removedCount: 1 });
+    });
+
+    it('does not allow non-students to register push devices', async () => {
+      await request(app.getHttpServer())
+        .post('/api/v1/notifications/push-devices')
+        .set('Cookie', adminCookie)
+        .send({ token: 'admin-device-token' })
+        .expect(403);
+    });
+  });
+
   describe('User Story 2: Marking Notifications as Read', () => {
     it('marks an individual notification as read and decrements unread count (FR-006)', async () => {
       const notification = await prisma.notification.create({

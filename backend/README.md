@@ -17,11 +17,13 @@ Modular Monolith backend service for the Student Reward System built with TypeSc
 ## Getting Started
 
 ### 1. Start Infrastructure Services
+
 ```bash
 docker compose up -d
 ```
 
 ### 2. Install Dependencies & Generate Prisma Client
+
 ```bash
 npm install
 npx prisma generate
@@ -29,16 +31,20 @@ npx prisma migrate dev --name init
 ```
 
 ### 3. Seed Database
+
 ```bash
 npm run prisma:seed
 ```
 
 ### 4. Run Service in Development Mode
+
 ```bash
 npm run start:dev
 ```
 
 Swagger API documentation is available at `http://localhost:3000/docs`.
+
+For real-time inbox updates and Android Firebase Cloud Messaging setup, see [Real-time and Android Push Notifications](../docs/notifications-realtime.md).
 
 ## Running Tests
 

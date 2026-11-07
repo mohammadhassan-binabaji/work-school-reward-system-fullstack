@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { api, type UserMe, type Role, type TierConfiguration } from '@student-reward/shared';
 import { clearNativeSession, isAndroidApp, storeNativeSession } from '../services/nativeAuth';
+import { unregisterCurrentPushToken } from '../services/pushNotifications';
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<UserMe | null>(null);
@@ -58,10 +59,7 @@ export const useAuthStore = defineStore('auth', () => {
       if (!isAndroidApp()) {
         await api.loadCsrfToken();
       }
-      const [userData] = await Promise.all([
-        api.get<UserMe>('/auth/me'),
-        fetchTierConfigurations(),
-      ]);
+      const [userData] = await Promise.all([api.get<UserMe>('/auth/me'), fetchTierConfigurations()]);
       user.value = userData;
       return true;
     } catch (err: any) {
@@ -93,8 +91,8 @@ export const useAuthStore = defineStore('auth', () => {
       const res = await api.post<{ sessionId?: string; role: Role; user: any }>(
         nativeApp ? '/auth/mobile-login' : '/auth/login',
         {
-        nationalId,
-        password,
+          nationalId,
+          password,
           rememberMe,
           client: 'student',
         },
@@ -146,6 +144,12 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function logout(): Promise<void> {
+    try {
+      await unregisterCurrentPushToken();
+    } catch (error) {
+      console.error('Failed to unregister Android push notifications:', error);
+    }
+
     try {
       await api.post('/auth/logout');
     } catch (error) {

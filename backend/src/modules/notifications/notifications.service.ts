@@ -110,4 +110,19 @@ export class NotificationsService {
 
     return { updatedCount: result.count };
   }
+
+  async registerPushDevice(userId: string, token: string): Promise<void> {
+    await this.prisma.pushDevice.upsert({
+      where: { token },
+      create: { userId, token },
+      update: { userId },
+    });
+  }
+
+  async unregisterPushDevice(userId: string, token: string): Promise<{ removedCount: number }> {
+    const result = await this.prisma.pushDevice.deleteMany({
+      where: { userId, token },
+    });
+    return { removedCount: result.count };
+  }
 }

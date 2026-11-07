@@ -12,6 +12,7 @@ export interface AppConfig {
   minioSecretKey: string;
   minioBucket: string;
   sessionSecret: string;
+  firebaseProjectId: string;
   allowedOrigins: string[];
   activityBanDurationDays: number;
 }
@@ -31,6 +32,7 @@ export const appConfig = registerAs('app', (): AppConfig => ({
   minioBucket: process.env.MINIO_BUCKET || 'student-rewards',
   sessionSecret:
     process.env.SESSION_SECRET || 'default-insecure-session-secret-change-in-production',
+  firebaseProjectId: process.env.FIREBASE_PROJECT_ID || '',
   allowedOrigins: (
     process.env.WEB_ORIGINS ||
     'https://student.mhbj.ir,https://teacher.mhbj.ir,https://admin.mhbj.ir,https://localhost,http://localhost:5173,http://localhost:5174,http://localhost:5175'

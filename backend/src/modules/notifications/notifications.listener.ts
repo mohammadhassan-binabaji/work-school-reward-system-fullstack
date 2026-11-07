@@ -6,6 +6,7 @@ import {
   OriginatingEntityType,
   RewardRequestStatus,
   ProposalStatus,
+  Prisma,
   Role,
   VerificationStatus,
 } from '@prisma/client';
@@ -23,12 +24,26 @@ import {
   ActivityUnblockEvent,
 } from './events/activity-events';
 import { NotificationFormatter } from './utils/notification-formatter';
+import { NotificationDeliveryService } from './notification-delivery.service';
 
 @Injectable()
 export class NotificationsListener {
   private readonly logger = new Logger(NotificationsListener.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly delivery: NotificationDeliveryService,
+  ) {}
+
+  private async createNotification(data: Prisma.NotificationUncheckedCreateInput): Promise<void> {
+    const notification = await this.prisma.notification.create({ data });
+    this.delivery.dispatch(notification);
+  }
+
+  private async createNotifications(data: Prisma.NotificationCreateManyInput[]): Promise<void> {
+    const notifications = await this.prisma.notification.createManyAndReturn({ data });
+    notifications.forEach((notification) => this.delivery.dispatch(notification));
+  }
 
   private async isRecipientActive(userId: string): Promise<boolean> {
     const user = await this.prisma.user.findUnique({
@@ -70,14 +85,12 @@ export class NotificationsListener {
     this.logger.log(
       `Creating reward status notification for student ${event.studentId}: ${formatted.subject}`,
     );
-    await this.prisma.notification.create({
-      data: {
-        recipientId: event.studentId,
-        subject: formatted.subject,
-        body: formatted.body,
-        originatingEntityType: OriginatingEntityType.REWARD_REQUEST,
-        originatingEntityId: event.requestId,
-      },
+    await this.createNotification({
+      recipientId: event.studentId,
+      subject: formatted.subject,
+      body: formatted.body,
+      originatingEntityType: OriginatingEntityType.REWARD_REQUEST,
+      originatingEntityId: event.requestId,
     });
   }
 
@@ -95,15 +108,15 @@ export class NotificationsListener {
     this.logger.log(
       `Broadcasting reward approval review alert to ${adminIds.length} administrators for request ${event.requestId}`,
     );
-    await this.prisma.notification.createMany({
-      data: adminIds.map((adminId) => ({
+    await this.createNotifications(
+      adminIds.map((adminId) => ({
         recipientId: adminId,
         subject: formatted.subject,
         body: formatted.body,
         originatingEntityType: OriginatingEntityType.REWARD_REQUEST,
         originatingEntityId: event.requestId,
       })),
-    });
+    );
   }
 
   @OnEvent('proposal.status_changed')
@@ -123,14 +136,12 @@ export class NotificationsListener {
       return;
     }
 
-    await this.prisma.notification.create({
-      data: {
-        recipientId: event.studentId,
-        subject: formatted.subject,
-        body: formatted.body,
-        originatingEntityType: OriginatingEntityType.TASK_PROPOSAL,
-        originatingEntityId: event.proposalId,
-      },
+    await this.createNotification({
+      recipientId: event.studentId,
+      subject: formatted.subject,
+      body: formatted.body,
+      originatingEntityType: OriginatingEntityType.TASK_PROPOSAL,
+      originatingEntityId: event.proposalId,
     });
   }
 
@@ -144,15 +155,15 @@ export class NotificationsListener {
       event.proposalDescriptionSummary,
     );
 
-    await this.prisma.notification.createMany({
-      data: adminIds.map((adminId) => ({
+    await this.createNotifications(
+      adminIds.map((adminId) => ({
         recipientId: adminId,
         subject: formatted.subject,
         body: formatted.body,
         originatingEntityType: OriginatingEntityType.TASK_PROPOSAL,
         originatingEntityId: event.proposalId,
       })),
-    });
+    );
   }
 
   @OnEvent('proposal.message')
@@ -166,14 +177,12 @@ export class NotificationsListener {
         event.senderRole,
       );
 
-      await this.prisma.notification.create({
-        data: {
-          recipientId: event.studentId,
-          subject: formatted.subject,
-          body: formatted.body,
-          originatingEntityType: OriginatingEntityType.PROPOSAL_MESSAGE,
-          originatingEntityId: event.proposalId,
-        },
+      await this.createNotification({
+        recipientId: event.studentId,
+        subject: formatted.subject,
+        body: formatted.body,
+        originatingEntityType: OriginatingEntityType.PROPOSAL_MESSAGE,
+        originatingEntityId: event.proposalId,
       });
     } else if (event.senderRole === Role.STUDENT) {
       const adminIds = await this.getActiveAdministratorIds();
@@ -184,8 +193,8 @@ export class NotificationsListener {
         event.messagePreview,
       );
 
-      await this.prisma.notification.createMany({
-        data: adminIds
+      await this.createNotifications(
+        adminIds
           .filter((id) => id !== event.senderId)
           .map((adminId) => ({
             recipientId: adminId,
@@ -194,7 +203,7 @@ export class NotificationsListener {
             originatingEntityType: OriginatingEntityType.PROPOSAL_MESSAGE,
             originatingEntityId: event.proposalId,
           })),
-      });
+      );
     }
   }
 
@@ -209,15 +218,15 @@ export class NotificationsListener {
       event.activityTitle,
     );
 
-    await this.prisma.notification.createMany({
-      data: adminIds.map((adminId) => ({
+    await this.createNotifications(
+      adminIds.map((adminId) => ({
         recipientId: adminId,
         subject: formatted.subject,
         body: formatted.body,
         originatingEntityType: OriginatingEntityType.CHALLENGE_VERIFICATION,
         originatingEntityId: event.verificationId,
       })),
-    });
+    );
   }
 
   @OnEvent('verification.reviewed')
@@ -241,14 +250,12 @@ export class NotificationsListener {
       return;
     }
 
-    await this.prisma.notification.create({
-      data: {
-        recipientId: event.studentId,
-        subject: formatted.subject,
-        body: formatted.body,
-        originatingEntityType: OriginatingEntityType.CHALLENGE_VERIFICATION,
-        originatingEntityId: event.verificationId,
-      },
+    await this.createNotification({
+      recipientId: event.studentId,
+      subject: formatted.subject,
+      body: formatted.body,
+      originatingEntityType: OriginatingEntityType.CHALLENGE_VERIFICATION,
+      originatingEntityId: event.verificationId,
     });
   }
 
@@ -261,14 +268,12 @@ export class NotificationsListener {
       event.bannedUntil,
     );
 
-    await this.prisma.notification.create({
-      data: {
-        recipientId: event.studentId,
-        subject: formatted.subject,
-        body: formatted.body,
-        originatingEntityType: OriginatingEntityType.ACTIVITY_BAN,
-        originatingEntityId: event.activityId,
-      },
+    await this.createNotification({
+      recipientId: event.studentId,
+      subject: formatted.subject,
+      body: formatted.body,
+      originatingEntityType: OriginatingEntityType.ACTIVITY_BAN,
+      originatingEntityId: event.activityId,
     });
   }
 
@@ -278,14 +283,12 @@ export class NotificationsListener {
 
     const formatted = NotificationFormatter.formatActivityUnblock(event.activityTitle);
 
-    await this.prisma.notification.create({
-      data: {
-        recipientId: event.studentId,
-        subject: formatted.subject,
-        body: formatted.body,
-        originatingEntityType: OriginatingEntityType.ACTIVITY_UNBLOCK,
-        originatingEntityId: event.activityId,
-      },
+    await this.createNotification({
+      recipientId: event.studentId,
+      subject: formatted.subject,
+      body: formatted.body,
+      originatingEntityType: OriginatingEntityType.ACTIVITY_UNBLOCK,
+      originatingEntityId: event.activityId,
     });
   }
 
@@ -299,14 +302,12 @@ export class NotificationsListener {
       event.taskName,
     );
 
-    await this.prisma.notification.create({
-      data: {
-        recipientId: event.studentId,
-        subject: formatted.subject,
-        body: formatted.body,
-        originatingEntityType: OriginatingEntityType.POINT_AWARD,
-        originatingEntityId: event.auditLogId,
-      },
+    await this.createNotification({
+      recipientId: event.studentId,
+      subject: formatted.subject,
+      body: formatted.body,
+      originatingEntityType: OriginatingEntityType.POINT_AWARD,
+      originatingEntityId: event.auditLogId,
     });
   }
 
@@ -320,14 +321,12 @@ export class NotificationsListener {
       event.actorRole,
     );
 
-    await this.prisma.notification.create({
-      data: {
-        recipientId: event.studentId,
-        subject: formatted.subject,
-        body: formatted.body,
-        originatingEntityType: OriginatingEntityType.POINT_ADJUSTMENT,
-        originatingEntityId: event.auditLogId,
-      },
+    await this.createNotification({
+      recipientId: event.studentId,
+      subject: formatted.subject,
+      body: formatted.body,
+      originatingEntityType: OriginatingEntityType.POINT_ADJUSTMENT,
+      originatingEntityId: event.auditLogId,
     });
   }
 
@@ -341,14 +340,12 @@ export class NotificationsListener {
       event.recipientRole,
     );
 
-    await this.prisma.notification.create({
-      data: {
-        recipientId: event.recipientId,
-        subject: formatted.subject,
-        body: formatted.body,
-        originatingEntityType: OriginatingEntityType.POINT_ALLOCATION,
-        originatingEntityId: event.auditLogId,
-      },
+    await this.createNotification({
+      recipientId: event.recipientId,
+      subject: formatted.subject,
+      body: formatted.body,
+      originatingEntityType: OriginatingEntityType.POINT_ALLOCATION,
+      originatingEntityId: event.auditLogId,
     });
   }
 }

@@ -3257,6 +3257,107 @@ paths:
   # ==========================================
   # IN-APP NOTIFICATIONS
   # ==========================================
+  /notifications/events:
+    get:
+      summary: Stream live notification events
+      description: |
+        Opens an authenticated Server-Sent Events stream scoped to the current user.
+        A `notification` event contains the ID of a newly persisted notification; clients
+        should fetch authoritative notification data and unread counts from the REST API.
+        Periodic `ping` events keep the connection alive.
+      operationId: streamNotificationEvents
+      tags:
+        - Notifications
+      security:
+        - SessionAuth: []
+      responses:
+        '200':
+          description: Server-Sent Events stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                example: |
+                  event: notification
+                  data: {"notificationId":"00000000-0000-0000-0000-000000000001"}
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /notifications/push-devices:
+    post:
+      summary: Register an Android push device
+      description: Registers or reassigns an FCM token to the authenticated student.
+      operationId: registerNotificationPushDevice
+      tags:
+        - Notifications
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token:
+                  type: string
+                  minLength: 1
+                  maxLength: 4096
+                  description: Firebase Cloud Messaging installation token
+      responses:
+        '201':
+          description: Push device registered
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success]
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: Only students can register Android push devices
+    delete:
+      summary: Unregister an Android push device
+      description: Removes the supplied FCM token only if it belongs to the authenticated student.
+      operationId: unregisterNotificationPushDevice
+      tags:
+        - Notifications
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token:
+                  type: string
+                  minLength: 1
+                  maxLength: 4096
+                  description: Firebase Cloud Messaging installation token
+      responses:
+        '200':
+          description: Push device unregister result
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [removedCount]
+                properties:
+                  removedCount:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: Only students can unregister Android push devices
+
   /notifications:
     get:
       summary: Retrieve authenticated user's notification inbox

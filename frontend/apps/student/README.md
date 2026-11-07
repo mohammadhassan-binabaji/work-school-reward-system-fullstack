@@ -165,3 +165,7 @@ location = /app-version.json {
    * نوع بیلد (Build Variant) را روی **release** قرار دهید.
    * هر دو گزینه **V1 (Jar Signature)** و **V2 (Full APK Signature)** را تیک بزنید.
    * دکمه **Finish** را بزنید تا خروجی نهایی تولید شود. فایل‌های کامپایل‌شده در مسیر `android/app/release/` قرار خواهند گرفت.
+
+## Real-time and FCM push notifications
+
+The Android app registers its FCM token after the student authenticates and receives native system alerts while backgrounded or closed. Firebase project setup, `google-services.json`, backend service-account configuration, permissions, logout behavior, and verification steps are documented in [Real-time and Android Push Notifications](../../../docs/notifications-realtime.md).
