@@ -17,6 +17,23 @@ export interface AppConfig {
   activityBanDurationDays: number;
 }
 
+function getAllowedOrigins(): string[] {
+  const webOrigins = process.env.WEB_ORIGINS;
+  if (!webOrigins?.trim()) {
+    throw new Error('WEB_ORIGINS must be configured in the backend environment.');
+  }
+
+  const allowedOrigins = webOrigins
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+  if (allowedOrigins.length === 0) {
+    throw new Error('WEB_ORIGINS must contain at least one allowed origin.');
+  }
+
+  return allowedOrigins;
+}
+
 export const appConfig = registerAs('app', (): AppConfig => ({
   port: parseInt(process.env.PORT || '3000', 10),
   databaseUrl:
@@ -33,12 +50,6 @@ export const appConfig = registerAs('app', (): AppConfig => ({
   sessionSecret:
     process.env.SESSION_SECRET || 'default-insecure-session-secret-change-in-production',
   firebaseProjectId: process.env.FIREBASE_PROJECT_ID || '',
-  allowedOrigins: (
-    process.env.WEB_ORIGINS ||
-    'https://student.mhbj.ir,https://teacher.mhbj.ir,https://admin.mhbj.ir,https://localhost,http://localhost:5173,http://localhost:5174,http://localhost:5175'
-  )
-    .split(',')
-    .map((origin) => origin.trim())
-    .filter(Boolean),
+  allowedOrigins: getAllowedOrigins(),
   activityBanDurationDays: parseInt(process.env.ACTIVITY_BAN_DURATION_DAYS || '30', 10),
 }));

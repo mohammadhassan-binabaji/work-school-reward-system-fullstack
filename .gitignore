@@ -56,14 +56,18 @@ jspm_packages/
 
 # dotenv environment variable files
 .env
+.env.*
+!.env.example
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+*.local
 
 # Build outputs
 dist/
 build/
+!frontend/apps/student/android/app/build/
 
 # Uploads directory
 uploads/
@@ -77,3 +81,7 @@ Thumbs.db
 .idea/
 
 downloads/
+
+# Machine-local Spec Kit state
+/.specify/feature.json
+/.specify/extensions/*/local-config.yml

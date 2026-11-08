@@ -109,9 +109,17 @@ export function validateVersionConfig(data: unknown): AppVersionConfig {
     throw new Error('آدرس دریافت به‌روزرسانی (updateUrl) مشخص نشده است.');
   }
 
+  const updateUrl = record.updateUrl.trim();
   try {
-    // Validate valid URL syntax
-    new URL(record.updateUrl);
+    const isAbsoluteHttpUrl = /^https?:\/\//i.test(updateUrl);
+    const isRootRelativeUrl = updateUrl.startsWith('/') && !updateUrl.startsWith('//');
+    const parsedUrl = new URL(updateUrl, 'https://version-config.invalid');
+    if (
+      (!isAbsoluteHttpUrl && !isRootRelativeUrl) ||
+      !['http:', 'https:'].includes(parsedUrl.protocol)
+    ) {
+      throw new Error('Unsupported URL protocol');
+    }
   } catch {
     throw new Error(`آدرس اینترنتی updateUrl ساختار معتبری ندارد: "${record.updateUrl}"`);
   }
@@ -120,7 +128,7 @@ export function validateVersionConfig(data: unknown): AppVersionConfig {
     platform: 'android',
     latestVersion: record.latestVersion.trim(),
     minimumVersion: record.minimumVersion.trim(),
-    updateUrl: record.updateUrl.trim(),
+    updateUrl,
     message: typeof record.message === 'string' ? record.message : undefined,
   };
 }
@@ -190,20 +198,7 @@ export function resolveVersionConfigUrl(): string {
     return '/app-version.json';
   }
 
-  // 3. In Native Android, relative path resolves to local WebView origin (https://localhost/app-version.json),
-  // which will never receive updates pushed to the server. If VITE_API_BASE_URL is set, derive origin.
-  const apiBase = (import.meta as any).env?.VITE_API_BASE_URL;
-  if (apiBase && typeof apiBase === 'string') {
-    try {
-      const parsed = new URL(apiBase);
-      return `${parsed.origin}/app-version.json`;
-    } catch {
-      // Fallback
-    }
-  }
-
-  // Fallback to relative path
-  return '/app-version.json';
+  throw new Error('VITE_APP_VERSION_URL must be configured for the native Android build.');
 }
 
 /**
@@ -231,7 +226,11 @@ export async function fetchRemoteVersionConfig(
     }
 
     const data = await res.json();
-    return validateVersionConfig(data);
+    const config = validateVersionConfig(data);
+    return {
+      ...config,
+      updateUrl: new URL(config.updateUrl, res.url || fetchUrl).toString(),
+    };
   } catch (err: any) {
     if (err.name === 'AbortError') {
       throw new Error('زمان انتظار برای دریافت وضعیت نسخه به پایان رسید.');

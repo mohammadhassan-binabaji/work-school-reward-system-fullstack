@@ -1,0 +1,10 @@
+# Backend-local environment files. Keep the template shareable.
+.env
+.env.*
+!.env.example
+
+# Backend-generated files
+/dist/
+/coverage/
+/uploads/
+/*.tsbuildinfo

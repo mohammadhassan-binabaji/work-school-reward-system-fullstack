@@ -412,13 +412,20 @@ export function resolveFileUrl(
       if (!rawBase && env?.VITE_API_BASE_URL) {
         try {
           rawBase = new URL(env.VITE_API_BASE_URL).origin;
-        } catch {
-          // ignore parsing error
+        } catch (error) {
+          throw new Error(
+            'VITE_API_BASE_URL must be a valid absolute URL to resolve uploaded files.',
+            {
+              cause: error,
+            },
+          );
         }
       }
     }
     if (!rawBase) {
-      rawBase = 'https://student.mhbj.ir';
+      throw new Error(
+        'VITE_STORAGE_BASE_URL or VITE_API_BASE_URL must be configured to resolve uploaded files.',
+      );
     }
 
     const cleanBase = rawBase.replace(/\/+$/, '');

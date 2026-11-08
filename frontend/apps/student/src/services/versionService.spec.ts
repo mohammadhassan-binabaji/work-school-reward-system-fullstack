@@ -43,7 +43,6 @@ describe('versionService', () => {
       expect(compareSemver('1.0', '1.0.1')).toBeLessThan(0);
       expect(compareSemver('1.1', '1.0.9')).toBeGreaterThan(0);
     });
-
     it('handles major version differences', () => {
       expect(compareSemver('2.0.0', '1.0.0')).toBeGreaterThan(0);
       expect(compareSemver('1.0.0', '2.0.0')).toBeLessThan(0);
@@ -112,6 +111,16 @@ describe('versionService', () => {
       };
       expect(() => validateVersionConfig(invalid)).toThrowError(/updateUrl/);
     });
+
+    it('accepts a root-relative update URL', () => {
+      const valid = {
+        platform: 'android',
+        latestVersion: '2.0.0',
+        minimumVersion: '1.0.0',
+        updateUrl: '/download/student.apk',
+      };
+      expect(validateVersionConfig(valid).updateUrl).toBe('/download/student.apk');
+    });
   });
 
   describe('evaluateVersion', () => {
@@ -171,6 +180,22 @@ describe('versionService', () => {
       const result = await fetchRemoteVersionConfig('https://api.example.com/app-version.json');
       expect(result.latestVersion).toBe('1.2.0');
       expect(result.minimumVersion).toBe('1.0.0');
+    });
+
+    it('resolves a root-relative update URL against the version config origin', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        url: 'https://student.example.com/app-version.json',
+        json: async () => ({
+          platform: 'android',
+          latestVersion: '1.2.0',
+          minimumVersion: '1.0.0',
+          updateUrl: '/download/student.apk',
+        }),
+      } as any);
+
+      const result = await fetchRemoteVersionConfig('https://student.example.com/app-version.json');
+      expect(result.updateUrl).toBe('https://student.example.com/download/student.apk');
     });
 
     it('handles non-200 HTTP responses', async () => {
@@ -235,4 +260,3 @@ describe('versionService', () => {
     });
   });
 });
-

@@ -18,7 +18,7 @@ There is no delivery queue or retry worker. If a live connection or FCM send fai
 ### Firebase project
 
 1. Create or select a Firebase project and enable Firebase Cloud Messaging / the FCM HTTP v1 API.
-2. Add an Android app with package ID `ir.mhbj.student`.
+2. Add an Android app using the package ID configured by `VITE_ANDROID_APP_ID` in `frontend/.env`.
 3. Download that app's `google-services.json` and place it at:
 
    ```text

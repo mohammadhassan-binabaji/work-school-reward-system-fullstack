@@ -1,5 +1,63 @@
-node_modules/
-dist/
-.DS_Store
-*.local
-.env
+# Android build artifacts
+/apps/student/android/**/*.apk
+/apps/student/android/**/*.aar
+/apps/student/android/**/*.ap_
+/apps/student/android/**/*.aab
+/apps/student/android/**/*.dex
+/apps/student/android/**/*.class
+
+# Android generated and local files
+/apps/student/android/**/bin/
+/apps/student/android/**/gen/
+/apps/student/android/**/out/
+/apps/student/android/**/.gradle/
+/apps/student/android/**/build/
+/apps/student/android/**/local.properties
+/apps/student/android/**/proguard/
+/apps/student/android/**/*.log
+/apps/student/android/**/.navigation/
+/apps/student/android/**/captures/
+/apps/student/android/**/*.iml
+/apps/student/android/**/.idea/workspace.xml
+/apps/student/android/**/.idea/tasks.xml
+/apps/student/android/**/.idea/gradle.xml
+/apps/student/android/**/.idea/assetWizardSettings.xml
+/apps/student/android/**/.idea/dictionaries/
+/apps/student/android/**/.idea/libraries/
+/apps/student/android/**/.idea/caches/
+/apps/student/android/**/.idea/modules.xml
+/apps/student/android/**/.idea/navEditor.xml
+/apps/student/android/**/.externalNativeBuild/
+/apps/student/android/**/.cxx/
+/apps/student/android/**/google-services.json
+/apps/student/android/**/freeline.py
+/apps/student/android/**/freeline/
+/apps/student/android/**/freeline_project_description.json
+/apps/student/android/**/fastlane/report.xml
+/apps/student/android/**/fastlane/Preview.html
+/apps/student/android/**/fastlane/screenshots/
+/apps/student/android/**/fastlane/test_output/
+/apps/student/android/**/fastlane/readme.md
+/apps/student/android/**/vcs.xml
+/apps/student/android/**/lint/intermediates/
+/apps/student/android/**/lint/generated/
+/apps/student/android/**/lint/outputs/
+/apps/student/android/**/lint/tmp/
+/apps/student/android/**/*.hprof
+/apps/student/android/**/capacitor-cordova-android-plugins/
+
+# Allow the app build directory exception configured by the root ignore file.
+!/apps/student/android/app/build/
+
+# Capacitor-generated Android assets and configuration
+/apps/student/android/app/src/main/assets/public/
+/apps/student/android/app/src/main/assets/capacitor.config.json
+/apps/student/android/app/src/main/assets/capacitor.plugins.json
+/apps/student/android/app/src/main/res/xml/config.xml
+
+# Generated Android release metadata
+/apps/student/android/app/release/**/output-metadata.json
+
+# Keep the app build directory available for its .npmkeep marker only.
+/apps/student/android/app/build/*
+!/apps/student/android/app/build/.npmkeep

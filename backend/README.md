@@ -16,6 +16,8 @@ Modular Monolith backend service for the Student Reward System built with TypeSc
 
 ## Getting Started
 
+Copy `.env.example` to `.env` and configure the backend settings. `WEB_ORIGINS` is required and must list the browser and Capacitor origins allowed to call the API.
+
 ### 1. Start Infrastructure Services
 
 ```bash

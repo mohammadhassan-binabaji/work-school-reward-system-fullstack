@@ -1,4 +1,4 @@
-package ir.mhbj.student;
+package com.studentreward.student;
 
 import android.os.Bundle;
 

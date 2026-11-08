@@ -25,15 +25,15 @@ describe('resolveFileUrl', () => {
   });
 
   it('resolves remote upload paths with base URL', () => {
-    expect(resolveFileUrl('/uploads/user-avatar.png', { baseUrl: 'https://student.mhbj.ir' }))
-      .toBe('https://student.mhbj.ir/uploads/user-avatar.png');
+    expect(resolveFileUrl('/uploads/user-avatar.png', { baseUrl: 'https://student.example.com' }))
+      .toBe('https://student.example.com/uploads/user-avatar.png');
 
-    expect(resolveFileUrl('uploads/reward.jpg', { baseUrl: 'https://student.mhbj.ir/' }))
-      .toBe('https://student.mhbj.ir/uploads/reward.jpg');
+    expect(resolveFileUrl('uploads/reward.jpg', { baseUrl: 'https://student.example.com/' }))
+      .toBe('https://student.example.com/uploads/reward.jpg');
   });
 
   it('supports remote flag for custom backend paths', () => {
-    expect(resolveFileUrl('/custom-files/doc.pdf', { remote: true, baseUrl: 'https://files.mhbj.ir' }))
-      .toBe('https://files.mhbj.ir/custom-files/doc.pdf');
+    expect(resolveFileUrl('/custom-files/doc.pdf', { remote: true, baseUrl: 'https://files.example.com' }))
+      .toBe('https://files.example.com/custom-files/doc.pdf');
   });
 });

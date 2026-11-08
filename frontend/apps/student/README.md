@@ -8,8 +8,8 @@
 
 * **محیط فریم‌ورک وب:** Vue 3 + Vite + TypeScript + Pinia + Tailwind CSS
 * **نسخه خازن (Capacitor):** `8.5.3` (شامل `@capacitor/core`، `@capacitor/android`، `@capacitor/cli` و افزونه `@capacitor/app@8.1.2`)
-* **شناسه برنامه (Application ID / Package Name):** `ir.mhbj.student`
-  > **نکته بسیار مهم:** شناسه برنامه (`appId`) شناسه یکتا و ثابت اپلیکیشن در پلتفرم اندروید و فروشگاه‌های نرم‌افزاری (کافه‌بازار، مایکت، گوگل پلی) است. تغییر این شناسه پس از انتشار عمومی، امکان به‌روزرسانی نسخه‌های قبلی کاربران را از بین برده و برنامه به عنوان یک اپلیکیشن کاملاً مجزا شناخته خواهد شد.
+* **شناسه برنامه (Application ID / Package Name):** از `VITE_ANDROID_APP_ID` در `frontend/.env` خوانده می‌شود.
+  > **نکته بسیار مهم:** شناسه برنامه (`appId`) شناسه یکتا و ثابت اپلیکیشن در پلتفرم اندروید و فروشگاه‌های نرم‌افزاری است. شناسه فعلی را پس از انتشار عمومی تغییر ندهید؛ تغییر آن امکان به‌روزرسانی نسخه‌های قبلی کاربران را از بین می‌برد.
 * **نام نمایشی برنامه (App Name):** `نوین من`
 * **مسیر پروژه نیتیو اندروید:** `frontend/apps/student/android`
 * **پوشه بیلد وب (Web Directory):** `frontend/apps/student/dist`
@@ -71,22 +71,18 @@ npm --prefix frontend run cap:open:student
 کلاینت متمرکز HTTP (`ApiClient`) و سرویس نسخه از متغیرهای محیطی استاندارد Vite استفاده می‌کنند.
 
 ### ۴.۱. محیط توسعه محلی (Local Development)
-در فایل `.env.example`:
+در فایل مشترک `frontend/.env` (که از `frontend/.env.example` ساخته می‌شود):
 * **در مرورگر وب سیستم:** درخواست‌ها از مسیر هم‌مبدأ `/api/v1` عبور می‌کنند و Vite آن مسیر را در توسعه به بک‌اند proxy می‌کند.
 * **در شبیه‌ساز اندروید (Android Emulator):** آدرس `localhost` در شبیه‌ساز به خود دستگاه مجازی اشاره دارد، نه سیستم میزبان شما. برای اتصال از شبیه‌ساز به سرور بک‌اند در پورت ۳۰۰۰ سیستم میزبان، از آدرس آی‌پی روتر مجازی اندروید استفاده کنید:
   ```env
   VITE_API_BASE_URL=http://10.0.2.2:3000/api/v1
+  VITE_STORAGE_BASE_URL=http://10.0.2.2:3000
+  VITE_APP_VERSION_URL=http://10.0.2.2:5173/app-version.json
   ```
 * **در دستگاه واقعی (Physical Device via Wi-Fi):** از آی‌پی شبکه محلی سیستم (مانند `http://192.168.1.50:3000/api/v1`) استفاده فرمایید.
 
 ### ۴.۲. محیط تولید واقعی (Production)
-برای بیلد نهایی اپلیکیشن:
-1. فایل `frontend/apps/student/.env.production.example` را کپی کرده و به نام `.env.production` ذخیره نمایید.
-2. آدرس واقعی با پروتکل امن **HTTPS** را وارد کنید:
-   ```env
-   VITE_API_BASE_URL=https://api.mhbj.ir/api/v1
-   VITE_APP_VERSION_URL=https://student.mhbj.ir/app-version.json
-   ```
+برای بیلد نهایی، مقدارهای API، مبدأ ذخیره‌سازی و فایل نسخه را در همان فایل `frontend/.env` با نشانی‌های واقعی **HTTPS** تنظیم کنید. `VITE_ANDROID_APP_ID` نیز باید شناسه انتشار فعلی باقی بماند.
 > **هشدار امنیتی:** پروتکل HTTP بدون رمزنگاری (Cleartext HTTP) در نسخه‌های پروداکشن اندروید به صورت پیش‌فرض توسط سیستم‌عامل مسدود می‌شود. از آدرس‌های `localhost` یا پروتکل‌های ناامن در پروداکشن استفاده نکنید. همچنین کلیدهای محرمانه نباید در متغیرهای فرانت‌اند قرار گیرند، زیرا در خروجی برنامه کامپایل می‌شوند.
 
 ### نشست ورود و ذخیره گذرواژه
@@ -110,10 +106,11 @@ npm --prefix frontend run cap:open:student
   "platform": "android",
   "latestVersion": "1.0.0",
   "minimumVersion": "1.0.0",
-  "updateUrl": "https://yourdomain.com/download/student-app.apk",
+  "updateUrl": "/download/student.apk",
   "message": "نسخه جدید سامانه پاداش دانش‌آموزی در دسترس است. لطفاً برنامه را به‌روزرسانی کنید."
 }
 ```
+مسیر نسبی `updateUrl` نسبت به مبدأیی resolve می‌شود که فایل نسخه از آن دریافت شده است؛ بنابراین نیازی به ثبت دامنه در JSON نیست.
 
 ### ۵.۲. تفاوت `versionName` و `versionCode`
 در فایل `frontend/apps/student/android/app/build.gradle`:

@@ -10,6 +10,7 @@ const config: Config = {
     '<rootDir>/test/e2e/**/*.ts',
   ],
   testPathIgnorePatterns: ['/node_modules/', '/test/helpers/'],
+  setupFiles: ['<rootDir>/test/setup-env.ts'],
   transform: {
     '^.+\\.(t|j)s$': 'ts-jest',
   },

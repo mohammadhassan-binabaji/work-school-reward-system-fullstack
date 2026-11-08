@@ -2,6 +2,4 @@
 <resources>
     <string name="app_name">نوین من</string>
     <string name="title_activity_main">نوین من</string>
-    <string name="package_name">ir.mhbj.student</string>
-    <string name="custom_url_scheme">ir.mhbj.student</string>
 </resources>

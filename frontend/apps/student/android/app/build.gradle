@@ -1,10 +1,26 @@
 apply plugin: 'com.android.application'
 
+def frontendEnv = new Properties()
+def frontendEnvFile = rootProject.file('../../../.env')
+if (frontendEnvFile.exists()) {
+    frontendEnvFile.withInputStream { frontendEnv.load(it) }
+}
+
+def androidAppId = System.getenv('VITE_ANDROID_APP_ID') ?: frontendEnv.getProperty('VITE_ANDROID_APP_ID')?.trim()
+if (!androidAppId) {
+    throw new GradleException('VITE_ANDROID_APP_ID must be configured in frontend/.env.')
+}
+if (!(androidAppId ==~ /[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)+/)) {
+    throw new GradleException('VITE_ANDROID_APP_ID must be a valid Android application ID.')
+}
+
 android {
-    namespace = "ir.mhbj.student"
+    namespace = "com.studentreward.student"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "ir.mhbj.student"
+        applicationId androidAppId
+        resValue "string", "package_name", androidAppId
+        resValue "string", "custom_url_scheme", androidAppId
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 8

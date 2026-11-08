@@ -169,25 +169,29 @@ npm run typecheck
 
 ## ۶. تنظیم متغیرهای محیطی (Environment Variables)
 
-در پوشه هر برنامه فایل نمونه `.env.example` قرار داده شده است. آدرس پایه API بک‌اند از طریق متغیر `VITE_API_BASE_URL` تعیین می‌شود:
+برای هر سه اپلیکیشن، یک فایل محیطی مشترک در ریشه `frontend` استفاده می‌شود. فایل `.env.example` را به `.env` کپی کرده و مقادیر متناسب با محیط را تنظیم کنید:
 
 | متغیر | مقدار پیش‌فرض | توضیحات |
 | :--- | :--- | :--- |
-| `VITE_API_BASE_URL` | `http://localhost:3000/api/v1` | آدرس ریشه اندپوینت‌های API بک‌اند |
+| `VITE_API_BASE_URL` | `http://localhost:3000/api/v1` | آدرس کامل API برای اتصال مستقیم اپلیکیشن‌ها |
+| `VITE_API_PROXY_TARGET` | `http://localhost:3000` | مقصد proxy توسعه Vite (در صورت نیاز) |
+| `VITE_STORAGE_BASE_URL` | `http://localhost:3000` | مبدأ فایل‌های بارگذاری‌شده |
+| `VITE_APP_VERSION_URL` | `http://localhost:5173/app-version.json` | نشانی فایل نسخه برای اپلیکیشن دانش‌آموز و Android |
+| `VITE_ANDROID_APP_ID` | شناسه فعلی انتشار | شناسه بسته Android؛ پس از انتشار تغییر ندهید |
 
-در صورت عدم تنظیم، کلاینت مشترک `api.ts` به صورت پیش‌فرض با `http://localhost:3000/api/v1` ارتباط برقرار می‌کند.
+تنظیمات `VITE_*` عمومی هستند و داخل خروجی وب/موبایل قرار می‌گیرند؛ کلیدها و اطلاعات محرمانه را فقط در فایل محیطی بک‌اند نگه دارید. تنظیمات ضروری هنگام راه‌اندازی Vite یا ساخت/همگام‌سازی Android، در صورت نبودن، خطای واضح ایجاد می‌کنند. CORS بک‌اند از `WEB_ORIGINS` در `backend/.env` خوانده می‌شود.
 
 ---
 
-## ۷. نقشه استقرار و دامنه‌ها (Deployment Domains)
+## ۷. استقرار دامنه‌ها (Deployment Domains)
 
-با توجه به ماهیت مستقل اپلیکیشن‌ها، هر برنامه خروجی در پوشه `dist` خود تولید می‌کند و می‌تواند بر روی دامنه‌های جداگانه مستقر شود:
+هر برنامه خروجی جداگانه‌ای در پوشه `dist` خود تولید می‌کند و می‌تواند روی میزبان/دامنه مستقل مستقر شود. دامنه‌های استقرار در پیکربندی DNS و میزبانی مدیریت می‌شوند؛ هیچ دامنه‌ای در کد برنامه ثابت نشده است. هنگام تغییر مبدأهای API یا فایل، مقدارهای `VITE_API_BASE_URL`، `VITE_STORAGE_BASE_URL` و `VITE_APP_VERSION_URL` را در `frontend/.env` تنظیم کنید و مبدأهای وب را در `backend/.env` برای `WEB_ORIGINS` مجاز کنید.
 
 | اپلیکیشن | پوشه خروجی | دامنه پیشنهادی در محیط استقرار | تارگت و نوع دستگاه |
 | :--- | :--- | :--- | :--- |
-| دانش‌آموز | `apps/student/dist` | `student.mhbj.ir` | Mobile Web (Touch / Gamified) |
-| معلم | `apps/teacher/dist` | `teacher.mhbj.ir` | Mobile Web (Fast Scoring) |
-| مدیر | `apps/admin/dist` | `admin.mhbj.ir` | Desktop Web (Admin Operations) |
+| دانش‌آموز | `apps/student/dist` | مقدار تنظیم‌شده در زیرساخت استقرار | Mobile Web (Touch / Gamified) |
+| معلم | `apps/teacher/dist` | مقدار تنظیم‌شده در زیرساخت استقرار | Mobile Web (Fast Scoring) |
+| مدیر | `apps/admin/dist` | مقدار تنظیم‌شده در زیرساخت استقرار | Desktop Web (Admin Operations) |
 
 ### نحوه سرو فایل‌های بیلد در محیط پروداکشن (Nginx / Static Hosting)
 هر یک از اپلیکیشن‌ها یک Single-Page Application (SPA) استاندارد هستند. نمونه کانفیگ برای وب‌سرور Nginx:
@@ -227,7 +231,7 @@ server {
 
 اپلیکیشن دانش‌آموز به پروژه نیتیو اندروید با استفاده از **Capacitor 8** مجهز شده است:
 * **مسیر پروژه اندروید:** `frontend/apps/student/android`
-* **شناسه بسته اندروید:** `ir.mhbj.student`
+* **شناسه بسته Android:** از `VITE_ANDROID_APP_ID` در `frontend/.env` خوانده می‌شود.
 * **دستورات کلیدی:**
   ```bash
   # بیلد وب و همگام‌سازی است‌ها با پروژه اندروید
