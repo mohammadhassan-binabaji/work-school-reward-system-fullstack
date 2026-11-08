@@ -18,7 +18,7 @@ const navItems: NavItem[] = [
     icon: Gift,
   },
   {
-    title: 'کسب نوین نوین',
+    title: 'کسب نوین',
     path: '/guidance',
     icon: BookOpen,
   },

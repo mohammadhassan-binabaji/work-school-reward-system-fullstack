@@ -1,7 +1,7 @@
 {
   "platform": "android",
-  "latestVersion": "3.2.2",
-  "minimumVersion": "3.0.0",
+  "latestVersion": "3.2.3",
+  "minimumVersion": "3.2.0",
   "updateUrl": "/download/student.apk",
   "message": "نسخه جدید نوین من در دسترس است. لطفاً برنامه را به‌روزرسانی کنید."
 }
