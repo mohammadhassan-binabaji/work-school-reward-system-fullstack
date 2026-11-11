@@ -18,6 +18,7 @@ describe('Auth & Users Contract Tests (e2e)', () => {
   let prisma: PrismaService;
   let redis: RedisService;
   let adminCookie: string;
+  let vicePrincipalCookie: string;
 
   beforeAll(async () => {
     app = await createTestingApp();
@@ -271,5 +272,134 @@ describe('Auth & Users Contract Tests (e2e)', () => {
       .delete('/api/v1/users/00000000-0000-0000-0000-000000000000')
       .set('Cookie', adminCookie)
       .expect(404);
+  });
+
+  it('vice principals can manage student accounts but cannot access other user roles', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/users')
+      .set('Cookie', adminCookie)
+      .send({
+        nationalId: '6666666666',
+        firstName: 'Vice',
+        lastName: 'Principal',
+        username: 'viceprincipal',
+        password: 'Password123!',
+        role: 'VICE_PRINCIPAL',
+      })
+      .expect(201);
+    vicePrincipalCookie = (await loginUser(app, '6666666666', 'Password123!')).cookie;
+
+    const teacher = await request(app.getHttpServer())
+      .post('/api/v1/users')
+      .set('Cookie', adminCookie)
+      .send({
+        nationalId: '7777777777',
+        firstName: 'Teacher',
+        lastName: 'Account',
+        username: 'teacheraccount',
+        password: 'Password123!',
+        role: 'TEACHER',
+      })
+      .expect(201);
+
+    const student = await request(app.getHttpServer())
+      .post('/api/v1/users')
+      .set('Cookie', adminCookie)
+      .send({
+        nationalId: '8888888888',
+        firstName: 'Student',
+        lastName: 'Account',
+        username: 'studentaccount',
+        password: 'Password123!',
+        role: 'STUDENT',
+      })
+      .expect(201);
+
+    const userList = await request(app.getHttpServer())
+      .get('/api/v1/users')
+      .set('Cookie', vicePrincipalCookie)
+      .expect(200);
+    expect(userList.body).toHaveLength(1);
+    expect(userList.body[0].role).toBe('STUDENT');
+
+    await request(app.getHttpServer())
+      .get('/api/v1/users?role=TEACHER')
+      .set('Cookie', vicePrincipalCookie)
+      .expect(403);
+    await request(app.getHttpServer())
+      .get(`/api/v1/users/${teacher.body.id}`)
+      .set('Cookie', vicePrincipalCookie)
+      .expect(403);
+    await request(app.getHttpServer())
+      .patch(`/api/v1/users/${teacher.body.id}`)
+      .set('Cookie', vicePrincipalCookie)
+      .send({ firstName: 'Changed' })
+      .expect(403);
+    await request(app.getHttpServer())
+      .delete(`/api/v1/users/${teacher.body.id}`)
+      .set('Cookie', vicePrincipalCookie)
+      .expect(403);
+
+    await request(app.getHttpServer())
+      .post('/api/v1/users')
+      .set('Cookie', vicePrincipalCookie)
+      .send({
+        nationalId: '9999999999',
+        firstName: 'Forbidden',
+        lastName: 'Teacher',
+        username: 'forbidden.teacher',
+        password: 'Password123!',
+        role: 'TEACHER',
+      })
+      .expect(403);
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/users/${student.body.id}`)
+      .set('Cookie', vicePrincipalCookie)
+      .send({ firstName: 'UpdatedStudent' })
+      .expect(200);
+    await request(app.getHttpServer())
+      .patch(`/api/v1/users/${student.body.id}`)
+      .set('Cookie', vicePrincipalCookie)
+      .send({ accountState: 'DEPARTED' })
+      .expect(403);
+
+    const teacherReferences = await request(app.getHttpServer())
+      .get('/api/v1/users/academic/teachers')
+      .set('Cookie', vicePrincipalCookie)
+      .expect(200);
+    expect(teacherReferences.body).toEqual([
+      { id: teacher.body.id, firstName: 'Teacher', lastName: 'Account' },
+    ]);
+
+    await request(app.getHttpServer())
+      .get('/api/v1/users/import/template')
+      .set('Cookie', vicePrincipalCookie)
+      .expect(200);
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Students');
+    worksheet.addRow(['کد ملی', 'نام', 'نام خانوادگی', 'نام کاربری', 'رمز عبور', 'نام کلاس']);
+    const importClass = await prisma.class.create({ data: { name: 'Imported Students Class' } });
+    worksheet.addRow([
+      '1010101010',
+      'Imported',
+      'Student',
+      'imported.student',
+      'StudentPass123!',
+      importClass.name,
+    ]);
+    const buffer = Buffer.from(await workbook.xlsx.writeBuffer());
+
+    await request(app.getHttpServer())
+      .post('/api/v1/users/import/excel')
+      .set('Cookie', vicePrincipalCookie)
+      .attach('file', buffer, 'students.xlsx')
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .delete(`/api/v1/users/${student.body.id}`)
+      .set('Cookie', vicePrincipalCookie)
+      .expect(204);
   });
 });

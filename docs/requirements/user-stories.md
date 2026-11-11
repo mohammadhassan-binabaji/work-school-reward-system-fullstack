@@ -63,7 +63,11 @@
 ## Vice Principal
 
 - As a vice principal, I want to sign in with my national ID and password to access the restricted administrative console.
-- As a vice principal, I want to see only my permitted views (Dashboard, Direct Adjust, Rewards, Activities, Proposals, Notifications) in the layout sidebar so that my workspace is focused on my responsibilities.
+- As a vice principal, I want to see only my permitted views (Dashboard, Users, Academic, Direct Adjust, Rewards, Activities, Proposals, Notifications) in the layout sidebar so that my workspace is focused on my responsibilities.
+- As a vice principal, I want to view, create, update, and delete student accounts and bulk import students so that I can manage student accounts without access to teacher, administrator, or vice-principal accounts.
+- As a vice principal, I want to manage classes, subjects, teacher assignments, and student class membership so that I can maintain the school's academic structure.
+- As a vice principal, I want to see teacher names and IDs for academic assignments without access to teacher accounts so that I can manage teaching relationships while respecting role boundaries.
+- As a vice principal, I want explicit teacher/student departure actions and setting a student's account state to departed to remain unavailable to me so that departure workflows remain restricted to administrators.
 - As a vice principal, I want to view my allocated point balance on the dashboard and adjustment page so that I know how many points I can award.
 - As a vice principal, I want to directly credit points to a student (deducting from my balance) or debit points from a student (returning to my balance) so that I can reward or correct student conduct.
 - As a vice principal, I want to manage rewards, approve/decline/complete reward requests, review activity verifications, and approve/complete student proposals so that administrative workflows are distributed efficiently.

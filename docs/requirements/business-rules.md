@@ -11,8 +11,12 @@
 - Administrator student credits cannot exceed the available system point pool balance, and student debits cannot exceed the student's current balance.
 - When a vice principal leaves the school, any remaining point balance automatically returns to the system point pool under `VICE_PRINCIPAL_DEPARTURE_RETURN`.
 - Vice principals have authority to manage rewards and approve/decline/complete reward requests, create/edit/delete activities, review challenge submissions, and review/approve/complete proposals.
-- Vice principals access only 6 views on the admin web console: Dashboard, Direct Adjust, Rewards, Activities, Proposals, and Notifications.
-- Vice principals cannot access user management, academic management, pool management, point-task management, guidance, tiers, rankings, or reports through either the web interface or backend APIs.
+- Vice principals may access the Users view only for student accounts, including creating, reading, updating, deleting, and bulk importing students; they cannot access or manage administrator, vice-principal, or teacher accounts through user management.
+- Vice principals may access the Academic view to create, read, update, and delete classes and subjects, manage teacher-class-subject assignments, and assign students to classes.
+- For academic operations, vice principals may see teacher names and IDs only as assignment references; this does not grant teacher account access.
+- Only administrators may record teacher or student departure. A vice principal may not set a student's account state to `DEPARTED`.
+- Vice principals access the following views on the admin web console: Dashboard, Users (students only), Academic, Direct Adjust, Rewards, Activities, Proposals, and Notifications.
+- Vice principals cannot access pool management, point-task management, guidance, tiers, rankings, or reports through either the web interface or backend APIs.
 - Changing class does not change a student's point balance or reward requests.
 - Leaving the school removes the student's balance and active reward requests.
 - A class can have multiple subjects and teacher assignments.

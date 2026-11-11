@@ -213,7 +213,7 @@ function getStatusBadge(status: ProposalStatus): { text: string; bg: string; col
         <input
           v-model="title"
           type="text"
-          placeholder="مثال: پاکسازی حیاط مدرسه، برگزاری نمایشگاه..."
+          placeholder="مثال: کمک به برگزاری مراسم آغازین، ارایٔه پیشنهاد برای مدرسه ای بهتر..."
           class="w-full bg-[#0F1420] border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-neon-green transition-colors"
         />
       </div>

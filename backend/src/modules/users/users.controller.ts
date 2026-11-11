@@ -16,6 +16,7 @@ import {
   UploadedFile,
   UploadedFiles,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { FileInterceptor, FileFieldsInterceptor } from '@nestjs/platform-express';
@@ -53,21 +54,39 @@ export type UploadedExcelFile = UploadedFilePayload;
 @ApiTags('users')
 @ApiBearerAuth()
 @ApiCookieAuth()
-@Roles('ADMIN')
 @Controller('api/v1/users')
 export class UsersController {
   constructor(private usersService: UsersService) {}
 
+  private async ensureVicePrincipalStudent(userId: string) {
+    const user = await this.usersService.findOne(userId);
+    if (user.role !== Role.STUDENT) {
+      throw new ForbiddenException('معاون سامانه فقط به حساب‌های دانش‌آموزی دسترسی دارد.');
+    }
+    return user;
+  }
+
   @Post()
+  @Roles('ADMIN', 'VICE_PRINCIPAL')
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create user account (Admin only)' })
+  @ApiOperation({ summary: 'Create user account (vice principals may create students only)' })
   @ApiConsumes('multipart/form-data', 'application/json')
   @ApiResponse({ status: 201, description: 'User created successfully', type: UserResponseDto })
   @UseInterceptors(FileInterceptor('image'))
   async create(
     @Body() dto: CreateUserDto,
+    @CurrentUser('role') requesterRole: Role,
     @UploadedFile() image?: UploadedFilePayload,
   ) {
+    if (
+      requesterRole === Role.VICE_PRINCIPAL &&
+      (dto.role !== Role.STUDENT || dto.accountState === AccountState.DEPARTED)
+    ) {
+      throw new ForbiddenException(
+        'معاون سامانه فقط می‌تواند حساب دانش‌آموز ایجاد کند و ثبت خروج مجاز نیست.',
+      );
+    }
+
     let imageUrl: string | undefined;
 
     if (image && image.buffer && image.buffer.length > 0) {
@@ -88,14 +107,19 @@ export class UsersController {
         });
       }
 
-      imageUrl = await this.usersService.uploadUserImage(image.buffer, image.originalname, image.mimetype);
+      imageUrl = await this.usersService.uploadUserImage(
+        image.buffer,
+        image.originalname,
+        image.mimetype,
+      );
     }
 
     return this.usersService.createUser(dto, imageUrl);
   }
 
   @Get('import/template')
-  @ApiOperation({ summary: 'Download student bulk import Excel template (Admin only)' })
+  @Roles('ADMIN', 'VICE_PRINCIPAL')
+  @ApiOperation({ summary: 'Download student bulk import Excel template' })
   @ApiResponse({
     status: 200,
     description: 'Excel template file (.xlsx)',
@@ -119,8 +143,11 @@ export class UsersController {
   }
 
   @Post('import/excel')
+  @Roles('ADMIN', 'VICE_PRINCIPAL')
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Bulk import student accounts via Excel spreadsheet + optional images ZIP (Admin only)' })
+  @ApiOperation({
+    summary: 'Bulk import student accounts via Excel spreadsheet + optional images ZIP',
+  })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -191,15 +218,42 @@ export class UsersController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'List all users with optional filters (Admin only)' })
+  @Roles('ADMIN', 'VICE_PRINCIPAL')
+  @ApiOperation({ summary: 'List users; vice principals are restricted to students' })
   @ApiResponse({ status: 200, description: 'List of users', type: [UserResponseDto] })
-  async findAll(@Query('role') role?: Role, @Query('accountState') accountState?: AccountState) {
-    return this.usersService.findAll(role, accountState);
+  async findAll(
+    @Query('role') role: Role | undefined,
+    @Query('accountState') accountState: AccountState | undefined,
+    @CurrentUser('role') requesterRole: Role,
+  ) {
+    if (requesterRole === Role.VICE_PRINCIPAL && role && role !== Role.STUDENT) {
+      throw new ForbiddenException('معاون سامانه فقط به فهرست دانش‌آموزان دسترسی دارد.');
+    }
+    return this.usersService.findAll(
+      requesterRole === Role.VICE_PRINCIPAL ? Role.STUDENT : role,
+      accountState,
+    );
+  }
+
+  @Get('academic/teachers')
+  @Roles('ADMIN', 'VICE_PRINCIPAL')
+  @ApiOperation({ summary: 'List teacher references for academic assignments' })
+  async findAcademicTeacherReferences() {
+    return this.usersService.findTeacherReferences();
+  }
+
+  @Get('academic/students')
+  @Roles('ADMIN', 'VICE_PRINCIPAL')
+  @ApiOperation({ summary: 'List student references for academic class assignment' })
+  async findAcademicStudentReferences() {
+    return this.usersService.findStudentReferences();
   }
 
   @Get('students')
   @Roles('ADMIN', 'VICE_PRINCIPAL')
-  @ApiOperation({ summary: 'List active students for direct point adjustment (Admin or Vice Principal)' })
+  @ApiOperation({
+    summary: 'List active students for direct point adjustment (Admin or Vice Principal)',
+  })
   @ApiResponse({
     status: 200,
     description: 'Active student identifiers and names for adjustment forms',
@@ -221,26 +275,44 @@ export class UsersController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get single user by ID (Admin only)' })
+  @Roles('ADMIN', 'VICE_PRINCIPAL')
+  @ApiOperation({ summary: 'Get a user; vice principals may access students only' })
   @ApiResponse({ status: 200, description: 'User details', type: UserResponseDto })
-  async findOne(@Param('id', ParseUUIDPipe) id: string) {
+  async findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser('role') requesterRole: Role) {
+    if (requesterRole === Role.VICE_PRINCIPAL) {
+      return this.ensureVicePrincipalStudent(id);
+    }
     return this.usersService.findOne(id);
   }
 
   @Patch(':id/state')
-  @ApiOperation({ summary: 'Update user account state (Admin only)' })
+  @Roles('ADMIN', 'VICE_PRINCIPAL')
+  @ApiOperation({
+    summary: 'Update user account state; vice principals cannot initiate student departure',
+  })
   @ApiResponse({ status: 200, description: 'Account state updated' })
   async updateState(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateUserStateDto,
     @CurrentUser('id') adminId: string,
+    @CurrentUser('role') requesterRole: Role,
     @Req() req: RequestWithCorrelation,
   ) {
+    if (requesterRole === Role.VICE_PRINCIPAL) {
+      const user = await this.ensureVicePrincipalStudent(id);
+      if (
+        dto.accountState === AccountState.DEPARTED &&
+        user.accountState !== AccountState.DEPARTED
+      ) {
+        throw new ForbiddenException('ثبت خروج دانش‌آموز فقط برای مدیر سامانه مجاز است.');
+      }
+    }
     return this.usersService.updateUserState(id, dto, adminId, req.correlationId);
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Update user profile and account details (Admin only)' })
+  @Roles('ADMIN', 'VICE_PRINCIPAL')
+  @ApiOperation({ summary: 'Update user profile; vice principals may update students only' })
   @ApiConsumes('multipart/form-data', 'application/json')
   @ApiResponse({ status: 200, description: 'User updated successfully', type: UserResponseDto })
   @UseInterceptors(FileInterceptor('image'))
@@ -248,9 +320,20 @@ export class UsersController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateUserDto,
     @CurrentUser('id') adminId: string,
+    @CurrentUser('role') requesterRole: Role,
     @Req() req: RequestWithCorrelation,
     @UploadedFile() image?: UploadedFilePayload,
   ) {
+    if (requesterRole === Role.VICE_PRINCIPAL) {
+      const user = await this.ensureVicePrincipalStudent(id);
+      if (
+        dto.accountState === AccountState.DEPARTED &&
+        user.accountState !== AccountState.DEPARTED
+      ) {
+        throw new ForbiddenException('ثبت خروج دانش‌آموز فقط برای مدیر سامانه مجاز است.');
+      }
+    }
+
     if (image && image.buffer && image.buffer.length > 0) {
       const allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
       if (!allowedMimes.includes(image.mimetype)) {
@@ -274,14 +357,19 @@ export class UsersController {
   }
 
   @Delete(':id')
+  @Roles('ADMIN', 'VICE_PRINCIPAL')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Hard delete a user (Admin only)' })
+  @ApiOperation({ summary: 'Hard delete a user; vice principals may delete students only' })
   @ApiResponse({ status: 204, description: 'User deleted successfully' })
   async remove(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser('id') adminId: string,
+    @CurrentUser('role') requesterRole: Role,
     @Req() req: RequestWithCorrelation,
   ) {
+    if (requesterRole === Role.VICE_PRINCIPAL) {
+      await this.ensureVicePrincipalStudent(id);
+    }
     return this.usersService.deleteUser(id, adminId, req.correlationId);
   }
 }

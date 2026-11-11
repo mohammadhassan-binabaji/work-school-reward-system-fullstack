@@ -34,13 +34,13 @@ const routes = [
     path: '/users',
     name: 'users',
     component: UsersView,
-    meta: { requiresAuth: true, allowedRoles: ['ADMIN'] },
+    meta: { requiresAuth: true, allowedRoles: ['ADMIN', 'VICE_PRINCIPAL'] },
   },
   {
     path: '/academic',
     name: 'academic',
     component: AcademicView,
-    meta: { requiresAuth: true, allowedRoles: ['ADMIN'] },
+    meta: { requiresAuth: true, allowedRoles: ['ADMIN', 'VICE_PRINCIPAL'] },
   },
   {
     path: '/tasks',

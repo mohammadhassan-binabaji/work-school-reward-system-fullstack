@@ -54,7 +54,16 @@ const allNavItems = [
   { title: 'اعلان‌ها', path: '/notifications', icon: Bell },
 ];
 
-const vpAllowedPaths = ['/', '/adjust', '/rewards', '/activities', '/proposals', '/notifications'];
+const vpAllowedPaths = [
+  '/',
+  '/users',
+  '/academic',
+  '/adjust',
+  '/rewards',
+  '/activities',
+  '/proposals',
+  '/notifications',
+];
 
 const navItems = computed(() => {
   if (authStore.isVicePrincipal) {

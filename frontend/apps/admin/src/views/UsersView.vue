@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted } from 'vue';
 import {
   Users,
   UserPlus,
@@ -23,6 +23,7 @@ import {
 } from 'lucide-vue-next';
 import AdminModal from '../components/AdminModal.vue';
 import ConfirmDialog from '../components/ConfirmDialog.vue';
+import { useAuthStore } from '../stores/auth';
 import {
   api,
   toPersianDigits,
@@ -39,6 +40,7 @@ import {
 const users = ref<User[]>([]);
 const classes = ref<Class[]>([]);
 const loading = ref(true);
+const authStore = useAuthStore();
 
 // Filters
 const filterRole = ref<Role | ''>('');
@@ -90,7 +92,11 @@ async function loadData() {
   loading.value = true;
   try {
     const params: Record<string, any> = {};
-    if (filterRole.value) params.role = filterRole.value;
+    if (authStore.isVicePrincipal) {
+      params.role = 'STUDENT';
+    } else if (filterRole.value) {
+      params.role = filterRole.value;
+    }
     if (filterState.value) params.accountState = filterState.value;
     if (searchQuery.value.trim()) params.search = searchQuery.value.trim();
 
@@ -153,8 +159,9 @@ async function handleCreateUser() {
     formData.append('lastName', newLastName.value.trim());
     formData.append('username', newUsername.value.trim());
     formData.append('password', newPassword.value);
-    formData.append('role', newRole.value);
-    if (newRole.value === 'STUDENT' && newClassId.value) {
+    const role = authStore.isVicePrincipal ? 'STUDENT' : newRole.value;
+    formData.append('role', role);
+    if (role === 'STUDENT' && newClassId.value) {
       formData.append('classId', newClassId.value);
     }
     if (selectedImage.value) {
@@ -449,7 +456,11 @@ async function handleBulkImport() {
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
       <div>
         <h1 class="text-xl font-black text-slate-900 tracking-tight">مدیریت کاربران</h1>
-        <p class="text-xs text-slate-500 mt-0.5">مشاهده، ایجاد و مدیریت وضعیت حساب‌های دانش‌آموزان، معلمان، مدیران و معاونان</p>
+        <p class="text-xs text-slate-500 mt-0.5">
+          {{ authStore.isVicePrincipal
+            ? 'مشاهده، ایجاد و مدیریت حساب‌های دانش‌آموزان'
+            : 'مشاهده، ایجاد و مدیریت وضعیت حساب‌های دانش‌آموزان، معلمان، مدیران و معاونان' }}
+        </p>
       </div>
 
       <div class="flex items-center gap-2 self-start sm:self-auto">
@@ -503,6 +514,7 @@ async function handleBulkImport() {
 
       <div class="flex items-center gap-2 w-full md:w-auto">
         <select
+          v-if="!authStore.isVicePrincipal"
           v-model="filterRole"
           class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 font-medium"
           @change="loadData"
@@ -713,7 +725,7 @@ async function handleBulkImport() {
           />
         </div>
 
-        <div>
+        <div v-if="!authStore.isVicePrincipal">
           <label class="block text-xs font-bold text-slate-700 mb-1">نقش سازمانی:</label>
           <select
             v-model="newRole"
@@ -873,7 +885,12 @@ async function handleBulkImport() {
             <option value="ACTIVE">فعال (ACTIVE)</option>
             <option value="INACTIVE">غیرفعال (INACTIVE)</option>
             <option value="DEACTIVATED">مسدود شده (DEACTIVATED)</option>
-            <option value="DEPARTED">ترک مدرسه / خدمت (DEPARTED)</option>
+            <option
+              v-if="!authStore.isVicePrincipal || editAccountState === 'DEPARTED'"
+              value="DEPARTED"
+            >
+              ترک مدرسه / خدمت (DEPARTED)
+            </option>
           </select>
         </div>
 

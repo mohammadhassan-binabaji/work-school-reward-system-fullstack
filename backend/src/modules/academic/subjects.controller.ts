@@ -10,7 +10,7 @@ import {
   HttpStatus,
   ParseUUIDPipe,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiCookieAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiCookieAuth } from '@nestjs/swagger';
 import { AcademicService } from './academic.service';
 import { CreateSubjectDto, UpdateSubjectDto } from './dto/academic.dto';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -22,38 +22,38 @@ import { Roles } from '../../common/decorators/roles.decorator';
 export class SubjectsController {
   constructor(private academicService: AcademicService) {}
 
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'VICE_PRINCIPAL')
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create subject (Admin only)' })
+  @ApiOperation({ summary: 'Create subject (Admin or vice principal)' })
   async createSubject(@Body() dto: CreateSubjectDto) {
     return this.academicService.createSubject(dto);
   }
 
-  @Roles('ADMIN', 'TEACHER', 'STUDENT')
+  @Roles('ADMIN', 'TEACHER', 'STUDENT', 'VICE_PRINCIPAL')
   @Get()
   @ApiOperation({ summary: 'List all subjects' })
   async findAllSubjects() {
     return this.academicService.findAllSubjects();
   }
 
-  @Roles('ADMIN', 'TEACHER', 'STUDENT')
+  @Roles('ADMIN', 'TEACHER', 'STUDENT', 'VICE_PRINCIPAL')
   @Get(':id')
   @ApiOperation({ summary: 'Get subject by ID' })
   async findSubjectById(@Param('id', ParseUUIDPipe) id: string) {
     return this.academicService.findSubjectById(id);
   }
 
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'VICE_PRINCIPAL')
   @Patch(':id')
-  @ApiOperation({ summary: 'Update subject (Admin only)' })
+  @ApiOperation({ summary: 'Update subject (Admin or vice principal)' })
   async updateSubject(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateSubjectDto) {
     return this.academicService.updateSubject(id, dto);
   }
 
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'VICE_PRINCIPAL')
   @Delete(':id')
-  @ApiOperation({ summary: 'Delete subject (Admin only)' })
+  @ApiOperation({ summary: 'Delete subject (Admin or vice principal)' })
   async deleteSubject(@Param('id', ParseUUIDPipe) id: string) {
     return this.academicService.deleteSubject(id);
   }

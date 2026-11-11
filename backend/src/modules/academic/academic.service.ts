@@ -66,7 +66,7 @@ export class AcademicService {
     });
   }
 
-  async findClassById(id: string) {
+  async findClassById(id: string, includeTeacherDetails = true) {
     const cls = await this.prisma.class.findUnique({
       where: { id },
       include: {
@@ -93,7 +93,7 @@ export class AcademicService {
                 id: true,
                 firstName: true,
                 lastName: true,
-                username: true,
+                ...(includeTeacherDetails ? { username: true } : {}),
               },
             },
             subject: true,
@@ -432,7 +432,7 @@ export class AcademicService {
     });
   }
 
-  async findAllAssignments(teacherId?: string, classId?: string) {
+  async findAllAssignments(teacherId?: string, classId?: string, includeTeacherDetails = true) {
     const where: any = { status: AssignmentStatus.ACTIVE };
     if (teacherId) where.teacherId = teacherId;
     if (classId) where.classId = classId;
@@ -445,8 +445,7 @@ export class AcademicService {
             id: true,
             firstName: true,
             lastName: true,
-            username: true,
-            accountState: true,
+            ...(includeTeacherDetails ? { username: true, accountState: true } : {}),
           },
         },
         class: true,

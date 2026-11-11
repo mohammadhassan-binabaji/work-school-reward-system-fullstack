@@ -16,6 +16,7 @@ describe('Academic Contract Tests (e2e)', () => {
   let prisma: PrismaService;
   let redis: RedisService;
   let adminCookie: string;
+  let vicePrincipalCookie: string;
 
   beforeAll(async () => {
     app = await createTestingApp();
@@ -98,5 +99,109 @@ describe('Academic Contract Tests (e2e)', () => {
         subjectId: 'invalid',
       })
       .expect(400);
+  });
+
+  it('vice principals can manage academic data without departure access or full teacher details', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/users')
+      .set('Cookie', adminCookie)
+      .send({
+        nationalId: '6666666666',
+        firstName: 'Vice',
+        lastName: 'Principal',
+        username: 'viceprincipal',
+        password: 'Password123!',
+        role: 'VICE_PRINCIPAL',
+      })
+      .expect(201);
+    vicePrincipalCookie = (await loginUser(app, '6666666666', 'Password123!')).cookie;
+
+    const teacher = await request(app.getHttpServer())
+      .post('/api/v1/users')
+      .set('Cookie', adminCookie)
+      .send({
+        nationalId: '7777777777',
+        firstName: 'Teacher',
+        lastName: 'Reference',
+        username: 'teacherreference',
+        password: 'Password123!',
+        role: 'TEACHER',
+      })
+      .expect(201);
+    const student = await request(app.getHttpServer())
+      .post('/api/v1/users')
+      .set('Cookie', adminCookie)
+      .send({
+        nationalId: '8888888888',
+        firstName: 'Academic',
+        lastName: 'Student',
+        username: 'academicstudent',
+        password: 'Password123!',
+        role: 'STUDENT',
+      })
+      .expect(201);
+
+    const classResponse = await request(app.getHttpServer())
+      .post('/api/v1/classes')
+      .set('Cookie', vicePrincipalCookie)
+      .send({ name: 'Vice Principal Class' })
+      .expect(201);
+    const subjectResponse = await request(app.getHttpServer())
+      .post('/api/v1/subjects')
+      .set('Cookie', vicePrincipalCookie)
+      .send({ name: 'Vice Principal Subject' })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post('/api/v1/assignments')
+      .set('Cookie', vicePrincipalCookie)
+      .send({
+        teacherId: teacher.body.id,
+        classId: classResponse.body.id,
+        subjectId: subjectResponse.body.id,
+      })
+      .expect(201);
+    await request(app.getHttpServer())
+      .post('/api/v1/classes/assign-student')
+      .set('Cookie', vicePrincipalCookie)
+      .send({ studentId: student.body.id, classId: classResponse.body.id })
+      .expect(201);
+
+    const teacherReferences = await request(app.getHttpServer())
+      .get('/api/v1/users/academic/teachers')
+      .set('Cookie', vicePrincipalCookie)
+      .expect(200);
+    expect(teacherReferences.body).toEqual([
+      { id: teacher.body.id, firstName: 'Teacher', lastName: 'Reference' },
+    ]);
+
+    const assignmentList = await request(app.getHttpServer())
+      .get('/api/v1/assignments')
+      .set('Cookie', vicePrincipalCookie)
+      .expect(200);
+    expect(assignmentList.body[0].teacher).toEqual({
+      id: teacher.body.id,
+      firstName: 'Teacher',
+      lastName: 'Reference',
+    });
+
+    const classDetails = await request(app.getHttpServer())
+      .get(`/api/v1/classes/${classResponse.body.id}`)
+      .set('Cookie', vicePrincipalCookie)
+      .expect(200);
+    expect(classDetails.body.teacherAssignments[0].teacher).toEqual({
+      id: teacher.body.id,
+      firstName: 'Teacher',
+      lastName: 'Reference',
+    });
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/classes/students/${student.body.id}/depart`)
+      .set('Cookie', vicePrincipalCookie)
+      .expect(403);
+    await request(app.getHttpServer())
+      .post(`/api/v1/assignments/teachers/${teacher.body.id}/depart`)
+      .set('Cookie', vicePrincipalCookie)
+      .expect(403);
   });
 });

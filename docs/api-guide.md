@@ -21,22 +21,26 @@ The header-based alternatives listed below remain for compatibility; browser fro
 - `POST /api/v1/auth/logout` - Invalidate active session in Redis.
 - `GET /api/v1/auth/me` - Get profile of the current authenticated user.
 
-### 2. User Management (`/api/v1/users`) [Admin only]
-- `GET /api/v1/users/students` - Admin or vice principal lookup of active students using only the identifying fields needed by direct-adjustment forms; vice principals do not receive access to general user-management endpoints.
-- `POST /api/v1/users` - Create user account (supports multipart/form-data with optional profile image file up to 5MB, JPG/PNG/WebP).
-- `GET /api/v1/users/import/template` - Download student bulk import Excel template with optional image filename column.
-- `POST /api/v1/users/import/excel` - Bulk import students from Excel file and optional ZIP archive containing photos matching filenames in spreadsheet.
-- `GET /api/v1/users` - List users with optional role and accountState filtering (includes `imageUrl`).
-- `GET /api/v1/users/:id` - Get user details (includes `imageUrl`).
-- `PATCH /api/v1/users/:id/state` - Admin-only account-state changes (`ACTIVE`, `INACTIVE`, `DEACTIVATED`, `DEPARTED`). Setting a vice principal to `DEPARTED` returns their remaining balance to the system pool.
+### 2. User Management (`/api/v1/users`)
+- Admins can manage all user roles. Vice principals can list, read, create, update, and delete student accounts only; requests involving another role are forbidden.
+- `GET /api/v1/users/students` - Admin or vice principal lookup of active students using only the identifying fields needed by direct-adjustment forms.
+- `GET /api/v1/users/academic/students` - Student names, IDs, and National IDs needed to assign students to classes.
+- `GET /api/v1/users/academic/teachers` - Teacher names and IDs needed for assignments; vice principals do not get teacher account/profile access.
+- `POST /api/v1/users` - Create an account (vice principals may create students only; supports optional profile image upload up to 5MB, JPG/PNG/WebP).
+- `GET /api/v1/users/import/template` and `POST /api/v1/users/import/excel` - Download the student import template and bulk-import students with an optional ZIP archive of photos.
+- `GET /api/v1/users` - List users with optional role and accountState filters (vice-principal results are always student-only).
+- `GET /api/v1/users/:id` - Get user details; vice principals may read student details only.
+- `PATCH /api/v1/users/:id` and `PATCH /api/v1/users/:id/state` - Update user profile or account state; vice principals may update students but cannot initiate a student departure.
+- `DELETE /api/v1/users/:id` - Delete a user; vice principals may delete students only.
 
 ### 3. Academic Structure (`/api/v1/classes`, `/api/v1/subjects`, `/api/v1/assignments`)
-- `POST/GET/PATCH/DELETE /api/v1/classes` - Manage class structures.
+- Admins and vice principals can manage classes, subjects, teacher-class-subject assignments, and student-to-class assignments.
+- `POST/GET/PATCH/DELETE /api/v1/classes` - Manage class structures; class details expose only teacher names and IDs to vice principals.
 - `POST/GET/PATCH/DELETE /api/v1/subjects` - Manage subject catalog.
 - `POST /api/v1/classes/assign-student` - Assign or reassign a student to a class (preserves points and active requests).
-- `POST /api/v1/classes/students/:id/depart` - Process student departure (clears balances, cancels pending requests).
-- `POST/GET/DELETE /api/v1/assignments` - Assign teacher to class and subject.
-- `POST /api/v1/assignments/teachers/:id/depart` - Process teacher departure (returns unspent budget to system pool).
+- `POST /api/v1/classes/students/:id/depart` - Admin-only student departure (clears balances, cancels pending requests).
+- `POST/GET/DELETE /api/v1/assignments` - Manage teacher-to-class-and-subject assignments; vice principals receive only teacher names and IDs.
+- `POST /api/v1/assignments/teachers/:id/depart` - Admin-only teacher departure (returns unspent budget to system pool).
 
 ### 4. Point Economy (`/api/v1/points`)
 - `GET /api/v1/points/pool` - Get system pool balance.
@@ -93,4 +97,4 @@ The header-based alternatives listed below remain for compatibility; browser fro
 
 Firebase Android setup and notification delivery behavior are documented in [Real-time and Android Push Notifications](./notifications-realtime.md).
 
-Vice principals are denied user, academic, pool, point-task, guidance-card, tier, ranking, and report APIs, even if they call those endpoints directly.
+Vice principals are denied access to non-student user accounts and to pool, point-task, guidance-card, tier, ranking, and report APIs, even if they call those endpoints directly. Academic departure operations remain admin-only.

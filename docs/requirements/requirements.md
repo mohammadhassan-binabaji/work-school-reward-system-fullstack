@@ -9,7 +9,7 @@ The system enables teachers to award points to students for actions such as comp
 ## Actors
 
 - **School administrator:** Manages classes, class membership, teacher assignments, reward catalog, system point pool, teacher and vice principal point balances, and student point adjustments.
-- **Vice Principal:** Assists administration with restricted access to the management console (Dashboard, Direct Adjust, Rewards, Activities, Proposals, Notifications). Operates with a personal point balance funded from the system pool, performs symmetric point adjustments on students, reviews reward requests, verifies activities, and approves task proposals.
+- **Vice Principal:** Assists administration through the admin console. May manage student accounts only and manage the academic structure; has assignment-only access to teacher names and IDs, but no teacher account access. Also operates with a personal point balance funded from the system pool, performs symmetric point adjustments on students, reviews reward requests, verifies activities, and approves task proposals. Teacher and student departure actions remain administrator-only.
 - **Teacher:** Teaches assigned subjects in assigned classes and awards positive points to students in those classes using the teacher's available point balance.
 - **Student:** Belongs to one class, receives points, views the balance and reward requests, and redeems rewards.
 
@@ -17,6 +17,9 @@ The system enables teachers to award points to students for actions such as comp
 
 - The first school administrator shall be added manually.
 - An administrator shall be able to create additional administrator, vice principal, teacher, and student accounts.
+- A vice principal shall be able to view, create, update, and delete student accounts only; they shall not access or manage administrator, vice-principal, or teacher accounts through user management.
+- Vice principals shall be able to bulk import student accounts via Excel with an optional ZIP archive containing student images matched by filename specified in the spreadsheet.
+- A vice principal shall not be able to mark a student as departed; recording student departure remains an administrator function.
 - An administrator shall be able to update a vice principal's profile information, password, and account state, as for other managed accounts.
 - Deactivating or inactivating a vice principal shall preserve their balance while preventing authenticated actions. Marking a vice principal as departed shall return any remaining balance to the system point pool.
 - Accounts shall store a first name, last name, username, password, and an optional profile image.
@@ -24,12 +27,12 @@ The system enables teachers to award points to students for actions such as comp
 - Administrators, vice principals, teachers, and students shall sign in using their national ID and password.
 - Profile images shall support JPEG, PNG, and WebP formats up to 5 MB.
 - When an account has no profile image, the user interface shall display an initials-based fallback placeholder.
-- Administrators shall be able to upload an optional profile image when creating a single user account.
-- Administrators shall be able to bulk import student accounts via an Excel spreadsheet with an optional accompanying ZIP archive containing student images matched by filename specified in the spreadsheet.
+- Administrators and vice principals shall be able to upload an optional profile image when creating a single student account. Administrators may create accounts of any role; vice principals may create students only.
+- Administrators and vice principals shall be able to bulk import student accounts via an Excel spreadsheet with an optional accompanying ZIP archive containing student images matched by filename specified in the spreadsheet.
 - If an Excel row specifies an image filename that does not exist in the uploaded ZIP file, validation shall fail for that row.
 - User profile images shall be displayed in the following designated views:
   - In the top header/profile section of each app for the logged-in user.
-  - In the administrator user management table (/users) beside the user name.
+  - In the Users view (/users) beside the user name for administrators and vice principals; vice principals see student accounts only.
   - In the teacher class management view (/classes) beside student names in expanded class rosters.
   - On the student gamified leaderboard podium on the dashboard for the top 3 students.
 - No additional non-functional requirements are specified beyond the functional requirements in this package.
@@ -38,17 +41,18 @@ The system enables teachers to award points to students for actions such as comp
 
 ### Class and membership management
 
-- Administrators shall create classes.
-- Administrators shall edit class details (name, grade level, description, and active status).
-- Administrators shall delete classes; deleting a class unassigns its students and removes its teacher assignments.
-- Administrators shall create subjects.
-- Administrators shall edit subject details (name and description).
-- Administrators shall delete subjects; deleting a subject removes associated teacher assignments.
-- Administrators shall assign students to classes.
+- Administrators and vice principals shall create classes.
+- Administrators and vice principals shall edit class details (name, grade level, description, and active status).
+- Administrators and vice principals shall delete classes; deleting a class unassigns its students and removes its teacher assignments.
+- Administrators and vice principals shall create subjects.
+- Administrators and vice principals shall edit subject details (name and description).
+- Administrators and vice principals shall delete subjects; deleting a subject removes associated teacher assignments.
+- Administrators and vice principals shall assign students to classes.
 - Each student shall belong to exactly one class.
 - Changing a student's class shall not change the student's point balance or reward requests.
-- When a student leaves the school, the system shall remove the student's point balance and active reward requests.
-- Administrators shall assign teachers to classes by subject.
+- When an administrator records a student's departure from school, the system shall remove the student's point balance and active reward requests.
+- Administrators and vice principals shall assign teachers to classes by subject.
+- Vice principals shall see teacher names and IDs only as required to view and manage academic assignments; they shall not gain access to teacher accounts through user management.
 - If a teacher leaves the school, the system shall remove the teacher's point balance, class assignments, and teacher-class-subject relationships.
 - If a teacher is deactivated, the system shall preserve the teacher's point balance, class assignments, and relationships, but shall prevent the teacher from performing system actions.
 - If a teacher is removed from a class, the system shall remove that class assignment without changing the teacher's point balance; administrators shall manage the balance separately.
@@ -83,7 +87,8 @@ The system enables teachers to award points to students for actions such as comp
 - When a vice principal departs from the school, any remaining unspent points in their balance shall automatically return to the system point pool.
 - Vice principals shall have access to manage and review rewards, challenge/mission verifications, and student task proposals with the same authority as administrators.
 - Vice principals shall receive in-app review notifications for reward approvals, task proposals, and challenge verifications.
-- Vice principals shall use the admin frontend web application, restricted to 6 views: Dashboard, Direct Adjust (Vice Principal mode), Rewards, Activities, Proposals, and Notifications.
+- Vice principals shall use the admin frontend web application with access to these views: Dashboard, Users (students only), Academic, Direct Adjust (Vice Principal mode), Rewards, Activities, Proposals, and Notifications.
+- The Academic view shall provide vice principals the same class, subject, teacher-assignment, and student-to-class management capabilities as administrators, except that recording teacher or student departure remains administrator-only.
 
 ### Student points and rewards
 

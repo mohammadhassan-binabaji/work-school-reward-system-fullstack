@@ -11,12 +11,13 @@ import {
   ParseUUIDPipe,
   Req,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiCookieAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiCookieAuth } from '@nestjs/swagger';
 import { AcademicService } from './academic.service';
 import { CreateAssignmentDto } from './dto/academic.dto';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequestWithCorrelation } from '../../common/middleware/correlation.middleware';
+import { Role } from '@prisma/client';
 
 @ApiTags('academic')
 @ApiBearerAuth()
@@ -25,28 +26,33 @@ import { RequestWithCorrelation } from '../../common/middleware/correlation.midd
 export class AssignmentsController {
   constructor(private academicService: AcademicService) {}
 
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'VICE_PRINCIPAL')
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Assign teacher to class and subject (Admin only)' })
+  @ApiOperation({ summary: 'Assign teacher to class and subject (Admin or vice principal)' })
   async createAssignment(@Body() dto: CreateAssignmentDto) {
     return this.academicService.createAssignment(dto);
   }
 
-  @Roles('ADMIN', 'TEACHER')
+  @Roles('ADMIN', 'TEACHER', 'VICE_PRINCIPAL')
   @Get()
   @ApiOperation({ summary: 'List active teacher-class-subject assignments' })
   async findAllAssignments(
     @Query('teacherId') teacherId?: string,
     @Query('classId') classId?: string,
+    @CurrentUser('role') requesterRole?: Role,
   ) {
-    return this.academicService.findAllAssignments(teacherId, classId);
+    return this.academicService.findAllAssignments(
+      teacherId,
+      classId,
+      requesterRole !== Role.VICE_PRINCIPAL,
+    );
   }
 
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'VICE_PRINCIPAL')
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Remove assignment (Admin only)' })
+  @ApiOperation({ summary: 'Remove assignment (Admin or vice principal)' })
   async removeAssignment(@Param('id', ParseUUIDPipe) id: string) {
     await this.academicService.removeAssignment(id);
   }

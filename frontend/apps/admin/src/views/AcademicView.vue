@@ -10,7 +10,6 @@ import {
   RefreshCw,
   AlertCircle,
   CheckCircle2,
-  UserX,
 } from 'lucide-vue-next';
 import AdminModal from '../components/AdminModal.vue';
 import ConfirmDialog from '../components/ConfirmDialog.vue';
@@ -22,15 +21,20 @@ import {
   type TeacherAssignment,
   type User,
 } from '@student-reward/shared';
+import { useAuthStore } from '../stores/auth';
 
+type TeacherReference = Pick<User, 'id' | 'firstName' | 'lastName'>;
+type StudentReference = Pick<User, 'id' | 'nationalId' | 'firstName' | 'lastName'>;
+
+const authStore = useAuthStore();
 const activeTab = ref<'classes' | 'subjects' | 'assignments'>('classes');
 const loading = ref(true);
 
 const classes = ref<Class[]>([]);
 const subjects = ref<Subject[]>([]);
 const assignments = ref<TeacherAssignment[]>([]);
-const teachers = ref<User[]>([]);
-const students = ref<User[]>([]);
+const teachers = ref<TeacherReference[]>([]);
+const students = ref<StudentReference[]>([]);
 
 // Class modal
 const isClassModalOpen = ref(false);
@@ -91,17 +95,18 @@ onMounted(async () => {
 async function loadData() {
   loading.value = true;
   try {
-    const [cList, sList, aList, uList] = await Promise.all([
+    const [cList, sList, aList, teacherList, studentList] = await Promise.all([
       api.get<Class[]>('/classes'),
       api.get<Subject[]>('/subjects'),
       api.get<TeacherAssignment[]>('/assignments'),
-      api.get<User[]>('/users'),
+      api.get<TeacherReference[]>('/users/academic/teachers'),
+      api.get<StudentReference[]>('/users/academic/students'),
     ]);
     classes.value = cList || [];
     subjects.value = sList || [];
     assignments.value = aList || [];
-    teachers.value = (uList || []).filter((u) => u.role === 'TEACHER');
-    students.value = (uList || []).filter((u) => u.role === 'STUDENT');
+    teachers.value = teacherList || [];
+    students.value = studentList || [];
   } catch (err: any) {
     errorMessage.value = err.message || 'خطا در بارگذاری ساختار آموزشی';
   } finally {
@@ -218,24 +223,6 @@ function askDepartTeacher(teacherId: string, teacherName: string) {
       await loadData();
     } catch (e: any) {
       alert(e.message || 'خطا در ثبت خروج معلم');
-    } finally {
-      confirmLoading.value = false;
-    }
-  };
-  isConfirmOpen.value = true;
-}
-
-function askDepartStudent(studentId: string, studentName: string) {
-  confirmTitle.value = 'ثبت خروج دانش‌آموز';
-  confirmMessage.value = `آیا از ثبت خروج دانش‌آموز (${studentName}) و تسویه رکوردهای مربوطه اطمینان دارید؟`;
-  confirmAction.value = async () => {
-    confirmLoading.value = true;
-    try {
-      await api.post(`/classes/students/${studentId}/depart`);
-      isConfirmOpen.value = false;
-      await loadData();
-    } catch (e: any) {
-      alert(e.message || 'خطا در ثبت خروج دانش‌آموز');
     } finally {
       confirmLoading.value = false;
     }
@@ -538,6 +525,7 @@ function askDeleteSubject(s: Subject) {
                   حذف انتساب
                 </button>
                 <button
+                  v-if="!authStore.isVicePrincipal"
                   class="px-2.5 py-1 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition-colors"
                   @click="askDepartTeacher(a.teacherId, `${a.teacher?.firstName} ${a.teacher?.lastName}`)"
                 >

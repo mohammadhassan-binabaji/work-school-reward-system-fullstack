@@ -211,6 +211,31 @@ export class UsersService {
     });
   }
 
+  async findTeacherReferences() {
+    return this.prisma.user.findMany({
+      where: { role: Role.TEACHER },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+      },
+      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+    });
+  }
+
+  async findStudentReferences() {
+    return this.prisma.user.findMany({
+      where: { role: Role.STUDENT },
+      select: {
+        id: true,
+        nationalId: true,
+        firstName: true,
+        lastName: true,
+      },
+      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+    });
+  }
+
   async findOne(id: string) {
     const user = await this.prisma.user.findUnique({
       where: { id },

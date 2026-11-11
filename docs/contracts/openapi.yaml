@@ -37,6 +37,12 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+    ForbiddenError:
+      description: Forbidden - the authenticated role is not permitted to perform this operation
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
     NotFoundError:
       description: Resource not found or inaccessible to the caller
       content:
@@ -1396,12 +1402,12 @@ paths:
               schema: { $ref: '#/components/schemas/UserResponse' }
 
   # ==========================================
-  # USERS & ACCOUNTS (ADMIN ONLY)
+  # USERS & ACCOUNTS
   # ==========================================
   /users:
     get:
-      summary: List Users (Admin only)
-      description: List all users with optional role and accountState filters.
+      summary: List Users
+      description: Admins can list all roles. Vice principals can list students only; an omitted role filter returns students, and requesting another role is forbidden.
       security:
         - SessionAuth: []
       parameters:
@@ -1419,16 +1425,18 @@ paths:
             enum: [ACTIVE, INACTIVE, DEACTIVATED, DEPARTED]
       responses:
         '200':
-          description: List of users
+          description: List of users permitted for the caller
           content:
             application/json:
               schema:
                 type: array
                 items:
                   $ref: '#/components/schemas/UserResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
     post:
       summary: Create User Account
-      description: Admin creates an admin, vice principal, teacher, or student account with optional profile image (FR-002, FR-003).
+      description: Admins may create any role. Vice principals may create student accounts only and may not create them as DEPARTED. Optional profile images are limited to JPEG, PNG, or WebP up to 5 MB.
       security:
         - SessionAuth: []
       requestBody:
@@ -1440,16 +1448,56 @@ paths:
               required: [nationalId, firstName, lastName, username, password, role]
               properties:
                 nationalId: { type: string, pattern: '^[0-9]{10}$' }
+                firstName: { type: string, maxLength: 100 }
+                lastName: { type: string, maxLength: 100 }
+                username: { type: string, maxLength: 50 }
+                password: { type: string, minLength: 8 }
+                role:
+                  type: string
+                  enum: [ADMIN, TEACHER, STUDENT, VICE_PRINCIPAL]
+                accountState:
+                  type: string
+                  enum: [ACTIVE, INACTIVE, DEACTIVATED, DEPARTED]
+                  default: ACTIVE
+                classId:
+                  type: string
+                  format: uuid
+                  description: Optional class assignment for a student
+                image:
+                  type: string
+                  format: binary
+                  description: Optional JPEG, PNG, or WebP image up to 5 MB
+          application/json:
+            schema:
+              type: object
+              required: [nationalId, firstName, lastName, username, password, role]
+              properties:
+                nationalId: { type: string, pattern: '^[0-9]{10}$' }
+                firstName: { type: string, maxLength: 100 }
+                lastName: { type: string, maxLength: 100 }
+                username: { type: string, maxLength: 50 }
+                password: { type: string, minLength: 8 }
+                role:
+                  type: string
+                  enum: [ADMIN, TEACHER, STUDENT, VICE_PRINCIPAL]
+                accountState:
+                  type: string
+                  enum: [ACTIVE, INACTIVE, DEACTIVATED, DEPARTED]
+                  default: ACTIVE
+                classId: { type: string, format: uuid }
       responses:
         '201':
           description: Created
           content:
             application/json:
               schema: { $ref: '#/components/schemas/UserResponse' }
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
 
   /users/import/template:
     get:
-      summary: Download Student Bulk Import Excel Template (Admin only)
+      summary: Download Student Bulk Import Excel Template
+      description: Available to admins and vice principals.
       security:
         - SessionAuth: []
       responses:
@@ -1460,11 +1508,13 @@ paths:
               schema:
                 type: string
                 format: binary
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
 
   /users/import/excel:
     post:
-      summary: Bulk Import Student Accounts (Admin only)
-      description: Bulk import students via Excel file and optional ZIP archive containing profile images matching image filenames specified in the Excel sheet.
+      summary: Bulk Import Student Accounts
+      description: Available to admins and vice principals. Imports student accounts via Excel and optional ZIP archive containing profile images referenced by the sheet.
       security:
         - SessionAuth: []
       requestBody:
@@ -1478,11 +1528,11 @@ paths:
                 file:
                   type: string
                   format: binary
-                  description: "Excel (.xlsx) file containing student rows"
+                  description: "Excel (.xlsx) file containing student rows, up to 5 MB"
                 imagesZip:
                   type: string
                   format: binary
-                  description: "Optional ZIP archive containing student images referenced by the '??? ???? ?????' column"
+                  description: Optional ZIP archive up to 50 MB containing referenced student images
       responses:
         '201':
           description: Students imported successfully
@@ -1500,11 +1550,13 @@ paths:
           description: Bad request (missing file or invalid structure)
         '422':
           description: Row-level validation errors (including declared image filename not found in ZIP)
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
 
   /users/students:
     get:
       summary: List active students for point adjustment (Admin or Vice Principal)
-      description: Returns only student IDs, national IDs, and names required by direct-adjustment forms. Vice Principals cannot access the full user-management endpoints.
+      description: Returns only student IDs, national IDs, and names required by direct-adjustment forms.
       security:
         - SessionAuth: []
       responses:
@@ -1522,10 +1574,60 @@ paths:
                     nationalId: { type: string }
                     firstName: { type: string }
                     lastName: { type: string }
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /users/academic/teachers:
+    get:
+      summary: List Minimal Teacher References for Academic Assignments
+      description: Available to admins and vice principals. Returns only teacher IDs and names; it does not provide teacher account or profile access.
+      security:
+        - SessionAuth: []
+      responses:
+        '200':
+          description: Teacher references needed to create and view academic assignments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required: [id, firstName, lastName]
+                  properties:
+                    id: { type: string, format: uuid }
+                    firstName: { type: string }
+                    lastName: { type: string }
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /users/academic/students:
+    get:
+      summary: List Student References for Academic Class Assignment
+      description: Available to admins and vice principals. Returns all student IDs, national IDs, and names for class assignment.
+      security:
+        - SessionAuth: []
+      responses:
+        '200':
+          description: Student references needed for class assignment
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required: [id, nationalId, firstName, lastName]
+                  properties:
+                    id: { type: string, format: uuid }
+                    nationalId: { type: string }
+                    firstName: { type: string }
+                    lastName: { type: string }
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
 
   /users/{id}:
     get:
-      summary: Get Single User by ID (Admin only)
+      summary: Get Single User by ID
+      description: Admins may read any user. Vice principals may read student accounts only; other roles return 403.
       security:
         - SessionAuth: []
       parameters:
@@ -1539,11 +1641,77 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/UserResponse' }
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+    patch:
+      summary: Update User Profile
+      description: Admins may update any user. Vice principals may update student accounts only and cannot initiate student departure. Profile images may be uploaded or removed.
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                firstName: { type: string, maxLength: 100 }
+                lastName: { type: string, maxLength: 100 }
+                password: { type: string, minLength: 8 }
+                accountState:
+                  type: string
+                  enum: [ACTIVE, INACTIVE, DEACTIVATED, DEPARTED]
+                classId: { type: string, format: uuid }
+                removeImage: { type: boolean }
+                image:
+                  type: string
+                  format: binary
+                  description: Optional JPEG, PNG, or WebP image up to 5 MB
+          application/json:
+            schema:
+              type: object
+              properties:
+                firstName: { type: string, maxLength: 100 }
+                lastName: { type: string, maxLength: 100 }
+                password: { type: string, minLength: 8 }
+                accountState:
+                  type: string
+                  enum: [ACTIVE, INACTIVE, DEACTIVATED, DEPARTED]
+                classId: { type: string, format: uuid }
+                removeImage: { type: boolean }
+      responses:
+        '200':
+          description: User updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserResponse' }
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+    delete:
+      summary: Delete User
+      description: Admins may delete any user. Vice principals may delete student accounts only.
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204':
+          description: User deleted
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
 
   /users/{id}/state:
     patch:
       summary: Update User Account Lifecycle State
-      description: Deactivates, reactivates, or marks a user as departed. Vice principal departure returns any remaining balance to the system pool (FR-010, FR-012, FR-014).
+      description: Admins may update any user's state. Vice principals may update student states except to DEPARTED; student and teacher departures remain admin-only.
       security:
         - SessionAuth: []
       parameters:
@@ -1562,10 +1730,12 @@ paths:
                 accountState: { type: string, enum: [ACTIVE, INACTIVE, DEACTIVATED, DEPARTED] }
       responses:
         '200':
-          description: OK
+          description: User state updated
           content:
             application/json:
               schema: { $ref: '#/components/schemas/UserResponse' }
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
 
   # ==========================================
   # ACADEMIC STRUCTURE & ASSIGNMENTS
@@ -1573,6 +1743,7 @@ paths:
   /classes:
     get:
       summary: List Classes
+      description: Available to admins, vice principals, teachers, and students.
       security:
         - SessionAuth: []
       parameters:
@@ -1598,7 +1769,7 @@ paths:
                     description: { type: string }
                     isActive: { type: boolean }
     post:
-      summary: Create Class (Admin)
+      summary: Create Class (Admin or Vice Principal)
       security:
         - SessionAuth: []
       requestBody:
@@ -1615,10 +1786,13 @@ paths:
       responses:
         '201':
           description: Class created
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
 
   /classes/{id}:
     get:
       summary: Get Class Details by ID
+      description: Available to admins, vice principals, teachers, and students. Teacher references in the response contain only IDs and names for vice principals.
       security:
         - SessionAuth: []
       parameters:
@@ -1630,7 +1804,7 @@ paths:
         '200':
           description: OK
     patch:
-      summary: Update Class (Admin)
+      summary: Update Class (Admin or Vice Principal)
       security:
         - SessionAuth: []
       parameters:
@@ -1646,8 +1820,10 @@ paths:
       responses:
         '200':
           description: Class updated
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
     delete:
-      summary: Delete Class (Admin)
+      summary: Delete Class (Admin or Vice Principal)
       security:
         - SessionAuth: []
       parameters:
@@ -1658,10 +1834,12 @@ paths:
       responses:
         '200':
           description: Class deleted
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
 
   /classes/assign-student:
     post:
-      summary: Assign or Reassign Student to Class (Admin)
+      summary: Assign or Reassign Student to Class (Admin or Vice Principal)
       security:
         - SessionAuth: []
       requestBody:
@@ -1672,6 +1850,8 @@ paths:
       responses:
         '201':
           description: Student assigned to class
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
 
   /classes/students/{id}/depart:
     post:
@@ -1686,6 +1866,8 @@ paths:
       responses:
         '201':
           description: Student marked as departed and points refunded
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
 
   /subjects:
     get:
@@ -1706,7 +1888,7 @@ paths:
                     name: { type: string }
                     description: { type: string }
     post:
-      summary: Create Subject (Admin)
+      summary: Create Subject (Admin or Vice Principal)
       security:
         - SessionAuth: []
       requestBody:
@@ -1722,10 +1904,13 @@ paths:
       responses:
         '201':
           description: Subject created
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
 
   /subjects/{id}:
     get:
       summary: Get Subject Details by ID
+      description: Available to admins, vice principals, teachers, and students.
       security:
         - SessionAuth: []
       parameters:
@@ -1737,7 +1922,7 @@ paths:
         '200':
           description: OK
     patch:
-      summary: Update Subject (Admin)
+      summary: Update Subject (Admin or Vice Principal)
       security:
         - SessionAuth: []
       parameters:
@@ -1753,8 +1938,10 @@ paths:
       responses:
         '200':
           description: Subject updated
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
     delete:
-      summary: Delete Subject (Admin)
+      summary: Delete Subject (Admin or Vice Principal)
       security:
         - SessionAuth: []
       parameters:
@@ -1765,10 +1952,13 @@ paths:
       responses:
         '200':
           description: Subject deleted
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
 
   /assignments:
     get:
       summary: List Active Teacher-Class-Subject Assignments
+      description: Available to admins, teachers, and vice principals. For vice principals, teacher details contain only IDs and names.
       security:
         - SessionAuth: []
       parameters:
@@ -1784,7 +1974,7 @@ paths:
         '200':
           description: OK
     post:
-      summary: Assign Teacher to Class and Subject (Admin)
+      summary: Assign Teacher to Class and Subject (Admin or Vice Principal)
       security:
         - SessionAuth: []
       requestBody:
@@ -1801,10 +1991,12 @@ paths:
       responses:
         '201':
           description: Assignment created (FR-011)
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
 
   /assignments/{id}:
     delete:
-      summary: Remove Teacher Class Assignment (Admin)
+      summary: Remove Teacher Class Assignment (Admin or Vice Principal)
       description: Removes class assignment while preserving teacher's point balance (FR-013).
       security:
         - SessionAuth: []
@@ -1816,10 +2008,13 @@ paths:
       responses:
         '204':
           description: Assignment removed
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
 
   /assignments/teachers/{id}/depart:
     post:
       summary: Mark Teacher as Departed and Return Unspent Budget to Pool (Admin)
+      description: Admin-only teacher departure. Vice principals may not record teacher departure.
       security:
         - SessionAuth: []
       parameters:
@@ -1830,6 +2025,8 @@ paths:
       responses:
         '201':
           description: Teacher marked as departed and remaining budget returned to pool
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
 
   # ==========================================
   # POINT ECONOMY & TRANSFERS
