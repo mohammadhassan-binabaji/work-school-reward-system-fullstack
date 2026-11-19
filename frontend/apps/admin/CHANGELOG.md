@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.4.4 - 2026-11-19
+
+### Added
+
+- Added a show/hide password control to the Admin login form.
+
 ## 2.4.3 - 2026-11-19
 
 ### Added
