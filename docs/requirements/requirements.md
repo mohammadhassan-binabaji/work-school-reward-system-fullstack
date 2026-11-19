@@ -214,13 +214,20 @@ The system enables teachers to award points to students for actions such as comp
 
 ### In-app notifications
 
-- The system shall provide an in-app notification inbox for students, teachers, and administrators.
+- The system shall provide an in-app notification inbox for students, teachers, administrators, and vice principals.
+- Administrators shall be able to compose a notification subject and message body and send it to selected active students, active teachers, or a mixed group of both.
+- Vice principals shall be able to compose a notification subject and message body and send it to selected active students only; they shall not be able to target teachers.
+- The custom notification page shall be available to administrators and vice principals in the admin application and shall follow its Persian, right-to-left interface conventions.
+- The recipient list shall support role selection and search by recipient name or national ID. Class and grade filters shall be available for students and hidden for teachers.
+- Senders shall be able to select multiple recipients, select or deselect all currently filtered recipients, and retain selections when changing search or filters. Administrators shall be able to combine selected students and teachers in one send.
+- Before sending, the system shall ask the sender to confirm the selected recipient count.
+- Each selected recipient shall receive an individual in-app notification containing the supplied subject and message body. The system shall use the existing push-notification delivery for registered Android devices when push is configured.
 - The system shall automatically generate and store an unread in-app notification for the affected student upon the following events:
   - Reward request status transitions (`Pending to Receive`, `Completed`, or `Declined`).
   - Task proposal status transitions (`Ready to Do`, `Completed`, or `Declined`) and incoming messages from an administrator.
   - Points awarded by a teacher or balance adjustments made by an administrator.
   - Challenge or mission verification request reviews (approval, rejection, or submission ban/unblock).
-- The system shall automatically generate and store an unread in-app notification for school administrators upon the following events:
+- The system shall automatically generate and store an unread in-app notification for active administrators and vice principals upon the following events:
   - Submission of a reward request that requires administrator approval.
   - Submission of a new student task proposal.
   - Submission of a new message from a student within a task proposal.

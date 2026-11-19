@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.4.3 - 2026-11-19
+
+### Added
+
+- Added a Persian RTL page for composing and sending custom notifications to selected students and teachers.
+- Added role-aware recipient selection, student class and grade filters, name and national-ID search, mixed admin sends, and recipient-count confirmation.
+
 ## 2.4.2 - 2026-11-19
 
 ### Added

@@ -15,7 +15,7 @@
 - Vice principals may access the Academic view to create, read, update, and delete classes and subjects, manage teacher-class-subject assignments, and assign students to classes.
 - For academic operations, vice principals may see teacher names and IDs only as assignment references; this does not grant teacher account access.
 - Only administrators may record teacher or student departure. A vice principal may not set a student's account state to `DEPARTED`.
-- Vice principals access the following views on the admin web console: Dashboard, Users (students only), Academic, Direct Adjust, Rewards, Activities, Proposals, and Notifications.
+- Vice principals access the following views on the admin web console: Dashboard, Users (students only), Academic, Direct Adjust, Rewards, Activities, Proposals, Notifications, and Custom Notifications.
 - Vice principals cannot access pool management, point-task management, guidance, tiers, rankings, or reports through either the web interface or backend APIs.
 - Changing class does not change a student's point balance or reward requests.
 - Leaving the school removes the student's balance and active reward requests.
@@ -96,6 +96,9 @@
 - Student notifications are generated for: reward request status transitions (`Pending to Receive`, `Completed`, `Declined`), task proposal status transitions and administrator or vice-principal messages, teacher point awards, administrator or vice-principal point adjustments, and challenge/mission verification reviews (including rejection ban or manual unblock).
 - Administrator and vice-principal notifications are generated for: submitted reward requests requiring approval, submitted student task proposals, incoming student messages on proposals, and submitted challenge/mission verification requests. These notifications are delivered to every active administrator and vice principal.
 - Teacher notifications are generated when an administrator allocates points from the system point pool to the teacher's point budget. Vice principal notifications are generated when an administrator funds their personal point balance.
+- Administrators may send custom notifications to active students and active teachers. Vice principals may send custom notifications to active students only.
+- A custom notification send is accepted only when every selected recipient exists, is active, and has a role the sender may target; otherwise, no notifications in that send are created.
+- Custom notifications create an individual inbox notification for each recipient and use the existing Android push delivery when the recipient has a registered device and push is configured.
 - An unread notification is considered viewed when at least 50% of its card remains visible in the user's viewport continuously for 1 second; viewing it sets its status to `Read` and records the read timestamp.
 - A user can mark all of their unread notifications as read at once.
 - In-app notifications cannot be deleted by users and are retained permanently in the inbox with their read or unread state preserved.

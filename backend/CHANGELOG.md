@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.3.3 - 2026-11-19
+
+### Added
+
+- Added custom notifications for active students and teachers, with vice-principal sends restricted to active students.
+- Added per-recipient notification persistence and delivery through the existing realtime and Firebase push pipeline.
+
 ## 2.3.2 - 2026-11-19
 
 ### Added

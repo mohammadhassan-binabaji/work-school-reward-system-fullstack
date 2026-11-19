@@ -43,6 +43,7 @@
 - As a school administrator, I want to filter task proposals by status so that I can manage open and historical proposals efficiently.
 - As a school administrator, I want to create, edit, and delete point earning guidance cards so that students can see how to earn points.
 - As a school administrator, I want to receive in-app notifications when students submit reward requests requiring approval, task proposals, proposal messages, or activity verification requests so that I can promptly review them.
+- As a school administrator, I want to send a custom notification to selected active students, active teachers, or both so that I can communicate announcements to the appropriate audience.
 - As a school administrator, I want to view my notifications, filter them by read status, and see an unread badge counter so that I can track pending alerts.
 - As a school administrator, I want unread notifications to be marked as read after I view them and to mark all unread notifications as read with one action so that my inbox remains manageable.
 
@@ -57,13 +58,14 @@
 - As a teacher, I want to view current points for students in my assigned classes in tables and diagrams so that I can monitor their progress.
 - As a teacher, I want to filter student point reports by tier so that I can analyze students by current-point category.
 - As a teacher, I want to receive an in-app notification when an administrator transfers points to my balance so that I know my award budget has been updated.
+- As a teacher, I want to receive custom notifications sent by an administrator so that I stay informed of relevant announcements.
 - As a teacher, I want to view my notifications, filter them by read status, and see an unread badge counter so that I stay informed of balance changes.
 - As a teacher, I want unread notifications to be marked as read after I view them and to mark all unread notifications as read with one action so that my notification list stays up to date.
 
 ## Vice Principal
 
 - As a vice principal, I want to sign in with my national ID and password to access the restricted administrative console.
-- As a vice principal, I want to see only my permitted views (Dashboard, Users, Academic, Direct Adjust, Rewards, Activities, Proposals, Notifications) in the layout sidebar so that my workspace is focused on my responsibilities.
+- As a vice principal, I want to see only my permitted views (Dashboard, Users, Academic, Direct Adjust, Rewards, Activities, Proposals, Notifications, Custom Notifications) in the layout sidebar so that my workspace is focused on my responsibilities.
 - As a vice principal, I want to view, create, update, and delete student accounts and bulk import students so that I can manage student accounts without access to teacher, administrator, or vice-principal accounts.
 - As a vice principal, I want to manage classes, subjects, teacher assignments, and student class membership so that I can maintain the school's academic structure.
 - As a vice principal, I want to see teacher names and IDs for academic assignments without access to teacher accounts so that I can manage teaching relationships while respecting role boundaries.
@@ -72,6 +74,7 @@
 - As a vice principal, I want to directly credit points to a student (deducting from my balance) or debit points from a student (returning to my balance) so that I can reward or correct student conduct.
 - As a vice principal, I want to manage rewards, approve/decline/complete reward requests, review activity verifications, and approve/complete student proposals so that administrative workflows are distributed efficiently.
 - As a vice principal, I want to receive in-app review notifications for reward requests, proposals, and activity verifications so that I can promptly take action.
+- As a vice principal, I want to send a custom notification to selected active students so that I can communicate announcements while respecting my role's access limits.
 - As a vice principal, I want to see only my own notifications in my notification inbox so that my alerts are private.
 
 ## Student
@@ -99,6 +102,7 @@
 - As a student, I want to exchange messages with the administrator regarding my task proposal so that we can communicate about the task.
 - As a student, I want to view point earning guidance cards so that I can understand the ways I can earn points.
 - As a student, I want to receive in-app notifications when my reward request status changes, an administrator reviews or replies to my task proposal, points are awarded or adjusted, or my activity verification is reviewed so that I stay informed of my activities.
+- As a student, I want to receive custom notifications sent by an administrator or vice principal so that I stay informed of relevant announcements.
 - As a student, I want to view all my notifications and filter them by unread or read status so that I can easily find relevant updates.
 - As a student, I want to see an unread notification count indicator so that I immediately know how many unread updates I have.
 - As a student, I want an unread notification to be marked as read after I view it in my inbox so that my unread count updates automatically.
