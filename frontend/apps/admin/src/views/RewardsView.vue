@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import {
   Gift,
   Plus,
@@ -14,6 +14,7 @@ import {
   Pencil,
   UploadCloud,
   X,
+  Search,
 } from 'lucide-vue-next';
 import AdminModal from '../components/AdminModal.vue';
 import ConfirmDialog from '../components/ConfirmDialog.vue';
@@ -26,14 +27,59 @@ import {
   type Reward,
   type RewardRequest,
   type RewardRequestStatus,
+  type Class,
+  type User,
 } from '@student-reward/shared';
+import {
+  getClassOptionsForGrade,
+  NO_CLASS_FILTER,
+  NO_GRADE_FILTER,
+  reconcileClassFilter,
+} from '../utils/classGradeFilters';
+import { getStudentFilterContext, matchesStudentFilters } from '../utils/studentFilters';
 
 const activeTab = ref<'requests' | 'catalog'>('requests');
 const loading = ref(true);
 
 const requests = ref<RewardRequest[]>([]);
 const catalog = ref<Reward[]>([]);
+const students = ref<User[]>([]);
+const classes = ref<Class[]>([]);
 const filterStatus = ref<RewardRequestStatus | ''>('');
+const filterRewardId = ref('');
+const studentSearchQuery = ref('');
+const filterClassName = ref('');
+const filterGradeLevel = ref('');
+
+const classFilterOptions = computed(() =>
+  getClassOptionsForGrade(classes.value, filterGradeLevel.value),
+);
+const gradeLevelOptions = computed(() =>
+  [...new Set(classes.value.map((cls) => cls.gradeLevel?.trim()).filter(Boolean) as string[])]
+    .sort((a, b) => a.localeCompare(b)),
+);
+const studentContextById = computed(
+  () => new Map(students.value.map((student) => [student.id, getStudentFilterContext(student)])),
+);
+const filteredRequests = computed(() =>
+  requests.value.filter((request) => {
+    if (filterRewardId.value && request.rewardId !== filterRewardId.value) return false;
+    return matchesStudentFilters(
+      studentContextById.value.get(request.studentId) || getStudentFilterContext(request.student),
+      {
+        search: studentSearchQuery.value,
+        className: filterClassName.value,
+        gradeLevel: filterGradeLevel.value,
+      },
+      NO_CLASS_FILTER,
+      NO_GRADE_FILTER,
+    );
+  }),
+);
+
+watch(filterGradeLevel, (gradeFilter) => {
+  filterClassName.value = reconcileClassFilter(classes.value, filterClassName.value, gradeFilter);
+});
 
 // Decline Request Modal
 const isDeclineModalOpen = ref(false);
@@ -75,12 +121,16 @@ async function loadData() {
     const params: Record<string, any> = {};
     if (filterStatus.value) params.status = filterStatus.value;
 
-    const [reqs, rewards] = await Promise.all([
+    const [reqs, rewards, studentList, classList] = await Promise.all([
       api.get<RewardRequest[]>('/reward-requests', params),
       api.get<Reward[]>('/rewards'),
+      api.get<User[]>('/users', { role: 'STUDENT' }),
+      api.get<Class[]>('/classes'),
     ]);
     requests.value = reqs || [];
     catalog.value = rewards || [];
+    students.value = studentList || [];
+    classes.value = classList || [];
   } catch (err: any) {
     errorMessage.value = err.message || 'خطا در دریافت اطلاعات جوایز';
   } finally {
@@ -335,19 +385,41 @@ function askDeleteReward(id: string) {
         </button>
       </div>
 
-      <!-- Status filter if on requests tab -->
-      <div v-if="activeTab === 'requests'" class="flex items-center gap-2">
-        <select
-          v-model="filterStatus"
-          class="bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 font-medium"
-          @change="loadData"
-        >
-          <option value="">همه وضعیت‌ها</option>
-          <option value="PENDING_TO_APPROVE">در انتظار تایید</option>
-          <option value="PENDING_TO_RECEIVE">در انتظار تحویل</option>
-          <option value="COMPLETED">تحویل شده (تکمیل)</option>
-          <option value="DECLINED">رد شده</option>
-        </select>
+      <!-- Filters for reward requests -->
+      <div v-if="activeTab === 'requests'" class="bg-white border border-slate-200 rounded-2xl p-3 space-y-2">
+        <div class="relative">
+          <input
+            v-model="studentSearchQuery"
+            type="text"
+            placeholder="جستجوی نام یا کد ملی دانش‌آموز..."
+            class="w-full bg-slate-50 border border-slate-200 rounded-xl pr-9 pl-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-600"
+          />
+          <Search class="w-4 h-4 text-slate-400 absolute right-3 top-2" />
+        </div>
+        <div dir="ltr" class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <select v-model="filterClassName" dir="rtl" aria-label="فیلتر بر اساس کلاس" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700">
+            <option value="">تمام کلاس‌ها</option>
+            <option v-if="classFilterOptions.includeNoClass" :value="NO_CLASS_FILTER">بدون کلاس</option>
+            <option v-for="className in classFilterOptions.classNames" :key="className" :value="className">{{ className }}</option>
+          </select>
+          <select v-model="filterGradeLevel" dir="rtl" aria-label="فیلتر بر اساس پایه تحصیلی" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700">
+            <option value="">تمام پایه‌ها</option>
+            <option :value="NO_GRADE_FILTER">بدون پایه</option>
+            <option v-for="gradeLevel in gradeLevelOptions" :key="gradeLevel" :value="gradeLevel">{{ gradeLevel }}</option>
+          </select>
+          <select v-model="filterRewardId" dir="rtl" aria-label="فیلتر بر اساس جایزه" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700">
+            <option value="">همه جوایز</option>
+            <option v-for="reward in catalog" :key="reward.id" :value="reward.id">{{ reward.name }}</option>
+          </select>
+          <select v-model="filterStatus" dir="rtl" aria-label="فیلتر بر اساس وضعیت" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700" @change="loadData">
+            <option value="">همه وضعیت‌ها</option>
+            <option value="PENDING_TO_APPROVE">در انتظار تایید</option>
+            <option value="PENDING_TO_RECEIVE">در انتظار تحویل</option>
+            <option value="COMPLETED">تحویل شده (تکمیل)</option>
+            <option value="DECLINED">رد شده</option>
+          </select>
+        </div>
+        <span class="text-[11px] text-slate-400">{{ toPersianDigits(filteredRequests.length) }} درخواست مطابق فیلتر</span>
       </div>
     </div>
 
@@ -371,8 +443,8 @@ function askDeleteReward(id: string) {
                 <td colspan="6" class="py-12 text-center text-slate-400">در حال بارگذاری درخواست‌ها...</td>
               </tr>
             </template>
-            <template v-else-if="requests.length > 0">
-              <tr v-for="req in requests" :key="req.id" class="hover:bg-slate-50/80 transition-colors">
+            <template v-else-if="filteredRequests.length > 0">
+              <tr v-for="req in filteredRequests" :key="req.id" class="hover:bg-slate-50/80 transition-colors">
                 <td class="p-3.5 pr-5 font-bold text-slate-800">
                   {{ req.student?.firstName }} {{ req.student?.lastName }}
                 </td>

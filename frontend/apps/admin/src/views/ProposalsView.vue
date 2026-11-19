@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import {
   Send,
   MessageSquare,
@@ -9,6 +9,7 @@ import {
   RefreshCw,
   Clock,
   Lock,
+  Search,
 } from 'lucide-vue-next';
 import AdminModal from '../components/AdminModal.vue';
 import {
@@ -19,11 +20,54 @@ import {
   type StudentTaskProposal,
   type TaskProposalMessage,
   type ProposalStatus,
+  type Class,
+  type User,
 } from '@student-reward/shared';
+import {
+  getClassOptionsForGrade,
+  NO_CLASS_FILTER,
+  NO_GRADE_FILTER,
+  reconcileClassFilter,
+} from '../utils/classGradeFilters';
+import { getStudentFilterContext, matchesStudentFilters } from '../utils/studentFilters';
 
 const proposals = ref<StudentTaskProposal[]>([]);
+const students = ref<User[]>([]);
+const classes = ref<Class[]>([]);
 const loading = ref(true);
 const filterStatus = ref<ProposalStatus | ''>('');
+const studentSearchQuery = ref('');
+const filterClassName = ref('');
+const filterGradeLevel = ref('');
+
+const classFilterOptions = computed(() =>
+  getClassOptionsForGrade(classes.value, filterGradeLevel.value),
+);
+const gradeLevelOptions = computed(() =>
+  [...new Set(classes.value.map((cls) => cls.gradeLevel?.trim()).filter(Boolean) as string[])]
+    .sort((a, b) => a.localeCompare(b)),
+);
+const studentContextById = computed(
+  () => new Map(students.value.map((student) => [student.id, getStudentFilterContext(student)])),
+);
+const filteredProposals = computed(() =>
+  proposals.value.filter((proposal) =>
+    matchesStudentFilters(
+      studentContextById.value.get(proposal.studentId) || getStudentFilterContext(proposal.student),
+      {
+        search: studentSearchQuery.value,
+        className: filterClassName.value,
+        gradeLevel: filterGradeLevel.value,
+      },
+      NO_CLASS_FILTER,
+      NO_GRADE_FILTER,
+    ),
+  ),
+);
+
+watch(filterGradeLevel, (gradeFilter) => {
+  filterClassName.value = reconcileClassFilter(classes.value, filterClassName.value, gradeFilter);
+});
 
 // Approve modal
 const isApproveModalOpen = ref(false);
@@ -58,8 +102,14 @@ async function loadProposals() {
     const params: Record<string, any> = {};
     if (filterStatus.value) params.status = filterStatus.value;
 
-    const list = await api.get<StudentTaskProposal[]>('/proposals', params);
+    const [list, studentList, classList] = await Promise.all([
+      api.get<StudentTaskProposal[]>('/proposals', params),
+      api.get<User[]>('/users', { role: 'STUDENT' }),
+      api.get<Class[]>('/classes'),
+    ]);
     proposals.value = list || [];
+    students.value = studentList || [];
+    classes.value = classList || [];
   } catch (err: any) {
     errorMessage.value = err.message || 'خطا در بارگذاری پیشنهادها';
   } finally {
@@ -173,18 +223,6 @@ async function sendAdminMessage() {
       </div>
 
       <div class="flex items-center gap-2">
-        <select
-          v-model="filterStatus"
-          class="bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 font-medium"
-          @change="loadProposals"
-        >
-          <option value="">همه وضعیت‌ها</option>
-          <option value="PENDING_TO_APPROVE">در انتظار بررسی اولیه</option>
-          <option value="READY_TO_DO">تایید شده / آماده اجرا</option>
-          <option value="COMPLETED">تکمیل شده و اهدای نوین</option>
-          <option value="DECLINED">رد شده</option>
-          <option value="CANCELED">لغو شده توسط دانش‌آموز</option>
-        </select>
       </div>
     </div>
 
@@ -199,6 +237,38 @@ async function sendAdminMessage() {
 
     <!-- Proposals Table -->
     <div class="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">
+      <div class="p-3 border-b border-slate-100 space-y-2">
+        <div class="relative">
+          <input
+            v-model="studentSearchQuery"
+            type="text"
+            placeholder="جستجوی نام یا کد ملی دانش‌آموز..."
+            class="w-full bg-slate-50 border border-slate-200 rounded-xl pr-9 pl-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-600"
+          />
+          <Search class="w-4 h-4 text-slate-400 absolute right-3 top-2" />
+        </div>
+        <div dir="ltr" class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          <select v-model="filterClassName" dir="rtl" aria-label="فیلتر بر اساس کلاس" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700">
+            <option value="">تمام کلاس‌ها</option>
+            <option v-if="classFilterOptions.includeNoClass" :value="NO_CLASS_FILTER">بدون کلاس</option>
+            <option v-for="className in classFilterOptions.classNames" :key="className" :value="className">{{ className }}</option>
+          </select>
+          <select v-model="filterGradeLevel" dir="rtl" aria-label="فیلتر بر اساس پایه تحصیلی" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700">
+            <option value="">تمام پایه‌ها</option>
+            <option :value="NO_GRADE_FILTER">بدون پایه</option>
+            <option v-for="gradeLevel in gradeLevelOptions" :key="gradeLevel" :value="gradeLevel">{{ gradeLevel }}</option>
+          </select>
+          <select v-model="filterStatus" dir="rtl" aria-label="فیلتر بر اساس وضعیت" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700" @change="loadProposals">
+            <option value="">همه وضعیت‌ها</option>
+            <option value="PENDING_TO_APPROVE">در انتظار بررسی اولیه</option>
+            <option value="READY_TO_DO">تایید شده / آماده اجرا</option>
+            <option value="COMPLETED">تکمیل شده و اهدای نوین</option>
+            <option value="DECLINED">رد شده</option>
+            <option value="CANCELED">لغو شده توسط دانش‌آموز</option>
+          </select>
+        </div>
+        <span class="text-[11px] text-slate-400">{{ toPersianDigits(filteredProposals.length) }} پیشنهاد مطابق فیلتر</span>
+      </div>
       <div class="overflow-x-auto">
         <table class="w-full text-right text-xs">
           <thead class="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
@@ -217,8 +287,8 @@ async function sendAdminMessage() {
                 <td colspan="6" class="py-12 text-center text-slate-400">در حال بارگذاری پیشنهادها...</td>
               </tr>
             </template>
-            <template v-else-if="proposals.length > 0">
-              <tr v-for="p in proposals" :key="p.id" class="hover:bg-slate-50/80 transition-colors">
+            <template v-else-if="filteredProposals.length > 0">
+              <tr v-for="p in filteredProposals" :key="p.id" class="hover:bg-slate-50/80 transition-colors">
                 <td class="p-3.5 pr-5 font-bold text-slate-800">
                   {{ p.student?.firstName }} {{ p.student?.lastName }}
                 </td>

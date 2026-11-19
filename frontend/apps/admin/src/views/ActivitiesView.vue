@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import {
   Flag,
   Plus,
@@ -10,6 +10,7 @@ import {
   Unlock,
   AlertCircle,
   FileText,
+  Search,
 } from 'lucide-vue-next';
 import AdminModal from '../components/AdminModal.vue';
 import ConfirmDialog from '../components/ConfirmDialog.vue';
@@ -22,13 +23,59 @@ import {
   type Activity,
   type VerificationRequest,
   type ActivityType,
+  type Class,
+  type User,
 } from '@student-reward/shared';
+import {
+  getClassOptionsForGrade,
+  NO_CLASS_FILTER,
+  NO_GRADE_FILTER,
+  reconcileClassFilter,
+} from '../utils/classGradeFilters';
+import { getStudentFilterContext, matchesStudentFilters } from '../utils/studentFilters';
 
 const activeTab = ref<'verifications' | 'activities'>('verifications');
 const loading = ref(true);
 
 const verifications = ref<VerificationRequest[]>([]);
 const activities = ref<Activity[]>([]);
+const students = ref<User[]>([]);
+const classes = ref<Class[]>([]);
+const filterActivityId = ref('');
+const studentSearchQuery = ref('');
+const filterClassName = ref('');
+const filterGradeLevel = ref('');
+
+const classFilterOptions = computed(() =>
+  getClassOptionsForGrade(classes.value, filterGradeLevel.value),
+);
+const gradeLevelOptions = computed(() =>
+  [...new Set(classes.value.map((cls) => cls.gradeLevel?.trim()).filter(Boolean) as string[])]
+    .sort((a, b) => a.localeCompare(b)),
+);
+const studentContextById = computed(
+  () => new Map(students.value.map((student) => [student.id, getStudentFilterContext(student)])),
+);
+const filteredVerifications = computed(() =>
+  verifications.value.filter((verification) => {
+    if (filterActivityId.value && verification.activityId !== filterActivityId.value) return false;
+    return matchesStudentFilters(
+      studentContextById.value.get(verification.studentId) ||
+        getStudentFilterContext(verification.student),
+      {
+        search: studentSearchQuery.value,
+        className: filterClassName.value,
+        gradeLevel: filterGradeLevel.value,
+      },
+      NO_CLASS_FILTER,
+      NO_GRADE_FILTER,
+    );
+  }),
+);
+
+watch(filterGradeLevel, (gradeFilter) => {
+  filterClassName.value = reconcileClassFilter(classes.value, filterClassName.value, gradeFilter);
+});
 
 // Reject modal
 const isRejectModalOpen = ref(false);
@@ -69,12 +116,16 @@ onMounted(async () => {
 async function loadData() {
   loading.value = true;
   try {
-    const [vList, aList] = await Promise.all([
+    const [vList, aList, studentList, classList] = await Promise.all([
       api.get<VerificationRequest[]>('/verifications'),
       api.get<Activity[]>('/activities'),
+      api.get<User[]>('/users', { role: 'STUDENT' }),
+      api.get<Class[]>('/classes'),
     ]);
     verifications.value = vList || [];
     activities.value = aList || [];
+    students.value = studentList || [];
+    classes.value = classList || [];
   } catch (err: any) {
     errorMessage.value = err.message || 'خطا در بارگذاری چالش‌ها';
   } finally {
@@ -243,6 +294,34 @@ async function handleUnban() {
 
     <!-- Tab 1: Verifications Review Table -->
     <div v-if="activeTab === 'verifications'" class="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">
+      <div class="p-3 border-b border-slate-100 space-y-2">
+        <div class="relative">
+          <input
+            v-model="studentSearchQuery"
+            type="text"
+            placeholder="جستجوی نام یا کد ملی دانش‌آموز..."
+            class="w-full bg-slate-50 border border-slate-200 rounded-xl pr-9 pl-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-600"
+          />
+          <Search class="w-4 h-4 text-slate-400 absolute right-3 top-2" />
+        </div>
+        <div dir="ltr" class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          <select v-model="filterClassName" dir="rtl" aria-label="فیلتر بر اساس کلاس" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700">
+            <option value="">تمام کلاس‌ها</option>
+            <option v-if="classFilterOptions.includeNoClass" :value="NO_CLASS_FILTER">بدون کلاس</option>
+            <option v-for="className in classFilterOptions.classNames" :key="className" :value="className">{{ className }}</option>
+          </select>
+          <select v-model="filterGradeLevel" dir="rtl" aria-label="فیلتر بر اساس پایه تحصیلی" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700">
+            <option value="">تمام پایه‌ها</option>
+            <option :value="NO_GRADE_FILTER">بدون پایه</option>
+            <option v-for="gradeLevel in gradeLevelOptions" :key="gradeLevel" :value="gradeLevel">{{ gradeLevel }}</option>
+          </select>
+          <select v-model="filterActivityId" dir="rtl" aria-label="فیلتر بر اساس فعالیت" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700">
+            <option value="">همه فعالیت‌ها</option>
+            <option v-for="activity in activities" :key="activity.id" :value="activity.id">{{ activity.title }}</option>
+          </select>
+        </div>
+        <span class="text-[11px] text-slate-400">{{ toPersianDigits(filteredVerifications.length) }} مدرک مطابق فیلتر</span>
+      </div>
       <div class="overflow-x-auto">
         <table class="w-full text-right text-xs">
           <thead class="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
@@ -261,8 +340,8 @@ async function handleUnban() {
                 <td colspan="6" class="py-12 text-center text-slate-400">در حال دریافت مدارک...</td>
               </tr>
             </template>
-            <template v-else-if="verifications.length > 0">
-              <tr v-for="v in verifications" :key="v.id" class="hover:bg-slate-50/80 transition-colors">
+            <template v-else-if="filteredVerifications.length > 0">
+              <tr v-for="v in filteredVerifications" :key="v.id" class="hover:bg-slate-50/80 transition-colors">
                 <td class="p-3.5 pr-5 font-bold text-slate-800">
                   {{ v.student?.firstName }} {{ v.student?.lastName }}
                 </td>

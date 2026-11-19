@@ -51,8 +51,8 @@ const allNavItems = [
   { title: 'پیکربندی سطوح (Tier)', path: '/tiers', icon: Layers },
   { title: 'رتبه‌بندی و ثبت اسنپ‌شات', path: '/rankings', icon: Trophy },
   { title: 'گزارشات و خروجی اکسل/PDF', path: '/reports', icon: FileSpreadsheet },
-  { title: 'اعلان‌ها', path: '/notifications', icon: Bell },
   { title: 'ارسال اعلان اختصاصی', path: '/send-notifications', icon: Send },
+  { title: 'اعلان‌ها', path: '/notifications', icon: Bell },
 ];
 
 const vpAllowedPaths = [
