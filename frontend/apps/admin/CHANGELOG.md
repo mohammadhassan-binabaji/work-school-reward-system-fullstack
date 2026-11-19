@@ -6,6 +6,9 @@
 
 - Added a Persian RTL page for composing and sending custom notifications to selected students and teachers.
 - Added role-aware recipient selection, student class and grade filters, name and national-ID search, mixed admin sends, and recipient-count confirmation.
+- Added class, grade, and student search filters to reward requests, verification submissions, and activity proposals.
+- Added reward-title filtering to reward requests and activity-title filtering to verification submissions.
+- Added Persian and Arabic-Indic digit normalization for national-ID searches across the new review filters.
 
 ## 2.4.2 - 2026-11-19
 
