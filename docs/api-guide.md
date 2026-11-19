@@ -23,7 +23,7 @@ The header-based alternatives listed below remain for compatibility; browser fro
 
 ### 2. User Management (`/api/v1/users`)
 - Admins can manage all user roles. Vice principals can list, read, create, update, and delete student accounts only; requests involving another role are forbidden.
-- `GET /api/v1/users/students` - Admin or vice principal lookup of active students using only the identifying fields needed by direct-adjustment forms.
+- `GET /api/v1/users/students` - Admin or vice principal lookup of active students for direct-adjustment forms, including the student's class grade level (or `null` when no grade is assigned).
 - `GET /api/v1/users/academic/students` - Student names, IDs, and National IDs needed to assign students to classes.
 - `GET /api/v1/users/academic/teachers` - Teacher names and IDs needed for assignments; vice principals do not get teacher account/profile access.
 - `POST /api/v1/users` - Create an account (vice principals may create students only; supports optional profile image upload up to 5MB, JPG/PNG/WebP).

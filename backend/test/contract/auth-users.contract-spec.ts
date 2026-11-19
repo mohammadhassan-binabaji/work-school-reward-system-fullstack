@@ -128,6 +128,57 @@ describe('Auth & Users Contract Tests (e2e)', () => {
     expect(res.headers['content-disposition']).toContain('students-import-template.xlsx');
   });
 
+  it('GET /api/v1/users/students includes grade levels for direct adjustment', async () => {
+    const gradedClass = await prisma.class.create({
+      data: { name: 'Grade Seven', gradeLevel: 'هفتم' },
+    });
+    const ungradedClass = await prisma.class.create({
+      data: { name: 'Unspecified Grade' },
+    });
+
+    const createStudent = async (
+      nationalId: string,
+      username: string,
+      classId?: string,
+    ) => {
+      const response = await request(app.getHttpServer())
+        .post('/api/v1/users')
+        .set('Cookie', adminCookie)
+        .send({
+          nationalId,
+          firstName: 'Student',
+          lastName: username,
+          username,
+          password: 'Password123!',
+          role: 'STUDENT',
+          ...(classId ? { classId } : {}),
+        })
+        .expect(201);
+      return response.body.id as string;
+    };
+
+    const gradedStudentId = await createStudent('2222222222', 'gradedstudent', gradedClass.id);
+    const ungradedClassStudentId = await createStudent(
+      '3333333333',
+      'ungradedclassstudent',
+      ungradedClass.id,
+    );
+    const noClassStudentId = await createStudent('4444444444', 'noclassstudent');
+
+    const response = await request(app.getHttpServer())
+      .get('/api/v1/users/students')
+      .set('Cookie', adminCookie)
+      .expect(200);
+    const gradeLevelsById = new Map<string, string | null>();
+    for (const student of response.body as { id: string; gradeLevel: string | null }[]) {
+      gradeLevelsById.set(student.id, student.gradeLevel);
+    }
+
+    expect(gradeLevelsById.get(gradedStudentId)).toBe('هفتم');
+    expect(gradeLevelsById.get(ungradedClassStudentId)).toBeNull();
+    expect(gradeLevelsById.get(noClassStudentId)).toBeNull();
+  });
+
   it('POST /api/v1/users/import/excel successfully imports valid students in an atomic transaction', async () => {
     const cls = await prisma.class.create({
       data: { name: 'Class 701' },

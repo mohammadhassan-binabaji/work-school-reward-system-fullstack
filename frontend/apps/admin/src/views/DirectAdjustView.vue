@@ -8,6 +8,8 @@ const loading = ref(true);
 
 const selectedStudentIds = ref<string[]>([]);
 const studentSearchQuery = ref('');
+const filterGradeLevel = ref('');
+const noGradeFilter = '__NO_GRADE__';
 const adjustAmount = ref<number | ''>('');
 const adjustType = ref<'credit' | 'debit'>('credit');
 const adjustReason = ref('');
@@ -16,10 +18,28 @@ const submitting = ref(false);
 const successMessage = ref<string | null>(null);
 const errorMessage = ref<string | null>(null);
 
+const gradeLevelOptions = computed(() =>
+  [
+    ...new Set(
+      students.value
+        .map((student) => student.studentProfile?.class?.gradeLevel?.trim())
+        .filter((grade): grade is string => Boolean(grade)),
+    ),
+  ].sort((a, b) => a.localeCompare(b)),
+);
+
 const filteredStudents = computed(() => {
   const query = normalizeSearch(studentSearchQuery.value);
-  if (!query) return students.value;
   return students.value.filter((student) => {
+    const gradeLevel = student.studentProfile?.class?.gradeLevel?.trim() || '';
+    const matchesGrade =
+      !filterGradeLevel.value ||
+      (filterGradeLevel.value === noGradeFilter
+        ? !gradeLevel
+        : gradeLevel === filterGradeLevel.value);
+    if (!matchesGrade) return false;
+    if (!query) return true;
+
     const name = normalizeSearch(`${student.firstName} ${student.lastName}`);
     return name.includes(query) || toAsciiDigits(student.nationalId).includes(toAsciiDigits(query));
   });
@@ -106,7 +126,7 @@ async function handleAdjust() {
 </script>
 
 <template>
-  <div class="space-y-6 max-w-2xl mx-auto">
+  <div class="space-y-6 max-w-5xl mx-auto">
     <!-- Header -->
     <div>
       <h1 class="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
@@ -143,14 +163,27 @@ async function handleAdjust() {
           <label class="text-xs font-bold text-slate-700">انتخاب دانش‌آموزان:</label>
           <span class="text-[11px] text-slate-400"> {{ toPersianDigits(selectedStudentIds.length) }} انتخاب‌شده </span>
         </div>
-        <div class="relative">
-          <input
-            v-model="studentSearchQuery"
-            type="text"
-            placeholder="جستجوی نام یا کد ملی دانش‌آموز..."
-            class="w-full bg-slate-50 border border-slate-200 rounded-xl pr-9 pl-3 py-2.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-600"
-          />
-          <Search class="w-4 h-4 text-slate-400 absolute right-3 top-2.5" />
+        <div class="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_16rem] gap-2">
+          <div class="relative min-w-0">
+            <input
+              v-model="studentSearchQuery"
+              type="text"
+              placeholder="جستجوی نام یا کد ملی دانش‌آموز..."
+              class="w-full bg-slate-50 border border-slate-200 rounded-xl pr-9 pl-3 py-2.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-600"
+            />
+            <Search class="w-4 h-4 text-slate-400 absolute right-3 top-2.5" />
+          </div>
+          <select
+            v-model="filterGradeLevel"
+            aria-label="فیلتر بر اساس پایه تحصیلی"
+            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-700 font-medium"
+          >
+            <option value="">تمام پایه‌ها</option>
+            <option :value="noGradeFilter">بدون پایه</option>
+            <option v-for="gradeLevel in gradeLevelOptions" :key="gradeLevel" :value="gradeLevel">
+              {{ gradeLevel }}
+            </option>
+          </select>
         </div>
         <div class="flex items-center justify-between mt-2 mb-1">
           <span class="text-[11px] text-slate-400"> {{ toPersianDigits(filteredStudents.length) }} دانش‌آموز </span>

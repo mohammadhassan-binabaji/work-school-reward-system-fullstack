@@ -196,7 +196,7 @@ export class UsersService {
   }
 
   async findActiveStudentsForAdjustment() {
-    return this.prisma.user.findMany({
+    const students = await this.prisma.user.findMany({
       where: {
         role: Role.STUDENT,
         accountState: AccountState.ACTIVE,
@@ -206,9 +206,26 @@ export class UsersService {
         nationalId: true,
         firstName: true,
         lastName: true,
+        studentProfile: {
+          select: {
+            class: {
+              select: {
+                gradeLevel: true,
+              },
+            },
+          },
+        },
       },
       orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
     });
+
+    return students.map((student) => ({
+      id: student.id,
+      nationalId: student.nationalId,
+      firstName: student.firstName,
+      lastName: student.lastName,
+      gradeLevel: student.studentProfile?.class?.gradeLevel ?? null,
+    }));
   }
 
   async findTeacherReferences() {

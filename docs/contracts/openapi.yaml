@@ -1556,7 +1556,7 @@ paths:
   /users/students:
     get:
       summary: List active students for point adjustment (Admin or Vice Principal)
-      description: Returns only student IDs, national IDs, and names required by direct-adjustment forms.
+      description: Returns active student IDs, national IDs, names, and class grade levels required by direct-adjustment forms. Grade level is null when the student has no class or the class has no grade level.
       security:
         - SessionAuth: []
       responses:
@@ -1568,12 +1568,13 @@ paths:
                 type: array
                 items:
                   type: object
-                  required: [id, nationalId, firstName, lastName]
+                  required: [id, nationalId, firstName, lastName, gradeLevel]
                   properties:
                     id: { type: string, format: uuid }
                     nationalId: { type: string }
                     firstName: { type: string }
                     lastName: { type: string }
+                    gradeLevel: { type: string, nullable: true }
         '403':
           $ref: '#/components/responses/ForbiddenError'
 

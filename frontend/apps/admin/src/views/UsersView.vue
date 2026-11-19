@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import {
   Users,
   UserPlus,
@@ -45,7 +45,30 @@ const authStore = useAuthStore();
 // Filters
 const filterRole = ref<Role | ''>('');
 const filterState = ref<AccountState | ''>('');
+const filterGradeLevel = ref('');
 const searchQuery = ref('');
+const noGradeFilter = '__NO_GRADE__';
+
+const gradeLevelOptions = computed(() =>
+  [
+    ...new Set(
+      classes.value
+        .map((cls) => cls.gradeLevel?.trim())
+        .filter((grade): grade is string => Boolean(grade)),
+    ),
+  ].sort((a, b) => a.localeCompare(b)),
+);
+const showGradeFilter = computed(() => authStore.isVicePrincipal || filterRole.value === 'STUDENT');
+const visibleUsers = computed(() => {
+  if (!showGradeFilter.value || !filterGradeLevel.value) return users.value;
+
+  return users.value.filter((user) => {
+    const gradeLevel = user.studentProfile?.class?.gradeLevel?.trim() || '';
+    return filterGradeLevel.value === noGradeFilter
+      ? !gradeLevel
+      : gradeLevel === filterGradeLevel.value;
+  });
+});
 
 // Create User Modal
 const isCreateModalOpen = ref(false);
@@ -111,6 +134,11 @@ async function loadData() {
   } finally {
     loading.value = false;
   }
+}
+
+function handleRoleFilterChange() {
+  filterGradeLevel.value = '';
+  return loadData();
 }
 
 function onImageChange(e: Event) {
@@ -512,12 +540,12 @@ async function handleBulkImport() {
         <Search class="w-4 h-4 text-slate-400 absolute right-3 top-2.5" />
       </div>
 
-      <div class="flex items-center gap-2 w-full md:w-auto">
+      <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
         <select
           v-if="!authStore.isVicePrincipal"
           v-model="filterRole"
           class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 font-medium"
-          @change="loadData"
+          @change="handleRoleFilterChange"
         >
           <option value="">تمام نقش‌ها</option>
           <option value="STUDENT">دانش‌آموز</option>
@@ -536,6 +564,19 @@ async function handleBulkImport() {
           <option value="INACTIVE">غیرفعال</option>
           <option value="DEACTIVATED">مسدود شده</option>
           <option value="DEPARTED">ترک مدرسه</option>
+        </select>
+
+        <select
+          v-if="showGradeFilter"
+          v-model="filterGradeLevel"
+          aria-label="فیلتر بر اساس پایه تحصیلی"
+          class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 font-medium"
+        >
+          <option value="">تمام پایه‌ها</option>
+          <option :value="noGradeFilter">بدون پایه</option>
+          <option v-for="gradeLevel in gradeLevelOptions" :key="gradeLevel" :value="gradeLevel">
+            {{ gradeLevel }}
+          </option>
         </select>
 
         <button
@@ -570,8 +611,8 @@ async function handleBulkImport() {
                 </td>
               </tr>
             </template>
-            <template v-else-if="users.length > 0">
-              <tr v-for="u in users" :key="u.id" class="hover:bg-slate-50/80 transition-colors">
+            <template v-else-if="visibleUsers.length > 0">
+              <tr v-for="u in visibleUsers" :key="u.id" class="hover:bg-slate-50/80 transition-colors">
                 <td class="p-3.5 pr-5 font-bold text-slate-800">
                   <div class="flex items-center gap-3">
                     <div
