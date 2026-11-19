@@ -362,7 +362,7 @@ function askDeleteReward(id: string) {
     </div>
 
     <!-- Tab Toggle -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <div>
       <div class="p-1 bg-white border border-slate-200 rounded-2xl flex max-w-md">
         <button
           :class="[
@@ -385,8 +385,12 @@ function askDeleteReward(id: string) {
         </button>
       </div>
 
+    </div>
+
+    <!-- Tab 1: Reward Requests Table -->
+    <div v-if="activeTab === 'requests'" class="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">
       <!-- Filters for reward requests -->
-      <div v-if="activeTab === 'requests'" class="bg-white border border-slate-200 rounded-2xl p-3 space-y-2">
+      <div class="p-3 border-b border-slate-100 space-y-2">
         <div class="relative">
           <input
             v-model="studentSearchQuery"
@@ -421,10 +425,6 @@ function askDeleteReward(id: string) {
         </div>
         <span class="text-[11px] text-slate-400">{{ toPersianDigits(filteredRequests.length) }} درخواست مطابق فیلتر</span>
       </div>
-    </div>
-
-    <!-- Tab 1: Reward Requests Table -->
-    <div v-if="activeTab === 'requests'" class="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">
       <div class="overflow-x-auto">
         <table class="w-full text-right text-xs">
           <thead class="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
