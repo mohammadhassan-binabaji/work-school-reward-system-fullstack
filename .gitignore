@@ -82,6 +82,8 @@ Thumbs.db
 
 downloads/
 
+temp/
+
 # Machine-local Spec Kit state
 /.specify/feature.json
 /.specify/extensions/*/local-config.yml

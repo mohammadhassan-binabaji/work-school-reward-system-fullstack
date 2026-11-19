@@ -1,6 +1,6 @@
 {
   "name": "student-reward-backend",
-  "version": "2.2.1",
+  "version": "2.3.0",
   "description": "Student Reward System Backend API",
   "private": true,
   "license": "UNLICENSED",
