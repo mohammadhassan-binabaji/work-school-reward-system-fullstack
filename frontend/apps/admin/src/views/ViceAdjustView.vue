@@ -2,7 +2,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { SlidersHorizontal, RefreshCw, CheckCircle2, AlertCircle, Coins, Wallet, Search } from 'lucide-vue-next';
 import { useAuthStore } from '../stores/auth';
-import { api, toPersianDigits, toAsciiDigits, formatNovin } from '@student-reward/shared';
+import { api, toPersianDigits, toAsciiDigits, formatNovin, type Class } from '@student-reward/shared';
 
 const authStore = useAuthStore();
 interface StudentAdjustmentTarget {
@@ -10,16 +10,20 @@ interface StudentAdjustmentTarget {
   nationalId: string;
   firstName: string;
   lastName: string;
+  className: string | null;
   gradeLevel: string | null;
 }
 
 const students = ref<StudentAdjustmentTarget[]>([]);
+const classes = ref<Class[]>([]);
 const loading = ref(true);
 
 const selectedStudentIds = ref<string[]>([]);
 const studentSearchQuery = ref('');
+const filterClassName = ref('');
 const filterGradeLevel = ref('');
 const noGradeFilter = '__NO_GRADE__';
+const noClassFilter = '__NO_CLASS__';
 const adjustAmount = ref<number | ''>('');
 const adjustType = ref<'credit' | 'debit'>('credit');
 const adjustReason = ref('');
@@ -30,11 +34,16 @@ const errorMessage = ref<string | null>(null);
 
 const vpBalance = ref(0);
 
+const classNameOptions = computed(() =>
+  [...new Set(classes.value.map((cls) => cls.name.trim()).filter(Boolean))].sort((a, b) =>
+    a.localeCompare(b),
+  ),
+);
 const gradeLevelOptions = computed(() =>
   [
     ...new Set(
-      students.value
-        .map((student) => student.gradeLevel?.trim())
+      classes.value
+        .map((cls) => cls.gradeLevel?.trim())
         .filter((grade): grade is string => Boolean(grade)),
     ),
   ].sort((a, b) => a.localeCompare(b)),
@@ -44,12 +53,18 @@ const filteredStudents = computed(() => {
   const query = normalizeSearch(studentSearchQuery.value);
   return students.value.filter((student) => {
     const gradeLevel = student.gradeLevel?.trim() || '';
+    const className = student.className?.trim() || '';
+    const matchesClass =
+      !filterClassName.value ||
+      (filterClassName.value === noClassFilter
+        ? !className
+        : className === filterClassName.value);
     const matchesGrade =
       !filterGradeLevel.value ||
       (filterGradeLevel.value === noGradeFilter
         ? !gradeLevel
         : gradeLevel === filterGradeLevel.value);
-    if (!matchesGrade) return false;
+    if (!matchesClass || !matchesGrade) return false;
     if (!query) return true;
 
     const name = normalizeSearch(`${student.firstName} ${student.lastName}`);
@@ -87,8 +102,12 @@ async function loadProfile() {
 async function loadStudents() {
   loading.value = true;
   try {
-    const list = await api.get<StudentAdjustmentTarget[]>('/users/students');
+    const [list, classList] = await Promise.all([
+      api.get<StudentAdjustmentTarget[]>('/users/students'),
+      api.get<Class[]>('/classes'),
+    ]);
     students.value = list || [];
+    classes.value = classList || [];
   } catch (err: any) {
     errorMessage.value = err.message || 'خطا در بارگذاری دانش‌آموزان';
   } finally {
@@ -134,7 +153,7 @@ async function handleAdjust() {
       reason: adjustReason.value.trim(),
     });
 
-    if (res && typeof res.vicePrincipalRemainingBalance === 'number') {
+    if (res) {
       vpBalance.value = res.vicePrincipalRemainingBalance;
     } else {
       await loadProfile();
@@ -155,7 +174,7 @@ async function handleAdjust() {
 </script>
 
 <template>
-  <div class="space-y-6 max-w-5xl mx-auto">
+  <div class="space-y-6 max-w-6xl mx-auto">
     <!-- Header -->
     <div>
       <h1 class="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
@@ -214,7 +233,7 @@ async function handleAdjust() {
           <label class="text-xs font-bold text-slate-700">انتخاب دانش‌آموزان:</label>
           <span class="text-[11px] text-slate-400"> {{ toPersianDigits(selectedStudentIds.length) }} انتخاب‌شده </span>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_16rem] gap-2">
+        <div dir="ltr" class="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_16rem_16rem] gap-2">
           <div class="relative min-w-0">
             <input
               v-model="studentSearchQuery"
@@ -225,7 +244,20 @@ async function handleAdjust() {
             <Search class="w-4 h-4 text-slate-400 absolute right-3 top-2.5" />
           </div>
           <select
+            v-model="filterClassName"
+            dir="rtl"
+            aria-label="فیلتر بر اساس کلاس"
+            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-700 font-medium"
+          >
+            <option value="">تمام کلاس‌ها</option>
+            <option :value="noClassFilter">بدون کلاس</option>
+            <option v-for="className in classNameOptions" :key="className" :value="className">
+              {{ className }}
+            </option>
+          </select>
+          <select
             v-model="filterGradeLevel"
+            dir="rtl"
             aria-label="فیلتر بر اساس پایه تحصیلی"
             class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-700 font-medium"
           >

@@ -210,6 +210,7 @@ export class UsersService {
           select: {
             class: {
               select: {
+                name: true,
                 gradeLevel: true,
               },
             },
@@ -224,6 +225,7 @@ export class UsersService {
       nationalId: student.nationalId,
       firstName: student.firstName,
       lastName: student.lastName,
+      className: student.studentProfile?.class?.name ?? null,
       gradeLevel: student.studentProfile?.class?.gradeLevel ?? null,
     }));
   }
@@ -601,7 +603,7 @@ export class UsersService {
 
     const REQUIRED_HEADERS: Record<string, string> = {
       'کد ملی': 'nationalId',
-      نام: 'firstName',
+      'نام': 'firstName',
       'نام خانوادگی': 'lastName',
       'نام کاربری': 'username',
       'رمز عبور': 'password',

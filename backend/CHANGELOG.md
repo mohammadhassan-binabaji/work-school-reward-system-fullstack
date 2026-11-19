@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.3.2 - 2026-11-19
+
+### Added
+
+- Added nullable class names to active student adjustment candidates so the Admin and Vice Principal adjustment views can filter by class.
+
 ## 2.3.1 - 2026-11-19
 
 ### Added

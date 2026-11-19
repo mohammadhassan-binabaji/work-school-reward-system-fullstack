@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.4.2 - 2026-11-19
+
+### Added
+
+- Added class-name filters to the Users and direct-adjustment views, alongside grade-level filters.
+- Added an “All classes” option and a “No class” option for students without an assigned or named class.
+- Kept the existing role and status filter group anchored when the student-specific filters appear.
+
 ## 2.4.1 - 2026-11-19
 
 ### Added

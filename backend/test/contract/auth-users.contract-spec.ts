@@ -128,12 +128,15 @@ describe('Auth & Users Contract Tests (e2e)', () => {
     expect(res.headers['content-disposition']).toContain('students-import-template.xlsx');
   });
 
-  it('GET /api/v1/users/students includes grade levels for direct adjustment', async () => {
+  it('GET /api/v1/users/students includes class names and grade levels for direct adjustment', async () => {
     const gradedClass = await prisma.class.create({
       data: { name: 'Grade Seven', gradeLevel: 'هفتم' },
     });
     const ungradedClass = await prisma.class.create({
       data: { name: 'Unspecified Grade' },
+    });
+    const blankNameClass = await prisma.class.create({
+      data: { name: '' },
     });
 
     const createStudent = async (
@@ -164,19 +167,44 @@ describe('Auth & Users Contract Tests (e2e)', () => {
       ungradedClass.id,
     );
     const noClassStudentId = await createStudent('4444444444', 'noclassstudent');
+    const blankNameClassStudentId = await createStudent(
+      '5555555555',
+      'blanknameclassstudent',
+      blankNameClass.id,
+    );
 
     const response = await request(app.getHttpServer())
       .get('/api/v1/users/students')
       .set('Cookie', adminCookie)
       .expect(200);
-    const gradeLevelsById = new Map<string, string | null>();
-    for (const student of response.body as { id: string; gradeLevel: string | null }[]) {
-      gradeLevelsById.set(student.id, student.gradeLevel);
+    const studentsById = new Map<
+      string,
+      { className: string | null; gradeLevel: string | null }
+    >();
+    for (const student of response.body as {
+      id: string;
+      className: string | null;
+      gradeLevel: string | null;
+    }[]) {
+      studentsById.set(student.id, student);
     }
 
-    expect(gradeLevelsById.get(gradedStudentId)).toBe('هفتم');
-    expect(gradeLevelsById.get(ungradedClassStudentId)).toBeNull();
-    expect(gradeLevelsById.get(noClassStudentId)).toBeNull();
+    expect(studentsById.get(gradedStudentId)).toMatchObject({
+      className: 'Grade Seven',
+      gradeLevel: 'هفتم',
+    });
+    expect(studentsById.get(ungradedClassStudentId)).toMatchObject({
+      className: 'Unspecified Grade',
+      gradeLevel: null,
+    });
+    expect(studentsById.get(noClassStudentId)).toMatchObject({
+      className: null,
+      gradeLevel: null,
+    });
+    expect(studentsById.get(blankNameClassStudentId)).toMatchObject({
+      className: '',
+      gradeLevel: null,
+    });
   });
 
   it('POST /api/v1/users/import/excel successfully imports valid students in an atomic transaction', async () => {

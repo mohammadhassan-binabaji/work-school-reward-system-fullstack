@@ -256,7 +256,7 @@ export class UsersController {
   })
   @ApiResponse({
     status: 200,
-    description: 'Active student identifiers, names, and grade levels for adjustment forms',
+    description: 'Active student identifiers, names, and class details for adjustment forms',
     schema: {
       type: 'array',
       items: {
@@ -266,6 +266,7 @@ export class UsersController {
           nationalId: { type: 'string' },
           firstName: { type: 'string' },
           lastName: { type: 'string' },
+          className: { type: 'string', nullable: true },
           gradeLevel: { type: 'string', nullable: true },
         },
       },

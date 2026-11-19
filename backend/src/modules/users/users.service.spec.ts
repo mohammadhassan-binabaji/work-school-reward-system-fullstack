@@ -12,7 +12,7 @@ describe('UsersService.findActiveStudentsForAdjustment', () => {
         nationalId: '1111111111',
         firstName: 'Graded',
         lastName: 'Student',
-        studentProfile: { class: { gradeLevel: 'هفتم' } },
+        studentProfile: { class: { name: 'Class 701', gradeLevel: 'هفتم' } },
       },
       {
         id: 'no-grade-student',
@@ -36,6 +36,7 @@ describe('UsersService.findActiveStudentsForAdjustment', () => {
         nationalId: '1111111111',
         firstName: 'Graded',
         lastName: 'Student',
+        className: 'Class 701',
         gradeLevel: 'هفتم',
       },
       {
@@ -43,6 +44,7 @@ describe('UsersService.findActiveStudentsForAdjustment', () => {
         nationalId: '2222222222',
         firstName: 'No Grade',
         lastName: 'Student',
+        className: null,
         gradeLevel: null,
       },
     ]);
@@ -53,6 +55,18 @@ describe('UsersService.findActiveStudentsForAdjustment', () => {
           role: Role.STUDENT,
           accountState: AccountState.ACTIVE,
         },
+        select: expect.objectContaining({
+          studentProfile: {
+            select: {
+              class: {
+                select: {
+                  name: true,
+                  gradeLevel: true,
+                },
+              },
+            },
+          },
+        }),
       }),
     );
   });

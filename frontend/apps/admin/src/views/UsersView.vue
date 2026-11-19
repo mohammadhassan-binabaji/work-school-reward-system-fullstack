@@ -46,9 +46,16 @@ const authStore = useAuthStore();
 const filterRole = ref<Role | ''>('');
 const filterState = ref<AccountState | ''>('');
 const filterGradeLevel = ref('');
+const filterClassName = ref('');
 const searchQuery = ref('');
 const noGradeFilter = '__NO_GRADE__';
+const noClassFilter = '__NO_CLASS__';
 
+const classNameOptions = computed(() =>
+  [...new Set(classes.value.map((cls) => cls.name.trim()).filter(Boolean))].sort((a, b) =>
+    a.localeCompare(b),
+  ),
+);
 const gradeLevelOptions = computed(() =>
   [
     ...new Set(
@@ -60,13 +67,20 @@ const gradeLevelOptions = computed(() =>
 );
 const showGradeFilter = computed(() => authStore.isVicePrincipal || filterRole.value === 'STUDENT');
 const visibleUsers = computed(() => {
-  if (!showGradeFilter.value || !filterGradeLevel.value) return users.value;
+  if (!showGradeFilter.value || (!filterGradeLevel.value && !filterClassName.value)) {
+    return users.value;
+  }
 
   return users.value.filter((user) => {
     const gradeLevel = user.studentProfile?.class?.gradeLevel?.trim() || '';
-    return filterGradeLevel.value === noGradeFilter
+    const className = user.studentProfile?.class?.name?.trim() || '';
+    const matchesGrade = !filterGradeLevel.value || (filterGradeLevel.value === noGradeFilter
       ? !gradeLevel
-      : gradeLevel === filterGradeLevel.value;
+      : gradeLevel === filterGradeLevel.value);
+    const matchesClass = !filterClassName.value || (filterClassName.value === noClassFilter
+      ? !className
+      : className === filterClassName.value);
+    return matchesGrade && matchesClass;
   });
 });
 
@@ -138,6 +152,7 @@ async function loadData() {
 
 function handleRoleFilterChange() {
   filterGradeLevel.value = '';
+  filterClassName.value = '';
   return loadData();
 }
 
@@ -540,52 +555,72 @@ async function handleBulkImport() {
         <Search class="w-4 h-4 text-slate-400 absolute right-3 top-2.5" />
       </div>
 
-      <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
-        <select
-          v-if="!authStore.isVicePrincipal"
-          v-model="filterRole"
-          class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 font-medium"
-          @change="handleRoleFilterChange"
-        >
-          <option value="">تمام نقش‌ها</option>
-          <option value="STUDENT">دانش‌آموز</option>
-          <option value="TEACHER">معلم</option>
-          <option value="VICE_PRINCIPAL">معاون سامانه</option>
-          <option value="ADMIN">مدیر سیستم</option>
-        </select>
+      <div
+        dir="ltr"
+        class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 w-full md:flex-1"
+      >
+        <div dir="rtl" class="flex flex-wrap items-center gap-2">
+          <select
+            v-if="!authStore.isVicePrincipal"
+            v-model="filterRole"
+            class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 font-medium"
+            @change="handleRoleFilterChange"
+          >
+            <option value="">تمام نقش‌ها</option>
+            <option value="STUDENT">دانش‌آموز</option>
+            <option value="TEACHER">معلم</option>
+            <option value="VICE_PRINCIPAL">معاون سامانه</option>
+            <option value="ADMIN">مدیر سیستم</option>
+          </select>
 
-        <select
-          v-model="filterState"
-          class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 font-medium"
-          @change="loadData"
-        >
-          <option value="">تمام وضعیت‌ها</option>
-          <option value="ACTIVE">فعال</option>
-          <option value="INACTIVE">غیرفعال</option>
-          <option value="DEACTIVATED">مسدود شده</option>
-          <option value="DEPARTED">ترک مدرسه</option>
-        </select>
+          <select
+            v-model="filterState"
+            class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 font-medium"
+            @change="loadData"
+          >
+            <option value="">تمام وضعیت‌ها</option>
+            <option value="ACTIVE">فعال</option>
+            <option value="INACTIVE">غیرفعال</option>
+            <option value="DEACTIVATED">مسدود شده</option>
+            <option value="DEPARTED">ترک مدرسه</option>
+          </select>
 
-        <select
-          v-if="showGradeFilter"
-          v-model="filterGradeLevel"
-          aria-label="فیلتر بر اساس پایه تحصیلی"
-          class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 font-medium"
-        >
-          <option value="">تمام پایه‌ها</option>
-          <option :value="noGradeFilter">بدون پایه</option>
-          <option v-for="gradeLevel in gradeLevelOptions" :key="gradeLevel" :value="gradeLevel">
-            {{ gradeLevel }}
-          </option>
-        </select>
+          <button
+            class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors"
+            title="تازه‌سازی"
+            @click="loadData"
+          >
+            <RefreshCw class="w-4 h-4" />
+          </button>
+        </div>
 
-        <button
-          class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors"
-          title="تازه‌سازی"
-          @click="loadData"
-        >
-          <RefreshCw class="w-4 h-4" />
-        </button>
+        <div v-if="showGradeFilter" dir="ltr" class="flex flex-wrap items-center gap-2">
+          <select
+            v-model="filterClassName"
+            dir="rtl"
+            aria-label="فیلتر بر اساس کلاس"
+            class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 font-medium"
+          >
+            <option value="">تمام کلاس‌ها</option>
+            <option :value="noClassFilter">بدون کلاس</option>
+            <option v-for="className in classNameOptions" :key="className" :value="className">
+              {{ className }}
+            </option>
+          </select>
+
+          <select
+            v-model="filterGradeLevel"
+            dir="rtl"
+            aria-label="فیلتر بر اساس پایه تحصیلی"
+            class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 font-medium"
+          >
+            <option value="">تمام پایه‌ها</option>
+            <option :value="noGradeFilter">بدون پایه</option>
+            <option v-for="gradeLevel in gradeLevelOptions" :key="gradeLevel" :value="gradeLevel">
+              {{ gradeLevel }}
+            </option>
+          </select>
+        </div>
       </div>
     </div>
 
