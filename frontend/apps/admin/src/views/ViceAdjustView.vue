@@ -1,8 +1,20 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { SlidersHorizontal, RefreshCw, CheckCircle2, AlertCircle, Coins, Wallet, Search } from 'lucide-vue-next';
 import { useAuthStore } from '../stores/auth';
-import { api, toPersianDigits, toAsciiDigits, formatNovin, type Class } from '@student-reward/shared';
+import {
+  api,
+  toPersianDigits,
+  toAsciiDigits,
+  formatNovin,
+  type Class,
+} from '@student-reward/shared';
+import {
+  getClassOptionsForGrade,
+  NO_CLASS_FILTER,
+  NO_GRADE_FILTER,
+  reconcileClassFilter,
+} from '../utils/classGradeFilters';
 
 const authStore = useAuthStore();
 interface StudentAdjustmentTarget {
@@ -22,8 +34,6 @@ const selectedStudentIds = ref<string[]>([]);
 const studentSearchQuery = ref('');
 const filterClassName = ref('');
 const filterGradeLevel = ref('');
-const noGradeFilter = '__NO_GRADE__';
-const noClassFilter = '__NO_CLASS__';
 const adjustAmount = ref<number | ''>('');
 const adjustType = ref<'credit' | 'debit'>('credit');
 const adjustReason = ref('');
@@ -34,10 +44,8 @@ const errorMessage = ref<string | null>(null);
 
 const vpBalance = ref(0);
 
-const classNameOptions = computed(() =>
-  [...new Set(classes.value.map((cls) => cls.name.trim()).filter(Boolean))].sort((a, b) =>
-    a.localeCompare(b),
-  ),
+const classFilterOptions = computed(() =>
+  getClassOptionsForGrade(classes.value, filterGradeLevel.value),
 );
 const gradeLevelOptions = computed(() =>
   [
@@ -49,6 +57,10 @@ const gradeLevelOptions = computed(() =>
   ].sort((a, b) => a.localeCompare(b)),
 );
 
+watch(filterGradeLevel, (gradeFilter) => {
+  filterClassName.value = reconcileClassFilter(classes.value, filterClassName.value, gradeFilter);
+});
+
 const filteredStudents = computed(() => {
   const query = normalizeSearch(studentSearchQuery.value);
   return students.value.filter((student) => {
@@ -56,12 +68,12 @@ const filteredStudents = computed(() => {
     const className = student.className?.trim() || '';
     const matchesClass =
       !filterClassName.value ||
-      (filterClassName.value === noClassFilter
+      (filterClassName.value === NO_CLASS_FILTER
         ? !className
         : className === filterClassName.value);
     const matchesGrade =
       !filterGradeLevel.value ||
-      (filterGradeLevel.value === noGradeFilter
+      (filterGradeLevel.value === NO_GRADE_FILTER
         ? !gradeLevel
         : gradeLevel === filterGradeLevel.value);
     if (!matchesClass || !matchesGrade) return false;
@@ -188,10 +200,10 @@ async function handleAdjust() {
 
     <!-- VP Balance Card -->
     <div
-      class="bg-linear-to-l from-blue-600 to-indigo-700 rounded-3xl p-5 text-white shadow-lg flex items-center justify-between"
+      class="bg-blue-700 bg-gradient-to-l from-blue-600 to-indigo-700 rounded-3xl p-5 text-white shadow-lg flex items-center justify-between"
     >
       <div class="flex items-center gap-3.5">
-        <div class="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-xs flex items-center justify-center">
+        <div class="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center">
           <Wallet class="w-6 h-6 text-white" />
         </div>
         <div>
@@ -233,40 +245,53 @@ async function handleAdjust() {
           <label class="text-xs font-bold text-slate-700">انتخاب دانش‌آموزان:</label>
           <span class="text-[11px] text-slate-400"> {{ toPersianDigits(selectedStudentIds.length) }} انتخاب‌شده </span>
         </div>
-        <div dir="ltr" class="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_16rem_16rem] gap-2">
-          <div class="relative min-w-0">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+          <div class="relative w-full md:w-80">
             <input
               v-model="studentSearchQuery"
               type="text"
               placeholder="جستجوی نام یا کد ملی دانش‌آموز..."
-              class="w-full bg-slate-50 border border-slate-200 rounded-xl pr-9 pl-3 py-2.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-600"
+              class="w-full bg-slate-50 border border-slate-200 rounded-xl pr-9 pl-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-600"
             />
-            <Search class="w-4 h-4 text-slate-400 absolute right-3 top-2.5" />
+            <Search class="w-4 h-4 text-slate-400 absolute right-3 top-2" />
           </div>
-          <select
-            v-model="filterClassName"
-            dir="rtl"
-            aria-label="فیلتر بر اساس کلاس"
-            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-700 font-medium"
-          >
-            <option value="">تمام کلاس‌ها</option>
-            <option :value="noClassFilter">بدون کلاس</option>
-            <option v-for="className in classNameOptions" :key="className" :value="className">
-              {{ className }}
-            </option>
-          </select>
-          <select
-            v-model="filterGradeLevel"
-            dir="rtl"
-            aria-label="فیلتر بر اساس پایه تحصیلی"
-            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-700 font-medium"
-          >
-            <option value="">تمام پایه‌ها</option>
-            <option :value="noGradeFilter">بدون پایه</option>
-            <option v-for="gradeLevel in gradeLevelOptions" :key="gradeLevel" :value="gradeLevel">
-              {{ gradeLevel }}
-            </option>
-          </select>
+
+          <div dir="ltr" class="grid grid-cols-2 md:flex items-center gap-2 w-full md:w-auto">
+            <select
+              v-model="filterClassName"
+              dir="rtl"
+              aria-label="فیلتر بر اساس کلاس"
+              class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 font-medium"
+            >
+              <option value="">تمام کلاس‌ها</option>
+              <option v-if="classFilterOptions.includeNoClass" :value="NO_CLASS_FILTER">
+                بدون کلاس
+              </option>
+              <option
+                v-for="className in classFilterOptions.classNames"
+                :key="className"
+                :value="className"
+              >
+                {{ className }}
+              </option>
+            </select>
+            <select
+              v-model="filterGradeLevel"
+              dir="rtl"
+              aria-label="فیلتر بر اساس پایه تحصیلی"
+              class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 font-medium"
+            >
+              <option value="">تمام پایه‌ها</option>
+              <option :value="NO_GRADE_FILTER">بدون پایه</option>
+              <option
+                v-for="gradeLevel in gradeLevelOptions"
+                :key="gradeLevel"
+                :value="gradeLevel"
+              >
+                {{ gradeLevel }}
+              </option>
+            </select>
+          </div>
         </div>
         <div class="flex items-center justify-between mt-2 mb-1">
           <span class="text-[11px] text-slate-400"> {{ toPersianDigits(filteredStudents.length) }} دانش‌آموز </span>

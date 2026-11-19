@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import {
   Users,
   UserPlus,
@@ -36,6 +36,12 @@ import {
   type BulkImportErrorItem,
   type BulkImportResult,
 } from '@student-reward/shared';
+import {
+  getClassOptionsForGrade,
+  NO_CLASS_FILTER,
+  NO_GRADE_FILTER,
+  reconcileClassFilter,
+} from '../utils/classGradeFilters';
 
 const users = ref<User[]>([]);
 const classes = ref<Class[]>([]);
@@ -48,13 +54,9 @@ const filterState = ref<AccountState | ''>('');
 const filterGradeLevel = ref('');
 const filterClassName = ref('');
 const searchQuery = ref('');
-const noGradeFilter = '__NO_GRADE__';
-const noClassFilter = '__NO_CLASS__';
 
-const classNameOptions = computed(() =>
-  [...new Set(classes.value.map((cls) => cls.name.trim()).filter(Boolean))].sort((a, b) =>
-    a.localeCompare(b),
-  ),
+const classFilterOptions = computed(() =>
+  getClassOptionsForGrade(classes.value, filterGradeLevel.value),
 );
 const gradeLevelOptions = computed(() =>
   [
@@ -66,6 +68,10 @@ const gradeLevelOptions = computed(() =>
   ].sort((a, b) => a.localeCompare(b)),
 );
 const showGradeFilter = computed(() => authStore.isVicePrincipal || filterRole.value === 'STUDENT');
+watch(filterGradeLevel, (gradeFilter) => {
+  filterClassName.value = reconcileClassFilter(classes.value, filterClassName.value, gradeFilter);
+});
+
 const visibleUsers = computed(() => {
   if (!showGradeFilter.value || (!filterGradeLevel.value && !filterClassName.value)) {
     return users.value;
@@ -74,10 +80,10 @@ const visibleUsers = computed(() => {
   return users.value.filter((user) => {
     const gradeLevel = user.studentProfile?.class?.gradeLevel?.trim() || '';
     const className = user.studentProfile?.class?.name?.trim() || '';
-    const matchesGrade = !filterGradeLevel.value || (filterGradeLevel.value === noGradeFilter
+    const matchesGrade = !filterGradeLevel.value || (filterGradeLevel.value === NO_GRADE_FILTER
       ? !gradeLevel
       : gradeLevel === filterGradeLevel.value);
-    const matchesClass = !filterClassName.value || (filterClassName.value === noClassFilter
+    const matchesClass = !filterClassName.value || (filterClassName.value === NO_CLASS_FILTER
       ? !className
       : className === filterClassName.value);
     return matchesGrade && matchesClass;
@@ -602,8 +608,12 @@ async function handleBulkImport() {
             class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 font-medium"
           >
             <option value="">تمام کلاس‌ها</option>
-            <option :value="noClassFilter">بدون کلاس</option>
-            <option v-for="className in classNameOptions" :key="className" :value="className">
+            <option v-if="classFilterOptions.includeNoClass" :value="NO_CLASS_FILTER">بدون کلاس</option>
+            <option
+              v-for="className in classFilterOptions.classNames"
+              :key="className"
+              :value="className"
+            >
               {{ className }}
             </option>
           </select>
@@ -615,7 +625,7 @@ async function handleBulkImport() {
             class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 font-medium"
           >
             <option value="">تمام پایه‌ها</option>
-            <option :value="noGradeFilter">بدون پایه</option>
+            <option :value="NO_GRADE_FILTER">بدون پایه</option>
             <option v-for="gradeLevel in gradeLevelOptions" :key="gradeLevel" :value="gradeLevel">
               {{ gradeLevel }}
             </option>

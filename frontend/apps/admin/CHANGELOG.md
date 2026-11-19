@@ -8,6 +8,15 @@
 - Added an “All classes” option and a “No class” option for students without an assigned or named class.
 - Kept the existing role and status filter group anchored when the student-specific filters appear.
 
+### Changed
+
+- Made class options depend on the selected grade and reset an incompatible class selection when the grade changes.
+- Aligned direct-adjustment search and filter controls with the Users view layout.
+
+### Fixed
+
+- Improved the Vice Principal balance card background so its content is clearly visible.
+
 ## 2.4.1 - 2026-11-19
 
 ### Added
