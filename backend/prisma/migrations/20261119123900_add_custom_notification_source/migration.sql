@@ -1,0 +1,1 @@
+ALTER TYPE "OriginatingEntityType" ADD VALUE 'CUSTOM_MESSAGE';

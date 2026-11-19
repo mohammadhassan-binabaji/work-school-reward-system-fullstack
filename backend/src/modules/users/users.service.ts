@@ -230,6 +230,22 @@ export class UsersService {
     }));
   }
 
+  async findActiveTeachersForNotifications() {
+    return this.prisma.user.findMany({
+      where: {
+        role: Role.TEACHER,
+        accountState: AccountState.ACTIVE,
+      },
+      select: {
+        id: true,
+        nationalId: true,
+        firstName: true,
+        lastName: true,
+      },
+      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+    });
+  }
+
   async findTeacherReferences() {
     return this.prisma.user.findMany({
       where: { role: Role.TEACHER },

@@ -26,6 +26,10 @@ function formatPersianDate(value: Date | string): string {
 }
 
 export class NotificationFormatter {
+  static formatCustomNotification(subject: string, body: string): FormattedNotification {
+    return { subject, body };
+  }
+
   // EVT-01
   static formatRewardReadyForPickup(rewardName: string): FormattedNotification {
     return {

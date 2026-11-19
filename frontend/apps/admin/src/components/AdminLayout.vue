@@ -52,6 +52,7 @@ const allNavItems = [
   { title: 'رتبه‌بندی و ثبت اسنپ‌شات', path: '/rankings', icon: Trophy },
   { title: 'گزارشات و خروجی اکسل/PDF', path: '/reports', icon: FileSpreadsheet },
   { title: 'اعلان‌ها', path: '/notifications', icon: Bell },
+  { title: 'ارسال اعلان اختصاصی', path: '/send-notifications', icon: Send },
 ];
 
 const vpAllowedPaths = [
@@ -63,6 +64,7 @@ const vpAllowedPaths = [
   '/activities',
   '/proposals',
   '/notifications',
+  '/send-notifications',
 ];
 
 const navItems = computed(() => {

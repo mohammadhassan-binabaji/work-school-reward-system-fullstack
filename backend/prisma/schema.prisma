@@ -121,6 +121,7 @@ enum OriginatingEntityType {
   POINT_ADJUSTMENT
   ACTIVITY_BAN
   ACTIVITY_UNBLOCK
+  CUSTOM_MESSAGE
 }
 
 model User {

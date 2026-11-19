@@ -242,6 +242,13 @@ export class UsersController {
     return this.usersService.findTeacherReferences();
   }
 
+  @Get('teachers')
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'List active teachers for custom notification recipients' })
+  async findActiveTeachersForNotifications() {
+    return this.usersService.findActiveTeachersForNotifications();
+  }
+
   @Get('academic/students')
   @Roles('ADMIN', 'VICE_PRINCIPAL')
   @ApiOperation({ summary: 'List student references for academic class assignment' })

@@ -1,20 +1,92 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { NotificationReadStatus, Prisma } from '@prisma/client';
+import {
+  AccountState,
+  NotificationReadStatus,
+  OriginatingEntityType,
+  Prisma,
+  Role,
+} from '@prisma/client';
+import { randomUUID } from 'crypto';
 import {
   GetNotificationsQueryDto,
   NotificationStatusFilter,
 } from './dto/get-notifications-query.dto';
+import { SendCustomNotificationDto } from './dto/send-custom-notification.dto';
 import { PaginatedNotificationsDto } from './dto/paginated-notifications.dto';
 import { UnreadCountResponseDto } from './dto/unread-count-response.dto';
 import { BulkReadResponseDto } from './dto/bulk-read-response.dto';
 import { NotificationResponseDto } from './dto/notification-response.dto';
+import { NotificationDeliveryService } from './notification-delivery.service';
+import { NotificationFormatter } from './utils/notification-formatter';
 
 @Injectable()
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly delivery: NotificationDeliveryService,
+  ) {}
+
+  async sendCustomNotification(
+    senderRole: Role,
+    dto: SendCustomNotificationDto,
+  ): Promise<{ sentCount: number }> {
+    const subject = dto.subject.trim();
+    const body = dto.body.trim();
+    if (!subject || !body) {
+      throw new BadRequestException('عنوان و متن اعلان الزامی است.');
+    }
+
+    if (senderRole !== Role.ADMIN && senderRole !== Role.VICE_PRINCIPAL) {
+      throw new ForbiddenException('ارسال اعلان اختصاصی فقط برای مدیر و معاون مجاز است.');
+    }
+
+    const allowedRecipientRoles: Role[] =
+      senderRole === Role.ADMIN ? [Role.STUDENT, Role.TEACHER] : [Role.STUDENT];
+    const originId = randomUUID();
+    const formatted = NotificationFormatter.formatCustomNotification(subject, body);
+
+    const notifications = await this.prisma.$transaction(async (transaction) => {
+      const recipients = await transaction.user.findMany({
+        where: { id: { in: dto.recipientIds } },
+        select: { id: true, role: true, accountState: true },
+      });
+
+      if (recipients.length !== dto.recipientIds.length) {
+        throw new BadRequestException('یک یا چند گیرنده وجود ندارند یا در دسترس نیستند.');
+      }
+
+      if (recipients.some((recipient) => !allowedRecipientRoles.includes(recipient.role))) {
+        throw new ForbiddenException('ارسال اعلان برای یک یا چند نقش انتخاب‌شده مجاز نیست.');
+      }
+
+      if (recipients.some((recipient) => recipient.accountState !== AccountState.ACTIVE)) {
+        throw new BadRequestException('ارسال اعلان فقط برای حساب‌های فعال مجاز است.');
+      }
+
+      return transaction.notification.createManyAndReturn({
+        data: recipients.map((recipient) => ({
+          recipientId: recipient.id,
+          subject: formatted.subject,
+          body: formatted.body,
+          originatingEntityType: OriginatingEntityType.CUSTOM_MESSAGE,
+          originatingEntityId: originId,
+        })),
+      });
+    });
+
+    notifications.forEach((notification) => this.delivery.dispatch(notification));
+    this.logger.log(`Custom notification sent to ${notifications.length} recipients`);
+    return { sentCount: notifications.length };
+  }
 
   async getNotifications(
     userId: string,

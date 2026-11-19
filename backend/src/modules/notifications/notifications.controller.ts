@@ -21,6 +21,7 @@ import {
   ApiCreatedResponse,
   ApiExcludeEndpoint,
 } from '@nestjs/swagger';
+import { Role } from '@prisma/client';
 import { Observable } from 'rxjs';
 import { NotificationsService } from './notifications.service';
 import { NotificationEventsService } from './notification-events.service';
@@ -32,6 +33,7 @@ import { UnreadCountResponseDto } from './dto/unread-count-response.dto';
 import { NotificationResponseDto } from './dto/notification-response.dto';
 import { BulkReadResponseDto } from './dto/bulk-read-response.dto';
 import { PushDeviceDto } from './dto/push-device.dto';
+import { SendCustomNotificationDto } from './dto/send-custom-notification.dto';
 
 @ApiTags('notifications')
 @ApiBearerAuth()
@@ -47,6 +49,17 @@ export class NotificationsController {
   @ApiExcludeEndpoint()
   stream(@CurrentUser('id') userId: string): Observable<MessageEvent> {
     return this.notificationEvents.streamFor(userId);
+  }
+
+  @Post('custom')
+  @Roles('ADMIN', 'VICE_PRINCIPAL')
+  @ApiOperation({ summary: 'Send a custom notification to eligible active recipients' })
+  @ApiCreatedResponse({ description: 'Custom notifications created for all selected recipients' })
+  async sendCustomNotification(
+    @CurrentUser('role') senderRole: Role,
+    @Body() dto: SendCustomNotificationDto,
+  ): Promise<{ sentCount: number }> {
+    return this.notificationsService.sendCustomNotification(senderRole, dto);
   }
 
   @Post('push-devices')

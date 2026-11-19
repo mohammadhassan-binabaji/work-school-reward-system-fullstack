@@ -24,6 +24,7 @@ The header-based alternatives listed below remain for compatibility; browser fro
 ### 2. User Management (`/api/v1/users`)
 - Admins can manage all user roles. Vice principals can list, read, create, update, and delete student accounts only; requests involving another role are forbidden.
 - `GET /api/v1/users/students` - Admin or vice principal lookup of active students for direct-adjustment forms, including nullable class name and grade level.
+- `GET /api/v1/users/teachers` - Admin-only lookup of active teachers for custom notification recipients, including name and national ID.
 - `GET /api/v1/users/academic/students` - Student names, IDs, and National IDs needed to assign students to classes.
 - `GET /api/v1/users/academic/teachers` - Teacher names and IDs needed for assignments; vice principals do not get teacher account/profile access.
 - `POST /api/v1/users` - Create an account (vice principals may create students only; supports optional profile image upload up to 5MB, JPG/PNG/WebP).
@@ -89,6 +90,7 @@ The header-based alternatives listed below remain for compatibility; browser fro
 - `POST/GET/PATCH/DELETE /api/v1/guidance-cards` - Manage and view display-only point earning guidance cards.
 
 ### 11. Notifications (`/api/v1/notifications`)
+- `POST /api/v1/notifications/custom` - Admins may notify active students and teachers; vice principals may notify active students only. Each recipient gets an inbox notification and existing realtime/FCM delivery. The selected recipient batch is validated before any notifications are created.
 - `GET /api/v1/notifications` and `GET /api/v1/notifications/unread-count` - Read the authenticated user's own inbox and unread count.
 - `PATCH /api/v1/notifications/:id/read` and `PATCH /api/v1/notifications/read-all` - Mark only the authenticated user's notifications as read.
 - `GET /api/v1/notifications/events` - Receive authenticated, user-scoped SSE notification events; refresh notification data through REST.

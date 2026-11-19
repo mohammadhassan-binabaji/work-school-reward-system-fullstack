@@ -15,6 +15,7 @@ import TiersView from '../views/TiersView.vue';
 import RankingsView from '../views/RankingsView.vue';
 import ReportsView from '../views/ReportsView.vue';
 import NotificationsView from '../views/NotificationsView.vue';
+import SendNotificationView from '../views/SendNotificationView.vue';
 import LoginView from '../views/LoginView.vue';
 
 const routes = [
@@ -101,6 +102,12 @@ const routes = [
     name: 'notifications',
     component: NotificationsView,
     meta: { requiresAuth: true },
+  },
+  {
+    path: '/send-notifications',
+    name: 'send-notifications',
+    component: SendNotificationView,
+    meta: { requiresAuth: true, allowedRoles: ['ADMIN', 'VICE_PRINCIPAL'] },
   },
   {
     path: '/login',
