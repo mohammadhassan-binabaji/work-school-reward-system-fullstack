@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { LogIn, Lock, User, RefreshCw, AlertCircle, Award } from 'lucide-vue-next';
+import { LogIn, Lock, User, RefreshCw, AlertCircle, Award, Eye, EyeOff } from 'lucide-vue-next';
 import { useAuthStore } from '../stores/auth';
 
 const router = useRouter();
@@ -9,6 +9,7 @@ const authStore = useAuthStore();
 
 const nationalId = ref('');
 const password = ref('');
+const passwordVisible = ref(false);
 const rememberMe = ref(false);
 const errorMessage = ref<string | null>(null);
 const loading = ref(false);
@@ -81,13 +82,23 @@ async function handleLogin() {
         <div class="relative">
           <input
             v-model="password"
-            type="password"
+            :type="passwordVisible ? 'text' : 'password'"
             name="password"
             autocomplete="current-password"
             placeholder="رمز عبور حساب کاربری"
-            class="w-full bg-slate-50 border border-slate-200 rounded-2xl pr-10 pl-4 py-3 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-indigo-600 transition-colors"
+            class="w-full bg-slate-50 border border-slate-200 rounded-2xl pr-10 pl-11 py-3 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-indigo-600 transition-colors"
           />
           <Lock class="w-4 h-4 text-slate-400 absolute right-3.5 top-3.5" />
+          <button
+            type="button"
+            :aria-label="passwordVisible ? 'پنهان کردن رمز عبور' : 'نمایش رمز عبور'"
+            :aria-pressed="passwordVisible"
+            class="absolute left-2.5 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-slate-400 hover:text-indigo-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600"
+            @click="passwordVisible = !passwordVisible"
+          >
+            <EyeOff v-if="passwordVisible" aria-hidden="true" class="w-4 h-4" />
+            <Eye v-else aria-hidden="true" class="w-4 h-4" />
+          </button>
         </div>
       </div>
 

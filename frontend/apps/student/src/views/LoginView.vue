@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { LogIn, Lock, User, RefreshCw, AlertCircle } from 'lucide-vue-next';
+import { LogIn, Lock, User, RefreshCw, AlertCircle, Eye, EyeOff } from 'lucide-vue-next';
 import { useAuthStore } from '../stores/auth';
 import { getSavedPassword, isAndroidApp, offerPasswordSave } from '../services/nativeAuth';
 import brandImage from '../assets/images/owl-brand.png';
@@ -11,6 +11,7 @@ const authStore = useAuthStore();
 
 const nationalId = ref('');
 const password = ref('');
+const passwordVisible = ref(false);
 const rememberMe = ref(false);
 const errorMessage = ref<string | null>(null);
 const passwordSaveMessage = ref<string | null>(null);
@@ -129,14 +130,24 @@ function continueAfterPasswordSaveFailure() {
         <div class="relative">
           <input
             v-model="password"
-            type="password"
+            :type="passwordVisible ? 'text' : 'password'"
             name="password"
             autocomplete="current-password"
             placeholder="رمز عبور حساب کاربری"
-            class="w-full bg-[#0F1420] border border-slate-700 rounded-2xl pr-10 pl-4 py-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-neon-green transition-colors"
+            class="w-full bg-[#0F1420] border border-slate-700 rounded-2xl pr-10 pl-11 py-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-neon-green transition-colors"
             @focus="offerSavedPasswordOnFocus"
           />
           <Lock class="w-4 h-4 text-slate-400 absolute right-3.5 top-3.5" />
+          <button
+            type="button"
+            :aria-label="passwordVisible ? 'پنهان کردن رمز عبور' : 'نمایش رمز عبور'"
+            :aria-pressed="passwordVisible"
+            class="absolute left-2.5 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-slate-400 hover:text-neon-green focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-green"
+            @click="passwordVisible = !passwordVisible"
+          >
+            <EyeOff v-if="passwordVisible" aria-hidden="true" class="w-4 h-4" />
+            <Eye v-else aria-hidden="true" class="w-4 h-4" />
+          </button>
         </div>
       </div>
 
