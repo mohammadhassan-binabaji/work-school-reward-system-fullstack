@@ -10,8 +10,15 @@ import androidx.core.content.ContextCompat;
 import androidx.credentials.CreateCredentialResponse;
 import androidx.credentials.CreatePasswordRequest;
 import androidx.credentials.CredentialManager;
+import androidx.credentials.GetCredentialRequest;
+import androidx.credentials.GetCredentialResponse;
+import androidx.credentials.GetPasswordOption;
+import androidx.credentials.PasswordCredential;
 import androidx.credentials.exceptions.CreateCredentialCancellationException;
 import androidx.credentials.exceptions.CreateCredentialException;
+import androidx.credentials.exceptions.GetCredentialCancellationException;
+import androidx.credentials.exceptions.GetCredentialException;
+import androidx.credentials.exceptions.NoCredentialException;
 
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
@@ -120,6 +127,53 @@ public class NativeAuthPlugin extends Plugin {
             );
         } catch (Exception exception) {
             call.reject("Could not start the Android password-manager save flow", exception);
+        }
+    }
+
+    @PluginMethod
+    public void getPassword(PluginCall call) {
+        try {
+            CredentialManager credentialManager = CredentialManager.create(getContext());
+            GetCredentialRequest request = new GetCredentialRequest.Builder()
+                .addCredentialOption(new GetPasswordOption())
+                .build();
+            Executor executor = ContextCompat.getMainExecutor(getContext());
+            credentialManager.getCredentialAsync(
+                getActivity(),
+                request,
+                null,
+                executor,
+                new androidx.credentials.CredentialManagerCallback<GetCredentialResponse, GetCredentialException>() {
+                    @Override
+                    public void onResult(GetCredentialResponse result) {
+                        if (!(result.getCredential() instanceof PasswordCredential)) {
+                            call.reject("Android password manager returned an unsupported credential type");
+                            return;
+                        }
+
+                        PasswordCredential credential = (PasswordCredential) result.getCredential();
+                        JSObject response = new JSObject();
+                        response.put("found", true);
+                        response.put("username", credential.getId());
+                        response.put("password", credential.getPassword());
+                        call.resolve(response);
+                    }
+
+                    @Override
+                    public void onError(GetCredentialException exception) {
+                        if (exception instanceof NoCredentialException
+                            || exception instanceof GetCredentialCancellationException) {
+                            JSObject response = new JSObject();
+                            response.put("found", false);
+                            call.resolve(response);
+                            return;
+                        }
+                        call.reject("Android password manager could not retrieve a credential", exception);
+                    }
+                }
+            );
+        } catch (Exception exception) {
+            call.reject("Could not start the Android password-manager retrieval flow", exception);
         }
     }
 

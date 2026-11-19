@@ -6,12 +6,30 @@ interface NativeAuthPlugin {
   saveSession(options: { sessionId: string }): Promise<void>;
   clearSession(): Promise<void>;
   savePassword(options: { username: string; password: string }): Promise<{ saved: boolean }>;
+  getPassword(): Promise<{ found: boolean; username?: string; password?: string }>;
 }
 
 const NativeAuth = registerPlugin<NativeAuthPlugin>('NativeAuth');
 
+export interface SavedPasswordCredential {
+  username: string;
+  password: string;
+}
+
 export function isAndroidApp(): boolean {
   return Capacitor.getPlatform() === 'android';
+}
+
+export async function getSavedPassword(): Promise<SavedPasswordCredential | null> {
+  if (!isAndroidApp()) return null;
+
+  const result = await NativeAuth.getPassword();
+  if (!result.found) return null;
+  if (!result.username || !result.password) {
+    throw new Error('Android password manager returned an incomplete credential.');
+  }
+
+  return { username: result.username, password: result.password };
 }
 
 export async function restoreNativeSession(): Promise<void> {

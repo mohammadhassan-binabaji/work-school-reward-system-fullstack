@@ -3,7 +3,7 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { LogIn, Lock, User, RefreshCw, AlertCircle } from 'lucide-vue-next';
 import { useAuthStore } from '../stores/auth';
-import { isAndroidApp, offerPasswordSave } from '../services/nativeAuth';
+import { getSavedPassword, isAndroidApp, offerPasswordSave } from '../services/nativeAuth';
 import brandImage from '../assets/images/owl-brand.png';
 
 const router = useRouter();
@@ -15,6 +15,22 @@ const rememberMe = ref(false);
 const errorMessage = ref<string | null>(null);
 const passwordSaveMessage = ref<string | null>(null);
 const loading = ref(false);
+let passwordLookupStarted = false;
+
+async function offerSavedPasswordOnFocus() {
+  if (!isAndroidApp() || passwordLookupStarted) return;
+  passwordLookupStarted = true;
+
+  try {
+    const credential = await getSavedPassword();
+    if (credential) {
+      nationalId.value = credential.username;
+      password.value = credential.password;
+    }
+  } catch (error) {
+    console.error('Android password-manager retrieval flow failed:', error);
+  }
+}
 
 async function handleLogin() {
   errorMessage.value = null;
@@ -102,6 +118,7 @@ function continueAfterPasswordSaveFailure() {
             inputmode="numeric"
             placeholder="مثال: ۱۲۳۴۵۶۷۸۹۰"
             class="w-full bg-[#0F1420] border border-slate-700 rounded-2xl pr-10 pl-4 py-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-neon-green transition-colors font-sans"
+            @focus="offerSavedPasswordOnFocus"
           />
           <User class="w-4 h-4 text-slate-400 absolute right-3.5 top-3.5" />
         </div>
@@ -117,6 +134,7 @@ function continueAfterPasswordSaveFailure() {
             autocomplete="current-password"
             placeholder="رمز عبور حساب کاربری"
             class="w-full bg-[#0F1420] border border-slate-700 rounded-2xl pr-10 pl-4 py-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-neon-green transition-colors"
+            @focus="offerSavedPasswordOnFocus"
           />
           <Lock class="w-4 h-4 text-slate-400 absolute right-3.5 top-3.5" />
         </div>
