@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.2.6 - 2026-11-20
+
+### Changed
+
+- Disabled activity submissions while a verification request is pending.
+
 ## 3.2.5 - 2026-11-19
 
 ### Added

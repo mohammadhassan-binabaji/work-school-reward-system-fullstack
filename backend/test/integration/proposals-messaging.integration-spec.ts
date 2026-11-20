@@ -102,10 +102,256 @@ describe('Proposals & Messaging Integration Tests', () => {
     // Verify Points added
     const profile = await prisma.studentProfile.findUnique({ where: { id: aliceId } });
     expect(profile?.currentBalance).toBe(35);
+    const pool = await prisma.systemPointPool.findFirstOrThrow();
+    expect(pool.balance).toBe(9965);
+    const awardAudit = await prisma.pointAuditLog.findFirstOrThrow({
+      where: {
+        actionType: 'PROPOSAL_AWARD_STUDENT',
+        relatedEntityId: proposalId,
+      },
+    });
+    expect(awardAudit.actorRole).toBe('ADMIN');
+    expect(awardAudit.sourceType).toBe('SYSTEM_POOL');
+    expect(awardAudit.sourceId).toBe(pool.id);
+    expect(awardAudit.amount).toBe(35);
+    expect(awardAudit.resultingSourceBalance).toBe(9965);
+    expect(awardAudit.resultingRecipientBalance).toBe(35);
+  });
+
+  it('charges the completing vice principal using the current proposal value and allows retry after funding', async () => {
+    const student = await request(app.getHttpServer())
+      .post('/api/v1/users')
+      .set('Cookie', adminCookie)
+      .send({
+        nationalId: '3333333334',
+        firstName: 'Alice',
+        lastName: 'Student',
+        username: 'alice_vp_proposal',
+        password: 'Password123!',
+        role: 'STUDENT',
+      })
+      .expect(201);
+    const aliceAuth = await loginUser(app, '3333333334', 'Password123!');
+    const vicePrincipal = await request(app.getHttpServer())
+      .post('/api/v1/users')
+      .set('Cookie', adminCookie)
+      .send({
+        nationalId: '4444444444',
+        firstName: 'Vice',
+        lastName: 'Principal',
+        username: 'vice_proposal',
+        password: 'Password123!',
+        role: 'VICE_PRINCIPAL',
+      })
+      .expect(201);
+    const viceAuth = await loginUser(app, '4444444444', 'Password123!');
+    await prisma.teacherProfile.update({
+      where: { id: vicePrincipal.body.id },
+      data: { pointBalance: 20 },
+    });
+
+    const proposal = await request(app.getHttpServer())
+      .post('/api/v1/proposals')
+      .set('Cookie', aliceAuth.cookie)
+      .send({ description: 'Organize the school library' })
+      .expect(201);
+    await request(app.getHttpServer())
+      .post(`/api/v1/proposals/${proposal.body.id}/approve`)
+      .set('Cookie', adminCookie)
+      .send({ assignedPointValue: 20 })
+      .expect(200);
+    await request(app.getHttpServer())
+      .patch(`/api/v1/proposals/${proposal.body.id}/points`)
+      .set('Cookie', adminCookie)
+      .send({ assignedPointValue: 35 })
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/proposals/${proposal.body.id}/complete`)
+      .set('Cookie', viceAuth.cookie)
+      .expect(400);
+
+    expect(
+      (
+        await prisma.studentTaskProposal.findUniqueOrThrow({
+          where: { id: proposal.body.id },
+        })
+      ).status,
+    ).toBe('READY_TO_DO');
+    expect(
+      (await prisma.studentProfile.findUniqueOrThrow({ where: { id: student.body.id } }))
+        .currentBalance,
+    ).toBe(0);
+    expect(
+      (
+        await prisma.teacherProfile.findUniqueOrThrow({
+          where: { id: vicePrincipal.body.id },
+        })
+      ).pointBalance,
+    ).toBe(20);
+    expect((await prisma.systemPointPool.findFirstOrThrow()).balance).toBe(10000);
+    expect(
+      await prisma.pointAuditLog.count({
+        where: {
+          actionType: 'PROPOSAL_AWARD_STUDENT',
+          relatedEntityId: proposal.body.id,
+        },
+      }),
+    ).toBe(0);
+
+    await prisma.teacherProfile.update({
+      where: { id: vicePrincipal.body.id },
+      data: { pointBalance: 60 },
+    });
+    const completed = await request(app.getHttpServer())
+      .post(`/api/v1/proposals/${proposal.body.id}/complete`)
+      .set('Cookie', viceAuth.cookie)
+      .expect(200);
+
+    expect(completed.body.assignedPointValue).toBe(35);
+    expect(
+      (await prisma.studentProfile.findUniqueOrThrow({ where: { id: student.body.id } }))
+        .currentBalance,
+    ).toBe(35);
+    expect(
+      (
+        await prisma.teacherProfile.findUniqueOrThrow({
+          where: { id: vicePrincipal.body.id },
+        })
+      ).pointBalance,
+    ).toBe(25);
+    expect((await prisma.systemPointPool.findFirstOrThrow()).balance).toBe(10000);
+    const awardAudit = await prisma.pointAuditLog.findFirstOrThrow({
+      where: {
+        actionType: 'PROPOSAL_AWARD_STUDENT',
+        relatedEntityId: proposal.body.id,
+      },
+    });
+    expect(awardAudit.actorRole).toBe('VICE_PRINCIPAL');
+    expect(awardAudit.sourceType).toBe('VICE_PRINCIPAL');
+    expect(awardAudit.sourceId).toBe(vicePrincipal.body.id);
+    expect(awardAudit.amount).toBe(35);
+    expect(awardAudit.resultingSourceBalance).toBe(25);
+    expect(awardAudit.resultingRecipientBalance).toBe(35);
+  });
+
+  it('does not complete or award a proposal while the admin pool is insufficient', async () => {
+    const student = await request(app.getHttpServer())
+      .post('/api/v1/users')
+      .set('Cookie', adminCookie)
+      .send({
+        nationalId: '3333333335',
+        firstName: 'Alice',
+        lastName: 'Student',
+        username: 'alice_pool_retry',
+        password: 'Password123!',
+        role: 'STUDENT',
+      })
+      .expect(201);
+    const aliceAuth = await loginUser(app, '3333333335', 'Password123!');
+    const proposal = await request(app.getHttpServer())
+      .post('/api/v1/proposals')
+      .set('Cookie', aliceAuth.cookie)
+      .send({ description: 'Prepare school garden' })
+      .expect(201);
+    await request(app.getHttpServer())
+      .post(`/api/v1/proposals/${proposal.body.id}/approve`)
+      .set('Cookie', adminCookie)
+      .send({ assignedPointValue: 30 })
+      .expect(200);
+    await prisma.systemPointPool.updateMany({ data: { balance: 0 } });
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/proposals/${proposal.body.id}/complete`)
+      .set('Cookie', adminCookie)
+      .expect(400);
+
+    expect(
+      (
+        await prisma.studentTaskProposal.findUniqueOrThrow({
+          where: { id: proposal.body.id },
+        })
+      ).status,
+    ).toBe('READY_TO_DO');
+    expect(
+      (await prisma.studentProfile.findUniqueOrThrow({ where: { id: student.body.id } }))
+        .currentBalance,
+    ).toBe(0);
+    expect((await prisma.systemPointPool.findFirstOrThrow()).balance).toBe(0);
+    expect(
+      await prisma.pointAuditLog.count({
+        where: {
+          actionType: 'PROPOSAL_AWARD_STUDENT',
+          relatedEntityId: proposal.body.id,
+        },
+      }),
+    ).toBe(0);
+
+    await prisma.systemPointPool.updateMany({ data: { balance: 30 } });
+    await request(app.getHttpServer())
+      .post(`/api/v1/proposals/${proposal.body.id}/complete`)
+      .set('Cookie', adminCookie)
+      .expect(200);
+
+    expect(
+      (await prisma.studentProfile.findUniqueOrThrow({ where: { id: student.body.id } }))
+        .currentBalance,
+    ).toBe(30);
+    expect((await prisma.systemPointPool.findFirstOrThrow()).balance).toBe(0);
+  });
+
+  it('awards a proposal only once when two reviewers complete it concurrently', async () => {
+    const student = await request(app.getHttpServer())
+      .post('/api/v1/users')
+      .set('Cookie', adminCookie)
+      .send({
+        nationalId: '3333333336',
+        firstName: 'Alice',
+        lastName: 'Student',
+        username: 'alice_concurrent_proposal',
+        password: 'Password123!',
+        role: 'STUDENT',
+      })
+      .expect(201);
+    const aliceAuth = await loginUser(app, '3333333336', 'Password123!');
+    const proposal = await request(app.getHttpServer())
+      .post('/api/v1/proposals')
+      .set('Cookie', aliceAuth.cookie)
+      .send({ description: 'Set up class recycling' })
+      .expect(201);
+    await request(app.getHttpServer())
+      .post(`/api/v1/proposals/${proposal.body.id}/approve`)
+      .set('Cookie', adminCookie)
+      .send({ assignedPointValue: 25 })
+      .expect(200);
+
+    const results = await Promise.all([
+      request(app.getHttpServer())
+        .post(`/api/v1/proposals/${proposal.body.id}/complete`)
+        .set('Cookie', adminCookie),
+      request(app.getHttpServer())
+        .post(`/api/v1/proposals/${proposal.body.id}/complete`)
+        .set('Cookie', adminCookie),
+    ]);
+
+    expect(results.map((result) => result.status).sort()).toEqual([200, 400]);
+    expect(
+      (await prisma.studentProfile.findUniqueOrThrow({ where: { id: student.body.id } }))
+        .currentBalance,
+    ).toBe(25);
+    expect((await prisma.systemPointPool.findFirstOrThrow()).balance).toBe(9975);
+    expect(
+      await prisma.pointAuditLog.count({
+        where: {
+          actionType: 'PROPOSAL_AWARD_STUDENT',
+          relatedEntityId: proposal.body.id,
+        },
+      }),
+    ).toBe(1);
   });
 
   it('allows student cancellation ONLY while in READY_TO_DO status (FR-047)', async () => {
-    const student = await request(app.getHttpServer())
+    await request(app.getHttpServer())
       .post('/api/v1/users')
       .set('Cookie', adminCookie)
       .send({

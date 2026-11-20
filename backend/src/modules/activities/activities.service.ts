@@ -364,14 +364,25 @@ export class ActivitiesService {
     }
 
     const result = await this.prisma.$transaction(async (tx) => {
-      // Update verification
-      const updatedVerification = await tx.verificationRequest.update({
-        where: { id },
+      const claimedVerification = await tx.verificationRequest.updateMany({
+        where: { id, status: VerificationStatus.PENDING },
         data: {
           status: VerificationStatus.ACCEPTED,
           reviewedByAdminId: adminId,
           reviewedAt: new Date(),
         },
+      });
+
+      if (claimedVerification.count !== 1) {
+        throw new BadRequestException({
+          statusCode: 400,
+          errorCode: 'INVALID_VERIFICATION_STATE',
+          message: 'Verification request is no longer pending',
+        });
+      }
+
+      const updatedVerification = await tx.verificationRequest.findUniqueOrThrow({
+        where: { id },
         include: { activity: true },
       });
 
@@ -394,14 +405,78 @@ export class ActivitiesService {
         },
       });
 
-      // Credit student points
-      const studentProfile = await tx.studentProfile.findUnique({
-        where: { id: verification.studentId },
-      });
-
       const awardPoints = verification.activity.pointValue;
-      const newCurrentBalance = (studentProfile?.currentBalance || 0) + awardPoints;
-      const newHighestBalance = Math.max(studentProfile?.highestBalance || 0, newCurrentBalance);
+      let sourceType: SourceType;
+      let sourceId: string;
+      let resultingSourceBalance: number;
+
+      if (reviewerRole === Role.VICE_PRINCIPAL) {
+        const debitedVicePrincipal = await tx.teacherProfile.updateMany({
+          where: {
+            id: adminId,
+            pointBalance: { gte: awardPoints },
+          },
+          data: { pointBalance: { decrement: awardPoints } },
+        });
+
+        if (debitedVicePrincipal.count !== 1) {
+          const currentBalance = await tx.teacherProfile.findUnique({
+            where: { id: adminId },
+            select: { pointBalance: true },
+          });
+          throw new BadRequestException({
+            statusCode: 400,
+            errorCode: 'INSUFFICIENT_VICE_PRINCIPAL_BALANCE',
+            message: `Vice Principal point balance (${currentBalance?.pointBalance || 0}) is insufficient to award ${awardPoints} points`,
+          });
+        }
+
+        const updatedVicePrincipal = await tx.teacherProfile.findUniqueOrThrow({
+          where: { id: adminId },
+          select: { pointBalance: true },
+        });
+        sourceType = SourceType.VICE_PRINCIPAL;
+        sourceId = adminId;
+        resultingSourceBalance = updatedVicePrincipal.pointBalance;
+      } else {
+        let pool = await tx.systemPointPool.findFirst();
+        if (!pool) {
+          pool = await tx.systemPointPool.create({ data: { balance: 0 } });
+        }
+
+        const debitedPool = await tx.systemPointPool.updateMany({
+          where: { id: pool.id, balance: { gte: awardPoints } },
+          data: { balance: { decrement: awardPoints } },
+        });
+
+        if (debitedPool.count !== 1) {
+          const currentPool = await tx.systemPointPool.findUnique({
+            where: { id: pool.id },
+            select: { balance: true },
+          });
+          throw new BadRequestException({
+            statusCode: 400,
+            errorCode: 'INSUFFICIENT_POOL_BALANCE',
+            message: `System pool balance (${currentPool?.balance || 0}) is insufficient to award ${awardPoints} points`,
+          });
+        }
+
+        const updatedPool = await tx.systemPointPool.findUniqueOrThrow({
+          where: { id: pool.id },
+          select: { balance: true },
+        });
+        sourceType = SourceType.SYSTEM_POOL;
+        sourceId = pool.id;
+        resultingSourceBalance = updatedPool.balance;
+      }
+
+      // Credit student points
+      const updatedStudentProfile = await tx.studentProfile.update({
+        where: { id: verification.studentId },
+        data: { currentBalance: { increment: awardPoints } },
+      });
+      const newCurrentBalance = updatedStudentProfile.currentBalance;
+      const newHighestBalance = Math.max(updatedStudentProfile.highestBalance, newCurrentBalance);
 
       const matchingTier = await tx.tierConfiguration.findFirst({
         where: { minPointsThreshold: { lte: newCurrentBalance } },
@@ -411,9 +486,8 @@ export class ActivitiesService {
       await tx.studentProfile.update({
         where: { id: verification.studentId },
         data: {
-          currentBalance: newCurrentBalance,
           highestBalance: newHighestBalance,
-          currentTierId: matchingTier?.id || studentProfile?.currentTierId,
+          currentTierId: matchingTier?.id || updatedStudentProfile.currentTierId,
         },
       });
 
@@ -424,7 +498,8 @@ export class ActivitiesService {
           actorId: adminId,
           actorRole:
             reviewerRole === Role.VICE_PRINCIPAL ? ActorRole.VICE_PRINCIPAL : ActorRole.ADMIN,
-          sourceType: SourceType.SYSTEM_POOL,
+          sourceType,
+          sourceId,
           recipientType: RecipientType.STUDENT_CURRENT,
           recipientId: verification.studentId,
           amount: awardPoints,
@@ -432,6 +507,7 @@ export class ActivitiesService {
           relatedEntityType: 'VerificationRequest',
           relatedEntityId: verification.id,
           metadata: { activityTitle: verification.activity.title },
+          resultingSourceBalance,
           resultingRecipientBalance: newCurrentBalance,
         },
         tx,
@@ -480,14 +556,26 @@ export class ActivitiesService {
     }
 
     const result = await this.prisma.$transaction(async (tx) => {
-      const updatedVerification = await tx.verificationRequest.update({
-        where: { id },
+      const claimedVerification = await tx.verificationRequest.updateMany({
+        where: { id, status: VerificationStatus.PENDING },
         data: {
           status: VerificationStatus.REJECTED,
           rejectionReason: dto.rejectionReason || 'Submission rejected by administrator',
           reviewedByAdminId: adminId,
           reviewedAt: new Date(),
         },
+      });
+
+      if (claimedVerification.count !== 1) {
+        throw new BadRequestException({
+          statusCode: 400,
+          errorCode: 'INVALID_VERIFICATION_STATE',
+          message: 'Verification request is no longer pending',
+        });
+      }
+
+      const updatedVerification = await tx.verificationRequest.findUniqueOrThrow({
+        where: { id },
         include: { activity: true },
       });
 

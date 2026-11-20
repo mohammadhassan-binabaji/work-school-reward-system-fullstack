@@ -239,9 +239,22 @@ export class ProposalsService {
       });
     }
 
-    const updated = await this.prisma.studentTaskProposal.update({
-      where: { id },
+    const updatedCount = await this.prisma.studentTaskProposal.updateMany({
+      where: { id, status: ProposalStatus.READY_TO_DO },
       data: { assignedPointValue: dto.assignedPointValue },
+    });
+
+    if (updatedCount.count !== 1) {
+      throw new BadRequestException({
+        statusCode: 400,
+        errorCode: 'INVALID_PROPOSAL_STATE',
+        message: 'Point values can only be modified when proposal is in READY_TO_DO status',
+      });
+    }
+
+    const updated = await this.prisma.studentTaskProposal.findUniqueOrThrow({
+      where: { id },
+      include: { messages: true },
     });
 
     await this.eventEmitter.emitAsync(
@@ -327,10 +340,24 @@ export class ProposalsService {
       });
     }
 
-    return this.prisma.studentTaskProposal.update({
-      where: { id },
+    const canceled = await this.prisma.studentTaskProposal.updateMany({
+      where: {
+        id,
+        studentId,
+        status: ProposalStatus.READY_TO_DO,
+      },
       data: { status: ProposalStatus.CANCELED },
     });
+
+    if (canceled.count !== 1) {
+      throw new BadRequestException({
+        statusCode: 400,
+        errorCode: 'INVALID_PROPOSAL_STATE',
+        message: 'Proposal is no longer in READY_TO_DO status',
+      });
+    }
+
+    return this.prisma.studentTaskProposal.findUniqueOrThrow({ where: { id } });
   }
 
   // Admin Completion & Point Award (FR-048)
@@ -360,30 +387,105 @@ export class ProposalsService {
       });
     }
 
-    const awardPoints = proposal.assignedPointValue || 0;
-    if (awardPoints <= 0) {
-      throw new BadRequestException({
-        statusCode: 400,
-        errorCode: 'INVALID_POINT_VALUE',
-        message: 'Proposal does not have a positive assigned point value',
-      });
-    }
-
     const result = await this.prisma.$transaction(async (tx) => {
-      const updatedProposal = await tx.studentTaskProposal.update({
-        where: { id },
+      const claimedProposal = await tx.studentTaskProposal.updateMany({
+        where: { id, status: ProposalStatus.READY_TO_DO },
         data: {
           status: ProposalStatus.COMPLETED,
           completedAt: new Date(),
         },
       });
 
-      const studentProfile = await tx.studentProfile.findUnique({
-        where: { id: proposal.studentId },
-      });
+      if (claimedProposal.count !== 1) {
+        throw new BadRequestException({
+          statusCode: 400,
+          errorCode: 'INVALID_PROPOSAL_STATE',
+          message: 'Proposal is no longer in READY_TO_DO status',
+        });
+      }
 
-      const newCurrentBalance = (studentProfile?.currentBalance || 0) + awardPoints;
-      const newHighestBalance = Math.max(studentProfile?.highestBalance || 0, newCurrentBalance);
+      const updatedProposal = await tx.studentTaskProposal.findUniqueOrThrow({
+        where: { id },
+      });
+      const awardPoints = updatedProposal.assignedPointValue || 0;
+      if (awardPoints <= 0) {
+        throw new BadRequestException({
+          statusCode: 400,
+          errorCode: 'INVALID_POINT_VALUE',
+          message: 'Proposal does not have a positive assigned point value',
+        });
+      }
+
+      let sourceType: SourceType;
+      let sourceId: string;
+      let resultingSourceBalance: number;
+
+      if (reviewerRole === Role.VICE_PRINCIPAL) {
+        const debitedVicePrincipal = await tx.teacherProfile.updateMany({
+          where: {
+            id: adminId,
+            pointBalance: { gte: awardPoints },
+          },
+          data: { pointBalance: { decrement: awardPoints } },
+        });
+
+        if (debitedVicePrincipal.count !== 1) {
+          const currentBalance = await tx.teacherProfile.findUnique({
+            where: { id: adminId },
+            select: { pointBalance: true },
+          });
+          throw new BadRequestException({
+            statusCode: 400,
+            errorCode: 'INSUFFICIENT_VICE_PRINCIPAL_BALANCE',
+            message: `Vice Principal point balance (${currentBalance?.pointBalance || 0}) is insufficient to award ${awardPoints} points`,
+          });
+        }
+
+        const updatedVicePrincipal = await tx.teacherProfile.findUniqueOrThrow({
+          where: { id: adminId },
+          select: { pointBalance: true },
+        });
+        sourceType = SourceType.VICE_PRINCIPAL;
+        sourceId = adminId;
+        resultingSourceBalance = updatedVicePrincipal.pointBalance;
+      } else {
+        let pool = await tx.systemPointPool.findFirst();
+        if (!pool) {
+          pool = await tx.systemPointPool.create({ data: { balance: 0 } });
+        }
+
+        const debitedPool = await tx.systemPointPool.updateMany({
+          where: { id: pool.id, balance: { gte: awardPoints } },
+          data: { balance: { decrement: awardPoints } },
+        });
+
+        if (debitedPool.count !== 1) {
+          const currentPool = await tx.systemPointPool.findUnique({
+            where: { id: pool.id },
+            select: { balance: true },
+          });
+          throw new BadRequestException({
+            statusCode: 400,
+            errorCode: 'INSUFFICIENT_POOL_BALANCE',
+            message: `System pool balance (${currentPool?.balance || 0}) is insufficient to award ${awardPoints} points`,
+          });
+        }
+
+        const updatedPool = await tx.systemPointPool.findUniqueOrThrow({
+          where: { id: pool.id },
+          select: { balance: true },
+        });
+        sourceType = SourceType.SYSTEM_POOL;
+        sourceId = pool.id;
+        resultingSourceBalance = updatedPool.balance;
+      }
+
+      const updatedStudentProfile = await tx.studentProfile.update({
+        where: { id: proposal.studentId },
+        data: { currentBalance: { increment: awardPoints } },
+      });
+      const newCurrentBalance = updatedStudentProfile.currentBalance;
+      const newHighestBalance = Math.max(updatedStudentProfile.highestBalance, newCurrentBalance);
 
       const matchingTier = await tx.tierConfiguration.findFirst({
         where: { minPointsThreshold: { lte: newCurrentBalance } },
@@ -393,9 +495,8 @@ export class ProposalsService {
       await tx.studentProfile.update({
         where: { id: proposal.studentId },
         data: {
-          currentBalance: newCurrentBalance,
           highestBalance: newHighestBalance,
-          currentTierId: matchingTier?.id || studentProfile?.currentTierId,
+          currentTierId: matchingTier?.id || updatedStudentProfile.currentTierId,
         },
       });
 
@@ -406,14 +507,18 @@ export class ProposalsService {
           actorId: adminId,
           actorRole:
             reviewerRole === Role.VICE_PRINCIPAL ? ActorRole.VICE_PRINCIPAL : ActorRole.ADMIN,
-          sourceType: SourceType.SYSTEM_POOL,
+          sourceType,
+          sourceId,
           recipientType: RecipientType.STUDENT_CURRENT,
           recipientId: proposal.studentId,
           amount: awardPoints,
           actionType: ActionType.PROPOSAL_AWARD_STUDENT,
           relatedEntityType: 'StudentTaskProposal',
           relatedEntityId: proposal.id,
-          metadata: { proposalTitle: proposal.title || proposal.description },
+          metadata: {
+            proposalTitle: updatedProposal.title || updatedProposal.description,
+          },
+          resultingSourceBalance,
           resultingRecipientBalance: newCurrentBalance,
         },
         tx,
@@ -422,11 +527,12 @@ export class ProposalsService {
       return updatedProposal;
     });
 
+    const awardPoints = result.assignedPointValue || 0;
     await this.eventEmitter.emitAsync(
       'proposal.status_changed',
       new ProposalStatusChangedEvent(
-        proposal.id,
-        proposal.studentId,
+        result.id,
+        result.studentId,
         ProposalStatus.COMPLETED,
         awardPoints,
         null,

@@ -54,7 +54,7 @@ async function fetchActivities() {
 }
 
 function openSubmission(act: Activity) {
-  if (act.isBanned || act.isDone) return;
+  if (act.isBanned || act.isDone || act.verificationStatus === 'PENDING') return;
   selectedActivity.value = act;
   textDescription.value = '';
   fileAttachmentUrl.value = null;
@@ -234,10 +234,10 @@ async function submitVerification() {
           </div>
 
           <button
-            :disabled="act.isBanned || act.isDone"
+            :disabled="act.isBanned || act.isDone || act.verificationStatus === 'PENDING'"
             :class="[
               'px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5',
-              act.isBanned || act.isDone
+              act.isBanned || act.isDone || act.verificationStatus === 'PENDING'
                 ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
                 : 'bg-neon-green text-[#0B0E14] hover:bg-neon-green-light shadow-neon-green',
             ]"

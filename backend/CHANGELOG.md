@@ -2,6 +2,16 @@
 
 ## 2.3.4 - 2026-11-20
 
+### Changed
+
+- Fund accepted activity awards and completed proposals from the acting administrator's system pool or vice principal's personal balance.
+- Record the funding source and resulting source balance in award audit entries.
+
+### Fixed
+
+- Keep activity verifications pending and proposals ready to do when the acting budget is insufficient.
+- Prevent duplicate concurrent awards from debiting a budget or crediting a student more than once.
+
 ### Added
 
 - Added administrator returns of unused teacher and vice-principal points to the system pool, with balance checks, audit reasons, and recipient notifications.

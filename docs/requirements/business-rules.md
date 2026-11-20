@@ -80,6 +80,8 @@
 - Administrators and vice principals can create and manage challenges and missions.
 - Challenge and mission point values are fixed at creation and cannot be edited; a changed value requires removing and recreating the activity.
 - Challenge and mission points are awarded only after an administrator or vice principal manually verifies and accepts the student's verification request.
+- In the student activity view, a pending verification disables that activity's submission button; this is a client-side restriction only, and the submission API does not reject another request solely because one is pending.
+- Accepting an activity verification deducts its exact point value from the accepting administrator's system point pool or vice principal's personal point balance and credits the student in one transaction. If that source lacks funds, the verification remains pending and no balances change.
 - Three rejected verification requests for the same activity trigger an approximately one-month submission ban for that student and activity.
 - Rejected verification requests remain in the activity history for rejection counting.
 - The ban period is flexible and can be overridden by an administrator or vice principal.
@@ -90,6 +92,7 @@
 - Point values for approved task proposals can be updated by administrators or vice principals prior to completion.
 - Students can cancel a task proposal only while it is in `Ready to Do` state, which closes it in `Canceled` state.
 - Task completion by a student is validated manually by an administrator or vice principal; marking completion transfers the points and closes the proposal as `Completed`.
+- Completing a proposal deducts its current assigned point value from the completing administrator's system point pool or vice principal's personal point balance and credits the student in one transaction. If that source lacks funds, the proposal remains `Ready to Do` and no balances change.
 - Students, administrators, and vice principals can exchange messages on a task proposal throughout its lifecycle.
 - Teachers cannot see or participate in student task proposals.
 - Task proposals use status labels `Pending to Approve`, `Ready to Do`, `Completed`, `Declined`, and `Canceled`.
