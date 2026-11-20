@@ -210,11 +210,23 @@ export class NotificationFormatter {
     newBalance: number,
     recipientRole: Extract<Role, 'TEACHER' | 'VICE_PRINCIPAL'> = Role.TEACHER,
   ): FormattedNotification {
-    const balanceLabel =
-      recipientRole === Role.VICE_PRINCIPAL ? 'موجودی شخصی' : 'بودجهٔ نوین‌دهی';
+    const balanceLabel = recipientRole === Role.VICE_PRINCIPAL ? 'موجودی شخصی' : 'بودجهٔ نوین‌دهی';
     return {
       subject: 'نوین به موجودی شما اضافه شد',
       body: `مدیر ${toPersianDigits(amount)} نوین به ${balanceLabel} شما اختصاص داد. موجودی قابل‌استفادهٔ جدید شما ${toPersianDigits(newBalance)} نوین است.`,
+    };
+  }
+
+  static formatPointReturned(
+    amount: number,
+    newBalance: number,
+    reason: string,
+    recipientRole: Extract<Role, 'TEACHER' | 'VICE_PRINCIPAL'>,
+  ): FormattedNotification {
+    const balanceLabel = recipientRole === Role.VICE_PRINCIPAL ? 'موجودی شخصی' : 'بودجهٔ نوین‌دهی';
+    return {
+      subject: 'نوین از موجودی شما به استخر بازگشت',
+      body: `مدیر ${toPersianDigits(amount)} نوین از ${balanceLabel} شما را به استخر نوین بازگرداند. دلیل: ${reason}. موجودی قابل‌استفادهٔ جدید شما ${toPersianDigits(newBalance)} نوین است.`,
     };
   }
 }

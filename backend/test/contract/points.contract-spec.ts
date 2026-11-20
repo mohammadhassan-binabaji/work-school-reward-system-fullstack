@@ -63,8 +63,30 @@ describe('Points Contract Tests (e2e)', () => {
       .post('/api/v1/points/pool/fund-teacher')
       .set('Cookie', adminCookie)
       .send({
-        teacherId: 'not-a-uuid',
-        amount: 0,
+        teacherId: '00000000-0000-0000-0000-000000000000',
+        amount: -10,
+      })
+      .expect(400);
+  });
+
+  it('POST /api/v1/points/pool/return-teacher requires a positive amount and non-empty reason', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/points/pool/return-teacher')
+      .set('Cookie', adminCookie)
+      .send({
+        teacherId: '00000000-0000-0000-0000-000000000000',
+        amount: -10,
+        reason: 'Invalid amount',
+      })
+      .expect(400);
+
+    await request(app.getHttpServer())
+      .post('/api/v1/points/pool/return-teacher')
+      .set('Cookie', adminCookie)
+      .send({
+        teacherId: '00000000-0000-0000-0000-000000000000',
+        amount: 10,
+        reason: '   ',
       })
       .expect(400);
   });

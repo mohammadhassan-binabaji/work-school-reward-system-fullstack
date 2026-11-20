@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.3.4 - 2026-11-20
+
+### Added
+
+- Added administrator returns of unused teacher and vice-principal points to the system pool, with balance checks, audit reasons, and recipient notifications.
+
 ## 2.3.3 - 2026-11-19
 
 ### Added

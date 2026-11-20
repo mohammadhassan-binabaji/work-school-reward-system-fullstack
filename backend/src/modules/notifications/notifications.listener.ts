@@ -16,7 +16,12 @@ import {
   ProposalSubmittedEvent,
   ProposalMessageEvent,
 } from './events/proposal-events';
-import { PointAwardedEvent, PointAdjustedEvent, PointAllocatedEvent } from './events/point-events';
+import {
+  PointAwardedEvent,
+  PointAdjustedEvent,
+  PointAllocatedEvent,
+  PointReturnedEvent,
+} from './events/point-events';
 import {
   VerificationReviewedEvent,
   VerificationSubmittedEvent,
@@ -345,6 +350,26 @@ export class NotificationsListener {
       subject: formatted.subject,
       body: formatted.body,
       originatingEntityType: OriginatingEntityType.POINT_ALLOCATION,
+      originatingEntityId: event.auditLogId,
+    });
+  }
+
+  @OnEvent('point.returned')
+  async handlePointReturned(event: PointReturnedEvent) {
+    if (!(await this.isRecipientActive(event.recipientId))) return;
+
+    const formatted = NotificationFormatter.formatPointReturned(
+      event.amount,
+      event.newBalance,
+      event.reason,
+      event.recipientRole,
+    );
+
+    await this.createNotification({
+      recipientId: event.recipientId,
+      subject: formatted.subject,
+      body: formatted.body,
+      originatingEntityType: OriginatingEntityType.POINT_POOL_RETURN,
       originatingEntityId: event.auditLogId,
     });
   }

@@ -11,6 +11,8 @@ import { AuditLogService } from './audit-log.service';
 import {
   FundTeacherBudgetDto,
   FundVicePrincipalBudgetDto,
+  ReturnTeacherBudgetDto,
+  ReturnVicePrincipalBudgetDto,
   CreatePointTaskDto,
   UpdatePointTaskDto,
   TeacherAwardPointsDto,
@@ -35,6 +37,7 @@ import {
   PointAwardedEvent,
   PointAdjustedEvent,
   PointAllocatedEvent,
+  PointReturnedEvent,
 } from '../notifications/events/point-events';
 
 @Injectable()
@@ -300,6 +303,161 @@ export class PointsService {
 
     const { auditLogId, ...response } = result;
     return response;
+  }
+
+  async returnTeacherBudget(dto: ReturnTeacherBudgetDto, adminId: string, correlationId: string) {
+    return this.returnBudgetToPool(
+      dto.teacherId,
+      dto.amount,
+      dto.reason,
+      Role.TEACHER,
+      adminId,
+      correlationId,
+    );
+  }
+
+  async returnVicePrincipalBudget(
+    dto: ReturnVicePrincipalBudgetDto,
+    adminId: string,
+    correlationId: string,
+  ) {
+    return this.returnBudgetToPool(
+      dto.vicePrincipalId,
+      dto.amount,
+      dto.reason,
+      Role.VICE_PRINCIPAL,
+      adminId,
+      correlationId,
+    );
+  }
+
+  private async returnBudgetToPool(
+    recipientId: string,
+    amount: number,
+    reason: string,
+    recipientRole: Extract<Role, 'TEACHER' | 'VICE_PRINCIPAL'>,
+    adminId: string,
+    correlationId: string,
+  ) {
+    const recipient = await this.prisma.user.findUnique({
+      where: { id: recipientId },
+      include: { teacherProfile: true },
+    });
+
+    const isTeacher = recipientRole === Role.TEACHER;
+    const displayRole = isTeacher ? 'Teacher' : 'Vice Principal';
+    const notFoundCode = isTeacher ? 'TEACHER_NOT_FOUND' : 'VICE_PRINCIPAL_NOT_FOUND';
+    const inactiveCode = isTeacher ? 'TEACHER_NOT_ACTIVE' : 'VICE_PRINCIPAL_NOT_ACTIVE';
+    const insufficientCode = isTeacher
+      ? 'INSUFFICIENT_TEACHER_BALANCE'
+      : 'INSUFFICIENT_VICE_PRINCIPAL_BALANCE';
+    const sourceType = isTeacher ? SourceType.TEACHER : SourceType.VICE_PRINCIPAL;
+    const actionType = isTeacher
+      ? ActionType.POOL_RETURN_TEACHER
+      : ActionType.POOL_RETURN_VICE_PRINCIPAL;
+
+    if (!recipient || recipient.role !== recipientRole || !recipient.teacherProfile) {
+      throw new NotFoundException({
+        statusCode: 404,
+        errorCode: notFoundCode,
+        message: `${displayRole} profile not found`,
+      });
+    }
+
+    if (recipient.accountState !== AccountState.ACTIVE) {
+      throw new BadRequestException({
+        statusCode: 400,
+        errorCode: inactiveCode,
+        message: `Cannot return points from inactive or departed ${displayRole.toLowerCase()}`,
+      });
+    }
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      let pool = await tx.systemPointPool.findFirst();
+      if (!pool) {
+        pool = await tx.systemPointPool.create({ data: { balance: 0 } });
+      }
+
+      const debitedRecipient = await tx.teacherProfile.updateMany({
+        where: { id: recipientId, pointBalance: { gte: amount } },
+        data: { pointBalance: { decrement: amount } },
+      });
+
+      if (debitedRecipient.count !== 1) {
+        const currentRecipient = await tx.teacherProfile.findUnique({
+          where: { id: recipientId },
+          select: { pointBalance: true },
+        });
+        throw new BadRequestException({
+          statusCode: 400,
+          errorCode: insufficientCode,
+          message: `${displayRole} point balance (${currentRecipient?.pointBalance || 0}) is insufficient to return ${amount} points`,
+        });
+      }
+
+      const updatedRecipient = await tx.teacherProfile.findUniqueOrThrow({
+        where: { id: recipientId },
+      });
+      const updatedPool = await tx.systemPointPool.update({
+        where: { id: pool.id },
+        data: { balance: { increment: amount } },
+      });
+
+      const admin = await tx.user.findUnique({ where: { id: adminId } });
+      const adminName = admin ? `${admin.firstName} ${admin.lastName}`.trim() : 'مدیر';
+      const recipientName = `${recipient.firstName} ${recipient.lastName}`.trim();
+      const auditLog = await this.auditLogService.log(
+        {
+          correlationId,
+          actorId: adminId,
+          actorRole: ActorRole.ADMIN,
+          sourceType,
+          sourceId: recipientId,
+          recipientType: RecipientType.SYSTEM_POOL,
+          recipientId: pool.id,
+          amount,
+          actionType,
+          reasonDetail: reason,
+          metadata: {
+            adminName,
+            ...(isTeacher ? { teacherName: recipientName } : { vicePrincipalName: recipientName }),
+          },
+          resultingSourceBalance: updatedRecipient.pointBalance,
+          resultingRecipientBalance: updatedPool.balance,
+        },
+        tx,
+      );
+
+      return {
+        auditLogId: auditLog.id,
+        recipientId,
+        recipientRole,
+        returnedBudget: amount,
+        recipientNewBalance: updatedRecipient.pointBalance,
+        poolNewBalance: updatedPool.balance,
+      };
+    });
+
+    await this.eventEmitter.emitAsync(
+      'point.returned',
+      new PointReturnedEvent(
+        result.auditLogId,
+        result.recipientId,
+        result.recipientRole,
+        result.returnedBudget,
+        result.recipientNewBalance,
+        reason,
+      ),
+    );
+
+    return {
+      success: true,
+      recipientId: result.recipientId,
+      recipientRole: result.recipientRole,
+      returnedBudget: result.returnedBudget,
+      recipientNewBalance: result.recipientNewBalance,
+      poolNewBalance: result.poolNewBalance,
+    };
   }
 
   // Predefined Point Transfer Tasks (FR-017)

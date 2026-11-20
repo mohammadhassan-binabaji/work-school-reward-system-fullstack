@@ -914,5 +914,92 @@ describe('Notifications Integration Tests', () => {
       expect(t2Inbox.body.data).toEqual([]);
       expect(t2Inbox.body.meta.totalItems).toBe(0);
     });
+
+    it('notifies teachers and vice principals when points are allocated or returned', async () => {
+      const teacher = await request(app.getHttpServer())
+        .post('/api/v1/users')
+        .set('Cookie', adminCookie)
+        .send({
+          nationalId: '5555555561',
+          firstName: 'Budget',
+          lastName: 'Teacher',
+          username: 'budget_teacher',
+          password: 'Password123!',
+          role: 'TEACHER',
+        })
+        .expect(201);
+      const vicePrincipal = await request(app.getHttpServer())
+        .post('/api/v1/users')
+        .set('Cookie', adminCookie)
+        .send({
+          nationalId: '5555555562',
+          firstName: 'Budget',
+          lastName: 'Vice',
+          username: 'budget_vice',
+          password: 'Password123!',
+          role: 'VICE_PRINCIPAL',
+        })
+        .expect(201);
+      const teacherAuth = await loginUser(app, '5555555561', 'Password123!');
+      const vicePrincipalAuth = await loginUser(app, '5555555562', 'Password123!');
+
+      await request(app.getHttpServer())
+        .post('/api/v1/points/pool/fund-teacher')
+        .set('Cookie', adminCookie)
+        .send({ teacherId: teacher.body.id, amount: 60 })
+        .expect(200);
+      await request(app.getHttpServer())
+        .post('/api/v1/points/pool/return-teacher')
+        .set('Cookie', adminCookie)
+        .send({
+          teacherId: teacher.body.id,
+          amount: 10,
+          reason: 'Teacher budget review',
+        })
+        .expect(200);
+      await request(app.getHttpServer())
+        .post('/api/v1/points/pool/fund-vice-principal')
+        .set('Cookie', adminCookie)
+        .send({ vicePrincipalId: vicePrincipal.body.id, amount: 40 })
+        .expect(200);
+      await request(app.getHttpServer())
+        .post('/api/v1/points/pool/return-vice-principal')
+        .set('Cookie', adminCookie)
+        .send({
+          vicePrincipalId: vicePrincipal.body.id,
+          amount: 15,
+          reason: 'Vice principal budget review',
+        })
+        .expect(200);
+
+      const teacherInbox = await request(app.getHttpServer())
+        .get('/api/v1/notifications')
+        .set('Cookie', teacherAuth.cookie)
+        .expect(200);
+      const vicePrincipalInbox = await request(app.getHttpServer())
+        .get('/api/v1/notifications')
+        .set('Cookie', vicePrincipalAuth.cookie)
+        .expect(200);
+
+      expect(teacherInbox.body.data).toHaveLength(2);
+      expect(teacherInbox.body.data.map((item: any) => item.originatingEntityType)).toEqual(
+        expect.arrayContaining(['POINT_ALLOCATION', 'POINT_POOL_RETURN']),
+      );
+      expect(
+        teacherInbox.body.data.find(
+          (item: any) => item.originatingEntityType === 'POINT_POOL_RETURN',
+        ).body,
+      ).toContain('Teacher budget review');
+
+      expect(vicePrincipalInbox.body.data).toHaveLength(2);
+      expect(vicePrincipalInbox.body.data.map((item: any) => item.originatingEntityType)).toEqual(
+        expect.arrayContaining(['POINT_ALLOCATION', 'POINT_POOL_RETURN']),
+      );
+      expect(
+        vicePrincipalInbox.body.data.find(
+          (item: any) => item.originatingEntityType === 'POINT_POOL_RETURN',
+        ).body,
+      ).toContain('Vice principal budget review');
+    });
   });
 });

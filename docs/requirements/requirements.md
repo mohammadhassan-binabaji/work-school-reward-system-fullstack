@@ -64,6 +64,8 @@ The system enables teachers to award points to students for actions such as comp
 ### Teacher points
 
 - Administrators shall transfer points from the system-wide point pool to a teacher's point balance.
+- Administrators shall be able to return points from an active teacher's point balance to the system-wide point pool by entering a positive amount and a required reason.
+- A teacher point return shall not exceed the teacher's current balance; the teacher's balance shall decrease and the system pool shall increase by the same amount atomically.
 - A teacher shall be able to award positive points to a student only when the student belongs to a class where that teacher is assigned.
 - Administrators shall define tasks for point transfers, such as doing homework, and configure one or more point-amount options for each task.
 - Teachers may use an administrator-defined task and one of its point-amount options, or enter a custom reason and positive point amount.
@@ -76,6 +78,8 @@ The system enables teachers to award points to students for actions such as comp
 ### Vice Principal points and economy
 
 - Administrators shall transfer points from the system-wide point pool to a vice principal's point balance.
+- Administrators shall be able to return points from an active vice principal's point balance to the system-wide point pool by entering a positive amount and a required reason.
+- A vice-principal point return shall not exceed the vice principal's current balance; the vice principal's balance shall decrease and the system pool shall increase by the same amount atomically.
 - Vice principals shall be able to directly adjust a student's point balance using their personal point balance.
 - Administrators and vice principals shall be able to search active students by name or national ID and select multiple students for one direct adjustment.
 - Search shall match national IDs entered with Persian, Arabic-Indic, or ASCII digits; select-all shall select the students currently visible after filtering.
@@ -232,7 +236,7 @@ The system enables teachers to award points to students for actions such as comp
   - Submission of a new student task proposal.
   - Submission of a new message from a student within a task proposal.
   - Submission of a student challenge or mission verification request.
-- The system shall automatically generate and store an unread in-app notification for a teacher when an administrator transfers points to that teacher's point balance.
+- The system shall automatically generate and store an unread in-app notification for a teacher or vice principal when an administrator transfers points to their balance or returns points from their balance to the system pool.
 - Each notification shall contain a subject (title), message content (text), creation date and time, read status (`Unread` or `Read`), read date and time when applicable, and an originating event reference consisting of entity type and entity identifier to enable client navigation.
 - Users shall be able to view their notifications.
 - Users shall be able to filter notifications by status (`All`, `Unread`, `Read`).

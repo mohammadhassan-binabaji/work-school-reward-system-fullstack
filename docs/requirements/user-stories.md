@@ -6,6 +6,7 @@
 - As a school administrator, I want to create administrator, vice principal, teacher, and student accounts with names, usernames, passwords, and optional profile images so that users can access the system with visual identification.
 - As a school administrator, I want to update a vice principal's profile and account state so that I can maintain their account and control access.
 - As a school administrator, I want to fund vice principal point balances from the system point pool so that vice principals have dedicated adjustment budgets.
+- As a school administrator, I want to return unused points from an active teacher's or vice principal's balance to the system pool with a reason so that I can recover unspent budgets while preserving a clear audit trail.
 - As a school administrator, I want to bulk import students via Excel with an optional ZIP archive of photos so that multiple accounts and their avatars can be created at once.
 - As a school administrator, I want to see user avatars in the users table so that I can easily recognize users visually.
 - As a teacher, I want to see student avatars in my class rosters on the classes page so that I can visually identify students when reviewing progress or awarding points.
@@ -57,7 +58,7 @@
 - As a teacher, I want to filter and export reports as CSV, Excel, or PDF so that I can review relevant point activity.
 - As a teacher, I want to view current points for students in my assigned classes in tables and diagrams so that I can monitor their progress.
 - As a teacher, I want to filter student point reports by tier so that I can analyze students by current-point category.
-- As a teacher, I want to receive an in-app notification when an administrator transfers points to my balance so that I know my award budget has been updated.
+- As a teacher, I want to receive an in-app notification when an administrator transfers points to or returns points from my balance so that I know my award budget has changed.
 - As a teacher, I want to receive custom notifications sent by an administrator so that I stay informed of relevant announcements.
 - As a teacher, I want to view my notifications, filter them by read status, and see an unread badge counter so that I stay informed of balance changes.
 - As a teacher, I want unread notifications to be marked as read after I view them and to mark all unread notifications as read with one action so that my notification list stays up to date.
@@ -71,6 +72,7 @@
 - As a vice principal, I want to see teacher names and IDs for academic assignments without access to teacher accounts so that I can manage teaching relationships while respecting role boundaries.
 - As a vice principal, I want explicit teacher/student departure actions and setting a student's account state to departed to remain unavailable to me so that departure workflows remain restricted to administrators.
 - As a vice principal, I want to view my allocated point balance on the dashboard and adjustment page so that I know how many points I can award.
+- As a vice principal, I want to receive an in-app notification when an administrator allocates points to or returns points from my balance so that I know when my available balance changes.
 - As a vice principal, I want to directly credit points to a student (deducting from my balance) or debit points from a student (returning to my balance) so that I can reward or correct student conduct.
 - As a vice principal, I want to manage rewards, approve/decline/complete reward requests, review activity verifications, and approve/complete student proposals so that administrative workflows are distributed efficiently.
 - As a vice principal, I want to receive in-app review notifications for reward requests, proposals, and activity verifications so that I can promptly take action.

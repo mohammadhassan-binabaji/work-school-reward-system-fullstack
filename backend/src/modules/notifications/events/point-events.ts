@@ -29,3 +29,14 @@ export class PointAllocatedEvent {
     public readonly newBalance: number,
   ) {}
 }
+
+export class PointReturnedEvent {
+  constructor(
+    public readonly auditLogId: string,
+    public readonly recipientId: string,
+    public readonly recipientRole: Extract<Role, 'TEACHER' | 'VICE_PRINCIPAL'>,
+    public readonly amount: number,
+    public readonly newBalance: number,
+    public readonly reason: string,
+  ) {}
+}

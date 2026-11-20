@@ -1070,6 +1070,8 @@ components:
           enum:
             - POOL_FUND_TEACHER
             - POOL_FUND_VICE_PRINCIPAL
+            - POOL_RETURN_TEACHER
+            - POOL_RETURN_VICE_PRINCIPAL
             - TEACHER_AWARD_STUDENT
             - ADMIN_ADJUST_STUDENT
             - VICE_ADJUST_STUDENT
@@ -1162,6 +1164,7 @@ components:
         - PROPOSAL_MESSAGE
         - CHALLENGE_VERIFICATION
         - POINT_ALLOCATION
+        - POINT_POOL_RETURN
         - POINT_AWARD
         - POINT_ADJUSTMENT
         - ACTIVITY_BAN
@@ -2121,6 +2124,52 @@ paths:
           description: Points successfully allocated to the vice principal
         '400':
           description: Insufficient system pool balance or inactive vice principal
+
+  /points/pool/return-teacher:
+    post:
+      summary: Return Teacher Point Budget to System Pool (Admin only)
+      description: Returns points from an active teacher's balance to the pool. The amount cannot exceed the current balance; a reason is required.
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [teacherId, amount, reason]
+              properties:
+                teacherId: { type: string, format: uuid }
+                amount: { type: integer, minimum: 1 }
+                reason: { type: string, minLength: 1 }
+      responses:
+        '200':
+          description: Points successfully returned to the system pool
+        '400':
+          description: Amount exceeds teacher balance or teacher is inactive
+
+  /points/pool/return-vice-principal:
+    post:
+      summary: Return Vice Principal Point Balance to System Pool (Admin only)
+      description: Returns points from an active vice principal's balance to the pool. The amount cannot exceed the current balance; a reason is required.
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [vicePrincipalId, amount, reason]
+              properties:
+                vicePrincipalId: { type: string, format: uuid }
+                amount: { type: integer, minimum: 1 }
+                reason: { type: string, minLength: 1 }
+      responses:
+        '200':
+          description: Points successfully returned to the system pool
+        '400':
+          description: Amount exceeds vice principal balance or account is inactive
 
   /points/tasks:
     get:

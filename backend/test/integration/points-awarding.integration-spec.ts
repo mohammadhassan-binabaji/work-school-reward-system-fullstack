@@ -90,6 +90,130 @@ describe('Points Awarding Integration Tests', () => {
       .expect(400);
   });
 
+  it('returns teacher and vice-principal balances to the pool with matching audit records', async () => {
+    const teacher = await request(app.getHttpServer())
+      .post('/api/v1/users')
+      .set('Cookie', adminCookie)
+      .send({
+        nationalId: '2222222231',
+        firstName: 'Return',
+        lastName: 'Teacher',
+        username: 'return_teacher',
+        password: 'Password123!',
+        role: 'TEACHER',
+      })
+      .expect(201);
+    const vicePrincipal = await request(app.getHttpServer())
+      .post('/api/v1/users')
+      .set('Cookie', adminCookie)
+      .send({
+        nationalId: '2222222232',
+        firstName: 'Return',
+        lastName: 'Vice',
+        username: 'return_vice',
+        password: 'Password123!',
+        role: 'VICE_PRINCIPAL',
+      })
+      .expect(201);
+
+    await prisma.teacherProfile.update({
+      where: { id: teacher.body.id },
+      data: { pointBalance: 250 },
+    });
+    await prisma.teacherProfile.update({
+      where: { id: vicePrincipal.body.id },
+      data: { pointBalance: 120 },
+    });
+
+    const teacherReturn = await request(app.getHttpServer())
+      .post('/api/v1/points/pool/return-teacher')
+      .set('Cookie', adminCookie)
+      .send({ teacherId: teacher.body.id, amount: 100, reason: 'Budget correction' })
+      .expect(200);
+    expect(teacherReturn.body.recipientNewBalance).toBe(150);
+    expect(teacherReturn.body.poolNewBalance).toBe(1100);
+
+    const vicePrincipalReturn = await request(app.getHttpServer())
+      .post('/api/v1/points/pool/return-vice-principal')
+      .set('Cookie', adminCookie)
+      .send({ vicePrincipalId: vicePrincipal.body.id, amount: 40, reason: 'Unused points' })
+      .expect(200);
+    expect(vicePrincipalReturn.body.recipientNewBalance).toBe(80);
+    expect(vicePrincipalReturn.body.poolNewBalance).toBe(1140);
+
+    const teacherProfile = await prisma.teacherProfile.findUniqueOrThrow({
+      where: { id: teacher.body.id },
+    });
+    const vicePrincipalProfile = await prisma.teacherProfile.findUniqueOrThrow({
+      where: { id: vicePrincipal.body.id },
+    });
+    const pool = await prisma.systemPointPool.findFirstOrThrow();
+    expect(teacherProfile.pointBalance).toBe(150);
+    expect(vicePrincipalProfile.pointBalance).toBe(80);
+    expect(pool.balance).toBe(1140);
+
+    const teacherAudit = await prisma.pointAuditLog.findFirstOrThrow({
+      where: { actionType: 'POOL_RETURN_TEACHER', recipientId: pool.id },
+    });
+    const vicePrincipalAudit = await prisma.pointAuditLog.findFirstOrThrow({
+      where: { actionType: 'POOL_RETURN_VICE_PRINCIPAL', recipientId: pool.id },
+    });
+    expect(teacherAudit.amount).toBe(100);
+    expect(teacherAudit.reasonDetail).toBe('Budget correction');
+    expect(teacherAudit.resultingSourceBalance).toBe(150);
+    expect(teacherAudit.resultingRecipientBalance).toBe(1100);
+    expect(vicePrincipalAudit.amount).toBe(40);
+    expect(vicePrincipalAudit.reasonDetail).toBe('Unused points');
+    expect(vicePrincipalAudit.resultingSourceBalance).toBe(80);
+    expect(vicePrincipalAudit.resultingRecipientBalance).toBe(1140);
+  });
+
+  it('rejects returns that exceed recipient balance or target an inactive account', async () => {
+    const teacher = await request(app.getHttpServer())
+      .post('/api/v1/users')
+      .set('Cookie', adminCookie)
+      .send({
+        nationalId: '2222222233',
+        firstName: 'Limited',
+        lastName: 'Teacher',
+        username: 'limited_teacher',
+        password: 'Password123!',
+        role: 'TEACHER',
+      })
+      .expect(201);
+    await prisma.teacherProfile.update({
+      where: { id: teacher.body.id },
+      data: { pointBalance: 20 },
+    });
+
+    await request(app.getHttpServer())
+      .post('/api/v1/points/pool/return-teacher')
+      .set('Cookie', adminCookie)
+      .send({ teacherId: teacher.body.id, amount: 21, reason: 'Too many' })
+      .expect(400);
+
+    await prisma.user.update({
+      where: { id: teacher.body.id },
+      data: { accountState: 'DEACTIVATED' },
+    });
+    await request(app.getHttpServer())
+      .post('/api/v1/points/pool/return-teacher')
+      .set('Cookie', adminCookie)
+      .send({ teacherId: teacher.body.id, amount: 10, reason: 'Inactive account' })
+      .expect(400);
+
+    const profile = await prisma.teacherProfile.findUniqueOrThrow({
+      where: { id: teacher.body.id },
+    });
+    const pool = await prisma.systemPointPool.findFirstOrThrow();
+    const returnAuditCount = await prisma.pointAuditLog.count({
+      where: { actionType: 'POOL_RETURN_TEACHER' },
+    });
+    expect(profile.pointBalance).toBe(20);
+    expect(pool.balance).toBe(1000);
+    expect(returnAuditCount).toBe(0);
+  });
+
   it('keeps admin direct adjustments in sync with the system pool (FR-023)', async () => {
     const student = await request(app.getHttpServer())
       .post('/api/v1/users')

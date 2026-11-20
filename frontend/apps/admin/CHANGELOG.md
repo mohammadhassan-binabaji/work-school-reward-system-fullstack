@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.4.5 - 2026-11-20
+
+### Added
+
+- Added explicit fund/return controls for teacher and vice-principal budgets in pool management.
+
 ## 2.4.4 - 2026-11-19
 
 ### Added

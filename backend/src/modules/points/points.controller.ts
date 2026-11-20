@@ -17,6 +17,8 @@ import { PointsService } from './points.service';
 import {
   FundTeacherBudgetDto,
   FundVicePrincipalBudgetDto,
+  ReturnTeacherBudgetDto,
+  ReturnVicePrincipalBudgetDto,
   CreatePointTaskDto,
   UpdatePointTaskDto,
   TeacherAwardPointsDto,
@@ -78,6 +80,32 @@ export class PointsController {
     @Req() req: RequestWithCorrelation,
   ) {
     return this.pointsService.fundVicePrincipalBudget(dto, adminId, req.correlationId || '');
+  }
+
+  @Roles('ADMIN')
+  @Post('pool/return-teacher')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Return unused teacher point budget to the system pool (Admin only)' })
+  async returnTeacher(
+    @Body() dto: ReturnTeacherBudgetDto,
+    @CurrentUser('id') adminId: string,
+    @Req() req: RequestWithCorrelation,
+  ) {
+    return this.pointsService.returnTeacherBudget(dto, adminId, req.correlationId || '');
+  }
+
+  @Roles('ADMIN')
+  @Post('pool/return-vice-principal')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Return unused vice principal point balance to the system pool (Admin only)',
+  })
+  async returnVicePrincipal(
+    @Body() dto: ReturnVicePrincipalBudgetDto,
+    @CurrentUser('id') adminId: string,
+    @Req() req: RequestWithCorrelation,
+  ) {
+    return this.pointsService.returnVicePrincipalBudget(dto, adminId, req.correlationId || '');
   }
 
   @Roles('ADMIN')

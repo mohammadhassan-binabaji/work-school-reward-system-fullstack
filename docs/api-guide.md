@@ -47,6 +47,8 @@ The header-based alternatives listed below remain for compatibility; browser fro
 - `GET /api/v1/points/pool` - Get system pool balance.
 - `POST /api/v1/points/pool/fund-teacher` - Transfer points from pool to teacher budget.
 - `POST /api/v1/points/pool/fund-vice-principal` - Admin transfers points from pool to an active vice principal's personal balance.
+- `POST /api/v1/points/pool/return-teacher` - Return an active teacher's unspent point budget to the pool; requires a positive amount and reason and cannot exceed the teacher's balance.
+- `POST /api/v1/points/pool/return-vice-principal` - Return an active vice principal's unspent point balance to the pool; requires a positive amount and reason and cannot exceed the vice principal's balance.
 - `POST/GET/PATCH/DELETE /api/v1/points/tasks` - Predefined transfer tasks with discrete positive point options.
 - `POST /api/v1/points/teacher-award` - Teacher awards points to student in assigned class.
 - `POST /api/v1/points/admin-adjust` - Admin directly credits or debits a student's balance using the system pool.

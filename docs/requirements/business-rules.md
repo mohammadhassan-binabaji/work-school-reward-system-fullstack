@@ -5,6 +5,10 @@
 - A user's identifier is a 10-digit national ID.
 - Administrator, vice principal, teacher, and student authentication uses national ID plus password.
 - Vice principals have personal point budgets funded from the system point pool.
+- Administrators may return unspent teacher or vice-principal points to the system point pool only while the account is active.
+- A point return must not exceed the teacher's or vice-principal's current balance; it decreases that balance and increases the system pool by the same amount atomically.
+- Administrators must provide a reason for each point return. Returns are recorded as immutable audit entries, and the affected teacher or vice principal is notified.
+- Teachers and vice principals are notified when an administrator allocates points from the system pool to them.
 - Vice principal point adjustments to students are symmetric: positive adjustments debit the vice principal's balance and credit the student; negative adjustments debit the student and credit the vice principal's balance.
 - Vice principals cannot adjust more points than their available balance (when crediting) or more points than the student's current balance (when debiting).
 - Administrator point adjustments are accounted for against the system point pool: crediting a student debits the pool, and debiting a student credits the pool.
@@ -95,7 +99,7 @@
 - System events create notification records in `Unread` state immediately upon occurrence for the affected recipient.
 - Student notifications are generated for: reward request status transitions (`Pending to Receive`, `Completed`, `Declined`), task proposal status transitions and administrator or vice-principal messages, teacher point awards, administrator or vice-principal point adjustments, and challenge/mission verification reviews (including rejection ban or manual unblock).
 - Administrator and vice-principal notifications are generated for: submitted reward requests requiring approval, submitted student task proposals, incoming student messages on proposals, and submitted challenge/mission verification requests. These notifications are delivered to every active administrator and vice principal.
-- Teacher notifications are generated when an administrator allocates points from the system point pool to the teacher's point budget. Vice principal notifications are generated when an administrator funds their personal point balance.
+- Teacher and vice-principal notifications are generated when an administrator allocates points from the system point pool or returns points from their balance to the pool.
 - Administrators may send custom notifications to active students and active teachers. Vice principals may send custom notifications to active students only.
 - A custom notification send is accepted only when every selected recipient exists, is active, and has a role the sender may target; otherwise, no notifications in that send are created.
 - Custom notifications create an individual inbox notification for each recipient and use the existing Android push delivery when the recipient has a registered device and push is configured.

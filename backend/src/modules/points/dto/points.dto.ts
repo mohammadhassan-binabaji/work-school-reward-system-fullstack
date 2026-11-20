@@ -11,6 +11,7 @@ import {
   NotEquals,
   ArrayMinSize,
   ArrayUnique,
+  Matches,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
@@ -39,6 +40,50 @@ export class FundVicePrincipalBudgetDto {
   @IsInt()
   @Min(1)
   amount: number;
+}
+
+export class ReturnTeacherBudgetDto {
+  @ApiProperty({ format: 'uuid' })
+  @IsNotEmpty()
+  @IsUUID()
+  teacherId: string;
+
+  @ApiProperty({ example: 100, minimum: 1 })
+  @IsNotEmpty()
+  @IsInt()
+  @Min(1)
+  amount: number;
+
+  @ApiProperty({
+    example: 'بازگرداندن اعتبار استفاده‌نشده',
+    description: 'Reason for returning points to the system pool',
+  })
+  @IsNotEmpty()
+  @IsString()
+  @Matches(/\S/)
+  reason: string;
+}
+
+export class ReturnVicePrincipalBudgetDto {
+  @ApiProperty({ format: 'uuid' })
+  @IsNotEmpty()
+  @IsUUID()
+  vicePrincipalId: string;
+
+  @ApiProperty({ example: 100, minimum: 1 })
+  @IsNotEmpty()
+  @IsInt()
+  @Min(1)
+  amount: number;
+
+  @ApiProperty({
+    example: 'بازگرداندن اعتبار استفاده‌نشده',
+    description: 'Reason for returning points to the system pool',
+  })
+  @IsNotEmpty()
+  @IsString()
+  @Matches(/\S/)
+  reason: string;
 }
 
 export class CreatePointTaskOptionDto {
