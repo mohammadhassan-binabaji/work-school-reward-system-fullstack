@@ -74,10 +74,21 @@ describe('versionService', () => {
       const manifest = JSON.parse(
         readFileSync(new URL('../../public/app-version-v2.json', import.meta.url), 'utf8'),
       ) as unknown;
+      const config = validateVersionConfig(manifest);
 
-      expect(validateVersionConfig(manifest).channels.map((channel) => channel.id)).toEqual([
-        'direct',
-      ]);
+      expect(config.channels.map((channel) => channel.id)).toEqual(['direct']);
+      expect(config.channels[0]).toMatchObject({ version: '4.0.0', versionCode: 11 });
+    });
+
+    it('keeps the legacy manifest schema and points it at the current release', () => {
+      const legacy = JSON.parse(
+        readFileSync(new URL('../../public/app-version.json', import.meta.url), 'utf8'),
+      ) as Record<string, unknown>;
+
+      expect(legacy.latestVersion).toBe('4.0.0');
+      expect(legacy.minimumVersion).toBe('3.2.0');
+      expect(legacy.updateUrl).toBe('/download/student.apk');
+      expect(legacy.schemaVersion).toBeUndefined();
     });
 
     it('accepts a valid v2 manifest', () => {

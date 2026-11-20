@@ -9,12 +9,20 @@
     { "version": "3.2.1", "versionCode": 8, "notes": [] },
     { "version": "3.2.2", "versionCode": 8, "notes": [] },
     { "version": "3.2.3", "versionCode": 8, "notes": [] },
-    { "version": "3.2.4", "versionCode": 8, "notes": [
-      "بهبود در نمایش فعالیت های پیشنهادی"
-    ] },
-    { "version": "3.2.5", "versionCode": 9, "notes": [
-      "بهبود ذخیره نام‌کاربری و رمزعبور"
-    ] },
+    {
+      "version": "3.2.4",
+      "versionCode": 8,
+      "notes": [
+        "بهبود در نمایش فعالیت های پیشنهادی"
+      ]
+    },
+    {
+      "version": "3.2.5",
+      "versionCode": 9,
+      "notes": [
+        "بهبود ذخیره نام‌کاربری و رمزعبور"
+      ]
+    },
     {
       "version": "3.2.6",
       "versionCode": 10,
@@ -26,15 +34,15 @@
       "version": "4.0.0",
       "versionCode": 11,
       "notes": [
-        "بهبود نسخه بندی اپلیکیشن"
+        "نمایش یادداشت‌های انتشار و بهبود روند به‌روزرسانی برنامه"
       ]
     }
   ],
   "channels": [
     {
       "id": "direct",
-      "version": "3.2.6",
-      "versionCode": 10,
+      "version": "4.0.0",
+      "versionCode": 11,
       "updateUrl": "/download/student.apk"
     }
   ]
