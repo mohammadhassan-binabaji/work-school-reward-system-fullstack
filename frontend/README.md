@@ -176,7 +176,7 @@ npm run typecheck
 | `VITE_API_BASE_URL` | `http://localhost:3000/api/v1` | آدرس کامل API برای اتصال مستقیم اپلیکیشن‌ها |
 | `VITE_API_PROXY_TARGET` | `http://localhost:3000` | مقصد proxy توسعه Vite (در صورت نیاز) |
 | `VITE_STORAGE_BASE_URL` | `http://localhost:3000` | مبدأ فایل‌های بارگذاری‌شده |
-| `VITE_APP_VERSION_URL` | `http://localhost:5173/app-version.json` | نشانی فایل نسخه برای اپلیکیشن دانش‌آموز و Android |
+| `VITE_APP_VERSION_URL` | `http://localhost:5173/app-version-v2.json` | نشانی فایل نسخه v2 برای بیلد جدید Android دانش‌آموز |
 | `VITE_ANDROID_APP_ID` | شناسه فعلی انتشار | شناسه بسته Android؛ پس از انتشار تغییر ندهید |
 
 تنظیمات `VITE_*` عمومی هستند و داخل خروجی وب/موبایل قرار می‌گیرند؛ کلیدها و اطلاعات محرمانه را فقط در فایل محیطی بک‌اند نگه دارید. تنظیمات ضروری هنگام راه‌اندازی Vite یا ساخت/همگام‌سازی Android، در صورت نبودن، خطای واضح ایجاد می‌کنند. CORS بک‌اند از `WEB_ORIGINS` در `backend/.env` خوانده می‌شود.
@@ -185,7 +185,7 @@ npm run typecheck
 
 ## ۷. استقرار دامنه‌ها (Deployment Domains)
 
-هر برنامه خروجی جداگانه‌ای در پوشه `dist` خود تولید می‌کند و می‌تواند روی میزبان/دامنه مستقل مستقر شود. دامنه‌های استقرار در پیکربندی DNS و میزبانی مدیریت می‌شوند؛ هیچ دامنه‌ای در کد برنامه ثابت نشده است. هنگام تغییر مبدأهای API یا فایل، مقدارهای `VITE_API_BASE_URL`، `VITE_STORAGE_BASE_URL` و `VITE_APP_VERSION_URL` را در `frontend/.env` تنظیم کنید و مبدأهای وب را در `backend/.env` برای `WEB_ORIGINS` مجاز کنید.
+هر برنامه خروجی جداگانه‌ای در پوشه `dist` خود تولید می‌کند و می‌تواند روی میزبان/دامنه مستقل مستقر شود. دامنه‌های استقرار در پیکربندی DNS و میزبانی مدیریت می‌شوند؛ هیچ دامنه‌ای در کد برنامه ثابت نشده است. هنگام تغییر مبدأهای API یا فایل، مقدارهای `VITE_API_BASE_URL`، `VITE_STORAGE_BASE_URL` و `VITE_APP_VERSION_URL` را در `frontend/.env` تنظیم کنید. بیلدهای جدید اندروید دانش‌آموز باید `VITE_APP_VERSION_URL` را به فایل `app-version-v2.json` تنظیم کنند؛ فایل `app-version.json` برای نسخه‌های قدیمی‌تر حفظ می‌شود. مبدأهای وب را در `backend/.env` برای `WEB_ORIGINS` مجاز کنید.
 
 | اپلیکیشن | پوشه خروجی | دامنه پیشنهادی در محیط استقرار | تارگت و نوع دستگاه |
 | :--- | :--- | :--- | :--- |
@@ -218,6 +218,12 @@ server {
 
     # سرو فایل استاتیک نگارش اپلیکیشن اندروید با هدر جلوگیری از کش
     location = /app-version.json {
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+        add_header Pragma "no-cache";
+        expires 0;
+    }
+
+    location = /app-version-v2.json {
         add_header Cache-Control "no-cache, no-store, must-revalidate";
         add_header Pragma "no-cache";
         expires 0;

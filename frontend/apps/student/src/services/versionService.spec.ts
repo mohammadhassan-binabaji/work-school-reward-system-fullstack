@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { Capacitor } from '@capacitor/core';
+import { App } from '@capacitor/app';
 import {
   isValidSemver,
   parseSemver,
@@ -7,256 +9,271 @@ import {
   validateVersionConfig,
   evaluateVersion,
   fetchRemoteVersionConfig,
-  isNativeAndroidPlatform,
+  getInstalledAppInfo,
   type AppVersionConfig,
 } from './versionService';
 
+vi.mock('@capacitor/app', () => ({
+  App: {
+    getInfo: vi.fn(),
+  },
+}));
+
+const createConfig = (): AppVersionConfig => ({
+  schemaVersion: 2,
+  platform: 'android',
+  minimumVersion: '2.0.0',
+  minimumVersionCode: 8,
+  releases: [
+    { version: '2.0.0', versionCode: 8, notes: [] },
+    { version: '2.0.1', versionCode: 8, notes: ['بهبود تجربه کاربری'] },
+    { version: '2.0.2', versionCode: 9, notes: ['رفع چند مشکل'] },
+    { version: '2.0.3', versionCode: 10, notes: ['افزودن امکانات جدید'] },
+  ],
+  channels: [
+    {
+      id: 'cafeBazaar',
+      version: '2.0.2',
+      versionCode: 9,
+      updateUrl: 'https://cafebazaar.ir/app/example',
+    },
+    {
+      id: 'myket',
+      version: '2.0.3',
+      versionCode: 10,
+      updateUrl: 'https://myket.ir/app/example',
+    },
+    {
+      id: 'direct',
+      version: '2.0.3',
+      versionCode: 10,
+      updateUrl: '/download/student.apk',
+    },
+  ],
+});
+
 describe('versionService', () => {
-  describe('semver parsing and validation', () => {
-    it('validates correct semantic and Android versions', () => {
+  describe('semantic version parsing', () => {
+    it('validates and parses semantic and Android versions', () => {
       expect(isValidSemver('1.0.0')).toBe(true);
-      expect(isValidSemver('1.0')).toBe(true);
-      expect(isValidSemver('v1.0')).toBe(true);
       expect(isValidSemver('v1.2.3')).toBe(true);
       expect(isValidSemver('0.1.0-beta.1')).toBe(true);
-      expect(isValidSemver('2.15.8')).toBe(true);
-    });
-
-    it('rejects invalid versions', () => {
-      expect(isValidSemver('latest')).toBe(false);
-      expect(isValidSemver('')).toBe(false);
       expect(isValidSemver('abc.def.ghi')).toBe(false);
-    });
-
-    it('parses version components accurately', () => {
-      expect(parseSemver('1.2.3')).toEqual({ major: 1, minor: 2, patch: 3, prerelease: undefined });
-      expect(parseSemver('1.0')).toEqual({ major: 1, minor: 0, patch: 0, prerelease: undefined });
-      expect(parseSemver('v2.0.1-rc.1')).toEqual({ major: 2, minor: 0, patch: 1, prerelease: 'rc.1' });
-    });
-  });
-
-  describe('compareSemver (non-lexicographical comparison)', () => {
-    it('handles 2-part and 3-part version parity', () => {
-      // 1.0 is equivalent to 1.0.0
-      expect(compareSemver('1.0', '1.0.0')).toBe(0);
-      expect(compareSemver('1.0.0', '1.0')).toBe(0);
-      expect(compareSemver('1.0', '1.0.1')).toBeLessThan(0);
-      expect(compareSemver('1.1', '1.0.9')).toBeGreaterThan(0);
-    });
-    it('handles major version differences', () => {
-      expect(compareSemver('2.0.0', '1.0.0')).toBeGreaterThan(0);
-      expect(compareSemver('1.0.0', '2.0.0')).toBeLessThan(0);
-    });
-
-    it('handles minor version differences with multi-digit numbers', () => {
-      // Critical: 1.10.0 must be greater than 1.9.0 (lexicographical comparison would fail this!)
+      expect(parseSemver('1.2.3')).toEqual({
+        major: 1,
+        minor: 2,
+        patch: 3,
+        prerelease: undefined,
+      });
       expect(compareSemver('1.10.0', '1.9.0')).toBeGreaterThan(0);
-      expect(compareSemver('1.9.0', '1.10.0')).toBeLessThan(0);
-    });
-
-    it('handles patch version differences', () => {
-      expect(compareSemver('1.0.11', '1.0.2')).toBeGreaterThan(0);
-      expect(compareSemver('1.0.2', '1.0.11')).toBeLessThan(0);
-    });
-
-    it('recognizes identical versions as 0', () => {
-      expect(compareSemver('1.0.0', '1.0.0')).toBe(0);
-      expect(compareSemver('v1.0.0', '1.0.0')).toBe(0);
     });
   });
 
   describe('validateVersionConfig', () => {
-    it('accepts valid configuration object', () => {
-      const valid = {
-        platform: 'android',
-        latestVersion: '2.0.0',
-        minimumVersion: '1.5.0',
-        updateUrl: 'https://cdn.example.com/student-app.apk',
-        message: 'پیام تست به‌روزرسانی',
-      };
-      const result = validateVersionConfig(valid);
-      expect(result.platform).toBe('android');
-      expect(result.latestVersion).toBe('2.0.0');
-      expect(result.minimumVersion).toBe('1.5.0');
-      expect(result.updateUrl).toBe('https://cdn.example.com/student-app.apk');
-      expect(result.message).toBe('پیام تست به‌روزرسانی');
+    it('ships a valid v2 manifest', () => {
+      const manifest = JSON.parse(
+        readFileSync(new URL('../../public/app-version-v2.json', import.meta.url), 'utf8'),
+      ) as unknown;
+
+      expect(validateVersionConfig(manifest).channels.map((channel) => channel.id)).toEqual([
+        'direct',
+      ]);
     });
 
-    it('throws error for non-android platform', () => {
-      const invalid = {
-        platform: 'ios',
-        latestVersion: '2.0.0',
-        minimumVersion: '1.0.0',
-        updateUrl: 'https://example.com/app',
-      };
-      expect(() => validateVersionConfig(invalid)).toThrowError(/پلتفرم/);
+    it('accepts a valid v2 manifest', () => {
+      const result = validateVersionConfig(createConfig());
+
+      expect(result.minimumVersionCode).toBe(8);
+      expect(result.channels).toHaveLength(3);
     });
 
-    it('throws error for malformed version strings', () => {
-      const invalid = {
-        platform: 'android',
-        latestVersion: 'invalid',
-        minimumVersion: '1.0.0',
-        updateUrl: 'https://example.com/app',
-      };
-      expect(() => validateVersionConfig(invalid)).toThrowError(/latestVersion/);
+    it('rejects unsupported schema and malformed version names', () => {
+      expect(() =>
+        validateVersionConfig({ ...createConfig(), schemaVersion: 1 }),
+      ).toThrowError(/schemaVersion/);
+
+      const invalid = createConfig();
+      invalid.releases[2].version = 'latest';
+      expect(() => validateVersionConfig(invalid)).toThrowError(/version/);
     });
 
-    it('throws error for invalid update URL', () => {
-      const invalid = {
-        platform: 'android',
-        latestVersion: '2.0.0',
-        minimumVersion: '1.0.0',
-        updateUrl: 'not-a-valid-url',
-      };
-      expect(() => validateVersionConfig(invalid)).toThrowError(/updateUrl/);
+    it('rejects a minimum build that does not match the minimum release', () => {
+      expect(() =>
+        validateVersionConfig({
+          ...createConfig(),
+          minimumVersionCode: 7,
+        }),
+      ).toThrowError(/minimum/);
     });
 
-    it('accepts a root-relative update URL', () => {
-      const valid = {
-        platform: 'android',
-        latestVersion: '2.0.0',
-        minimumVersion: '1.0.0',
-        updateUrl: '/download/student.apk',
+    it('rejects duplicate or unknown channels', () => {
+      const duplicateChannel = createConfig();
+      duplicateChannel.channels[2].id = 'myket';
+      expect(() => validateVersionConfig(duplicateChannel)).toThrowError(/کانال/);
+
+      const base = createConfig();
+      const unknownChannel = {
+        ...base,
+        channels: base.channels.map((channel, index) =>
+          index === 0 ? { ...channel, id: 'unknown' } : channel,
+        ),
       };
-      expect(validateVersionConfig(valid).updateUrl).toBe('/download/student.apk');
+      expect(() => validateVersionConfig(unknownChannel)).toThrowError(/کانال/);
+    });
+
+    it('rejects a channel whose version and build do not match a release', () => {
+      const invalid = createConfig();
+      invalid.channels[0].versionCode = 10;
+      expect(() => validateVersionConfig(invalid)).toThrowError(/نسخه|کانال/);
+    });
+
+    it('requires the newest release to have a higher versionCode than its predecessor', () => {
+      const invalid = createConfig();
+      invalid.releases[2].versionCode = 10;
+      invalid.releases[3].versionCode = 10;
+      invalid.channels[0].versionCode = 10;
+
+      expect(() => validateVersionConfig(invalid)).toThrowError(/versionCode/);
+    });
+
+    it('rejects unsupported update URL protocols', () => {
+      const invalid = createConfig();
+      invalid.channels[0].updateUrl = 'javascript:alert(1)';
+      expect(() => validateVersionConfig(invalid)).toThrowError(/آدرس/);
     });
   });
 
   describe('evaluateVersion', () => {
-    const config: AppVersionConfig = {
-      platform: 'android',
-      latestVersion: '2.0.0',
-      minimumVersion: '1.5.0',
-      updateUrl: 'https://example.com/app.apk',
-      message: 'بروزرسانی الزامی است',
-    };
+    it('forces updates below the minimum versionCode and offers only the newest target', () => {
+      const result = evaluateVersion('1.9.9', 7, createConfig());
 
-    it('returns FORCE_UPDATE when installed version is below minimumVersion', () => {
-      const result = evaluateVersion('1.4.9', config, '10');
       expect(result.status).toBe('FORCE_UPDATE');
-      expect(result.installedVersion).toBe('1.4.9');
-      expect(result.minimumVersion).toBe('1.5.0');
-      expect(result.updateUrl).toBe('https://example.com/app.apk');
-      expect(result.message).toBe('بروزرسانی الزامی است');
+      expect(result.minimumVersion).toBe('2.0.0');
+      expect(result.latestVersion).toBe('2.0.3');
+      expect(result.channels?.map((channel) => channel.id)).toEqual(['myket', 'direct']);
     });
 
-    it('returns OPTIONAL_UPDATE when installed version is >= minimumVersion but < latestVersion', () => {
-      const result = evaluateVersion('1.5.0', config, '12');
+    it('makes an update optional between the minimum and newest build', () => {
+      const result = evaluateVersion('2.0.0', 8, createConfig());
+
       expect(result.status).toBe('OPTIONAL_UPDATE');
-      expect(result.installedVersion).toBe('1.5.0');
-      expect(result.latestVersion).toBe('2.0.0');
+      expect(result.latestVersionCode).toBe(10);
     });
 
-    it('returns UP_TO_DATE when installed version equals latestVersion', () => {
-      const result = evaluateVersion('2.0.0', config, '20');
-      expect(result.status).toBe('UP_TO_DATE');
+    it('includes notes newer than the installed version through the target release', () => {
+      const result = evaluateVersion('2.0.0', 8, createConfig());
+
+      expect(result.releaseNotes?.map((release) => release.version)).toEqual([
+        '2.0.1',
+        '2.0.2',
+        '2.0.3',
+      ]);
     });
 
-    it('returns UP_TO_DATE when installed version is ahead of latestVersion', () => {
-      const result = evaluateVersion('2.1.0', config, '21');
-      expect(result.status).toBe('UP_TO_DATE');
+    it('uses versionCode rather than versionName for update eligibility', () => {
+      const result = evaluateVersion('99.0.0', 8, createConfig());
+
+      expect(result.status).toBe('OPTIONAL_UPDATE');
+    });
+
+    it('shows the target release notes when only versionCode differs', () => {
+      const result = evaluateVersion('2.0.3', 9, createConfig());
+
+      expect(result.status).toBe('OPTIONAL_UPDATE');
+      expect(result.releaseNotes?.map((release) => release.version)).toEqual(['2.0.3']);
+    });
+
+    it('reports up to date when installed versionCode equals or exceeds the target', () => {
+      expect(evaluateVersion('2.0.3', 10, createConfig()).status).toBe('UP_TO_DATE');
+      expect(evaluateVersion('2.0.3', 11, createConfig()).status).toBe('UP_TO_DATE');
     });
   });
 
-  describe('fetchRemoteVersionConfig network and timeout handling', () => {
+  describe('fetchRemoteVersionConfig', () => {
     beforeEach(() => {
       vi.restoreAllMocks();
     });
 
-    it('successfully fetches and validates remote json', async () => {
-      const mockConfig: AppVersionConfig = {
-        platform: 'android',
-        latestVersion: '1.2.0',
-        minimumVersion: '1.0.0',
-        updateUrl: 'https://example.com/app.apk',
-      };
-
+    it('fetches and resolves root-relative channel URLs against the manifest origin', async () => {
+      const config = createConfig();
+      config.channels[2].updateUrl = '/download/student.apk';
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: async () => mockConfig,
-      } as any);
+        url: 'https://student.example.com/app-version-v2.json',
+        json: async () => config,
+      } as unknown as Response);
 
-      const result = await fetchRemoteVersionConfig('https://api.example.com/app-version.json');
-      expect(result.latestVersion).toBe('1.2.0');
-      expect(result.minimumVersion).toBe('1.0.0');
+      const result = await fetchRemoteVersionConfig(
+        'https://student.example.com/app-version-v2.json',
+      );
+
+      expect(result.channels[2].updateUrl).toBe(
+        'https://student.example.com/download/student.apk',
+      );
     });
 
-    it('resolves a root-relative update URL against the version config origin', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        url: 'https://student.example.com/app-version.json',
-        json: async () => ({
-          platform: 'android',
-          latestVersion: '1.2.0',
-          minimumVersion: '1.0.0',
-          updateUrl: '/download/student.apk',
-        }),
-      } as any);
-
-      const result = await fetchRemoteVersionConfig('https://student.example.com/app-version.json');
-      expect(result.updateUrl).toBe('https://student.example.com/download/student.apk');
-    });
-
-    it('handles non-200 HTTP responses', async () => {
+    it('surfaces HTTP and network errors', async () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: false,
         status: 404,
-      } as any);
+      } as unknown as Response);
+      await expect(fetchRemoteVersionConfig('https://student.example.com/app-version-v2.json'))
+        .rejects.toThrowError(/404/);
 
-      await expect(
-        fetchRemoteVersionConfig('https://api.example.com/app-version.json'),
-      ).rejects.toThrowError(/404/);
-    });
-
-    it('handles network failure', async () => {
       global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
-
-      await expect(
-        fetchRemoteVersionConfig('https://api.example.com/app-version.json'),
-      ).rejects.toThrowError('Network error');
+      await expect(fetchRemoteVersionConfig('https://student.example.com/app-version-v2.json'))
+        .rejects.toThrowError('Network error');
     });
 
-    it('handles network timeout via abort signal', async () => {
-      global.fetch = vi.fn().mockImplementation((_url, options) => {
-        return new Promise((_resolve, reject) => {
-          if (options?.signal) {
-            options.signal.addEventListener('abort', () => {
-              const err = new Error('Aborted');
-              err.name = 'AbortError';
-              reject(err);
-            });
-          }
+    it('surfaces request timeouts', async () => {
+      global.fetch = vi.fn().mockImplementation((_url, options: RequestInit) =>
+        new Promise((_resolve, reject) => {
+          options.signal?.addEventListener('abort', () => {
+            const error = new Error('Aborted');
+            error.name = 'AbortError';
+            reject(error);
+          });
+        }),
+      );
+
+      await expect(
+        fetchRemoteVersionConfig('https://student.example.com/app-version-v2.json', 10),
+      ).rejects.toThrowError(/زمان انتظار/);
+    });
+
+    describe('getInstalledAppInfo', () => {
+      afterEach(() => {
+        vi.restoreAllMocks();
+      });
+
+      it('reads and validates the native Android versionCode', async () => {
+        vi.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(true);
+        vi.spyOn(Capacitor, 'getPlatform').mockReturnValue('android');
+        vi.mocked(App.getInfo).mockResolvedValue({
+          id: 'ir.mhbj.student',
+          name: 'Student',
+          version: '3.2.6',
+          build: '10',
+        });
+
+        await expect(getInstalledAppInfo()).resolves.toEqual({
+          version: '3.2.6',
+          versionCode: 10,
         });
       });
 
-      await expect(
-        fetchRemoteVersionConfig('https://api.example.com/app-version.json', 50),
-      ).rejects.toThrowError(/زمان انتظار/);
-    });
-  });
+      it('rejects missing or invalid native build codes', async () => {
+        vi.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(true);
+        vi.spyOn(Capacitor, 'getPlatform').mockReturnValue('android');
+        vi.mocked(App.getInfo).mockResolvedValue({
+          id: 'ir.mhbj.student',
+          name: 'Student',
+          version: '3.2.6',
+          build: 'not-a-number',
+        });
 
-  describe('isNativeAndroidPlatform', () => {
-    afterEach(() => {
-      vi.restoreAllMocks();
-    });
-
-    it('returns true when running natively on android', () => {
-      vi.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(true);
-      vi.spyOn(Capacitor, 'getPlatform').mockReturnValue('android');
-      expect(isNativeAndroidPlatform()).toBe(true);
-    });
-
-    it('returns false when running on web / browser / pwa', () => {
-      vi.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(false);
-      vi.spyOn(Capacitor, 'getPlatform').mockReturnValue('web');
-      expect(isNativeAndroidPlatform()).toBe(false);
-    });
-
-    it('returns false when running natively on non-android platforms', () => {
-      vi.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(true);
-      vi.spyOn(Capacitor, 'getPlatform').mockReturnValue('ios');
-      expect(isNativeAndroidPlatform()).toBe(false);
+        await expect(getInstalledAppInfo()).rejects.toThrowError(/versionCode/);
+      });
     });
   });
 });

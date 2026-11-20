@@ -99,6 +99,10 @@ const borderStyles = {
           'fixed inset-x-0 bottom-0 z-50 max-h-[90vh] flex flex-col bg-[#121722] rounded-t-3xl max-w-lg mx-auto',
           borderStyles[props.borderColor],
         ]"
+        role="dialog"
+        aria-modal="true"
+        :aria-label="title || 'پنجره محاوره‌ای'"
+        dir="rtl"
       >
         <!-- Top Drag Handle -->
         <div class="pt-3 pb-2 flex justify-center cursor-pointer" @click="emit('close')">

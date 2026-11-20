@@ -3,7 +3,7 @@ import vue from '@vitejs/plugin-vue';
 import { VitePWA } from 'vite-plugin-pwa';
 import path from 'path';
 
-export default defineConfig(({ mode }) => {
+export default defineConfig(({ mode, command }) => {
   const envDir = path.resolve(__dirname, '../..');
   const env = loadEnv(mode, envDir);
   const apiBaseUrl = env.VITE_API_BASE_URL;
@@ -16,6 +16,13 @@ export default defineConfig(({ mode }) => {
   }
   if (!env.VITE_APP_VERSION_URL) {
     throw new Error('VITE_APP_VERSION_URL must be configured in frontend/.env.');
+  }
+  const versionConfigPath = new URL(
+    env.VITE_APP_VERSION_URL,
+    'https://version-config.invalid',
+  ).pathname;
+  if (command === 'build' && !versionConfigPath.endsWith('/app-version-v2.json')) {
+    throw new Error('VITE_APP_VERSION_URL must point to app-version-v2.json for new Android builds.');
   }
 
   const apiProxyTarget = env.VITE_API_PROXY_TARGET || new URL(apiBaseUrl).origin;

@@ -2,6 +2,26 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { setActivePinia, createPinia } from 'pinia';
 import { useVersionStore } from './version';
 import * as versionService from '../services/versionService';
+import type { AppVersionConfig } from '../services/versionService';
+
+const config: AppVersionConfig = {
+  schemaVersion: 2,
+  platform: 'android',
+  minimumVersion: '1.0.0',
+  minimumVersionCode: 1,
+  releases: [
+    { version: '1.0.0', versionCode: 1, notes: [] },
+    { version: '1.1.0', versionCode: 2, notes: ['بهبود عملکرد'] },
+  ],
+  channels: [
+    {
+      id: 'direct',
+      version: '1.1.0',
+      versionCode: 2,
+      updateUrl: 'https://example.com/student.apk',
+    },
+  ],
+};
 
 describe('useVersionStore', () => {
   beforeEach(() => {
@@ -13,7 +33,7 @@ describe('useVersionStore', () => {
     vi.restoreAllMocks();
   });
 
-  it('bypasses remote check and reports UP_TO_DATE when running on web / PWA', async () => {
+  it('bypasses remote checks on web and PWA', async () => {
     vi.spyOn(versionService, 'isNativeAndroidPlatform').mockReturnValue(false);
     const fetchSpy = vi.spyOn(versionService, 'fetchRemoteVersionConfig');
 
@@ -28,18 +48,19 @@ describe('useVersionStore', () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  it('performs version check and identifies FORCE_UPDATE when running on native Android', async () => {
+  it('checks the v2 manifest and identifies a forced update by versionCode', async () => {
     vi.spyOn(versionService, 'isNativeAndroidPlatform').mockReturnValue(true);
     vi.spyOn(versionService, 'getInstalledAppInfo').mockResolvedValue({
-      version: '1.0.0',
-      build: '1',
+      version: '0.9.0',
+      versionCode: 1,
     });
-    vi.spyOn(versionService, 'resolveVersionConfigUrl').mockReturnValue('/app-version.json');
+    vi.spyOn(versionService, 'resolveVersionConfigUrl').mockReturnValue(
+      'https://example.com/app-version-v2.json',
+    );
     vi.spyOn(versionService, 'fetchRemoteVersionConfig').mockResolvedValue({
-      platform: 'android',
-      latestVersion: '2.0.0',
-      minimumVersion: '1.5.0',
-      updateUrl: 'https://example.com/app.apk',
+      ...config,
+      minimumVersion: '1.1.0',
+      minimumVersionCode: 2,
     });
 
     const store = useVersionStore();
@@ -48,5 +69,40 @@ describe('useVersionStore', () => {
     expect(result.status).toBe('FORCE_UPDATE');
     expect(store.isMandatoryUpdate).toBe(true);
     expect(store.isOptionalUpdate).toBe(false);
+  });
+
+  it('turns installed-app-info failures into a visible check error', async () => {
+    vi.spyOn(versionService, 'isNativeAndroidPlatform').mockReturnValue(true);
+    vi.spyOn(versionService, 'getInstalledAppInfo').mockRejectedValue(
+      new Error('versionCode unavailable'),
+    );
+
+    const store = useVersionStore();
+    const result = await store.checkVersion();
+
+    expect(result.status).toBe('ERROR');
+    expect(result.error).toBe('versionCode unavailable');
+    expect(store.hasError).toBe(true);
+    expect(store.isChecking).toBe(false);
+  });
+
+  it('opens only a channel included in the current update result', async () => {
+    vi.spyOn(versionService, 'isNativeAndroidPlatform').mockReturnValue(true);
+    vi.spyOn(versionService, 'getInstalledAppInfo').mockResolvedValue({
+      version: '1.0.0',
+      versionCode: 1,
+    });
+    vi.spyOn(versionService, 'resolveVersionConfigUrl').mockReturnValue(
+      'https://example.com/app-version-v2.json',
+    );
+    vi.spyOn(versionService, 'fetchRemoteVersionConfig').mockResolvedValue(config);
+    const openSpy = vi.spyOn(versionService, 'openUpdateUrl').mockImplementation(() => {});
+
+    const store = useVersionStore();
+    await store.checkVersion();
+    store.performUpdate('direct');
+
+    expect(openSpy).toHaveBeenCalledWith('https://example.com/student.apk');
+    expect(() => store.performUpdate('myket')).toThrowError(/وجود ندارد/);
   });
 });

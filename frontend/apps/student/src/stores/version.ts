@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import {
   type VersionCheckResult,
+  type UpdateChannelId,
   resolveVersionConfigUrl,
   fetchRemoteVersionConfig,
   getInstalledAppInfo,
@@ -37,16 +38,23 @@ export const useVersionStore = defineStore('app-version', () => {
       return skippedResult;
     }
 
-    const { version: installedVersion, build: installedBuild } = await getInstalledAppInfo();
-
+    let installedVersion = 'unknown';
+    let installedBuild: string | undefined;
     try {
+      const installedInfo = await getInstalledAppInfo();
+      installedVersion = installedInfo.version;
+      installedBuild = String(installedInfo.versionCode);
       const url = resolveVersionConfigUrl();
       const config = await fetchRemoteVersionConfig(url);
-      const evalResult = evaluateVersion(installedVersion, config, installedBuild);
+      const evalResult = evaluateVersion(
+        installedInfo.version,
+        installedInfo.versionCode,
+        config,
+      );
       result.value = evalResult;
       return evalResult;
-    } catch (err: any) {
-      const message = err.message || 'خطا در بررسی نسخه برنامه';
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'خطا در بررسی نسخه برنامه';
       checkError.value = message;
       const errorResult: VersionCheckResult = {
         status: 'ERROR',
@@ -65,10 +73,12 @@ export const useVersionStore = defineStore('app-version', () => {
     isOptionalUpdateDismissed.value = true;
   }
 
-  function performUpdate(): void {
-    if (result.value?.updateUrl) {
-      openUpdateUrl(result.value.updateUrl);
+  function performUpdate(channelId: UpdateChannelId): void {
+    const channel = result.value?.channels?.find((item) => item.id === channelId);
+    if (!channel) {
+      throw new Error(`کانال به‌روزرسانی "${channelId}" در نتیجه فعلی وجود ندارد.`);
     }
+    openUpdateUrl(channel.updateUrl);
   }
 
   return {
